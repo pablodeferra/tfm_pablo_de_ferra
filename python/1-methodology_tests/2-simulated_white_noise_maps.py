@@ -9,12 +9,8 @@ from data import data, path_map, masks, path_masks
 
 nside = 512
 
-# QUIJOTE: N_obs (I): map[3],   N_obs (Q): map[4],   N_obs (U): map[4],   N_obs (QU): map[-]
-# WMAP:    N_obs (I): map_2[0], N_obs (Q): map_2[1], N_obs (U): map_2[3], N_obs (QU): map_2[2]
-# Planck:  N_obs (I): map[3],   N_obs (Q): map[3],   N_obs (U): map[3],   N_obs (QU): map[-]
-
-def white_noise_maps(data, nside, experiment_select="all", band_select="all"):
-    """Generate 100 white noise realisations for experiments and bands in data.
+def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_sim=100):
+    """Generate white noise realizations for experiments and bands in data.
 
     Parameters
     ----------
@@ -26,6 +22,8 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all"):
         If "all", generate maps for all experiments. Otherwise, only for the given experiment.
     band_select : str, list of str, or "all", default "all"
         If "all", generate maps for all bands. Otherwise, only for the given band(s).
+    n_sim : int, default 100
+        Number of white noise realizations to generate.
     """
 
     npix = hp.nside2npix(nside)
@@ -37,12 +35,12 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all"):
         print(f"\nRunning {experiment}...")
 
         for band, band_info in bands.items():
-            # --- filtro de bandas ---
+            # --- band filter ---
             if band_select != "all":
                 if isinstance(band_select, (list, tuple, set)):
                     if band not in band_select:
                         continue
-                else:  # caso string
+                else:  # case string
                     if band != band_select:
                         continue
 
@@ -85,9 +83,9 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all"):
                     sigma_i = band_info['noise_I'].value / np.sqrt(nobs_i)
                     sigma_qu = band_info['noise_QU'].value / np.sqrt(nobs_qu)
 
-                # Generate 100 white noise realisations
+                # Generate n_sim white noise realizations
                 noise_map = np.zeros([3, npix])
-                for ii in tqdm(range(100), desc='generating maps'):
+                for ii in tqdm(range(n_sim), desc='generating maps'):
                     if experiment == "WMAP":
                         noise_map[0] = np.random.normal(0, sigma_i, npix)
                         noise_map[1] = np.random.normal(0, sigma_q, npix)
@@ -107,6 +105,5 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all"):
                 print(f" ! Band {band} not found in {experiment}")
 
 
-# white_noise_maps(data, nside)
-white_noise_maps(data, nside, experiment_select='WMAP', band_select=['23', '33', '41', '61', '94'])
-white_noise_maps(data, nside, experiment_select='Planck', band_select=['100', '143', '217', '353'])
+# Example run
+white_noise_maps(data, nside, experiment_select='QUIJOTE', band_select='11', n_sim=1)

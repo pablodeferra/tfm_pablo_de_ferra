@@ -508,25 +508,95 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         ax_main.set_xlabel('Multipole l')
         ax_main.set_ylabel(f'C_l {spectra_labels[i]}')
         ax_main.legend()
-        ax_main.grid(True)
         ax_main.set_title(f'{spectra_labels[i]} Spectrum')
         
         # Zoom plot
         ell_zoom = np.arange(1300, 1501)
-        ax_zoom.plot(ell_zoom, cl_data[i][1300:1501], label='Data', color='C0')
-        ax_zoom.plot(ell_zoom, cl_sim[i][1300:1501], label='Simulated', color='C1')
-        ax_zoom.plot(ell_zoom, cl_sim_noise[i][1300:1501], label='Sim + Noise', color='C2')
-        ax_zoom.plot(ell_zoom, cl_noise[i][1300:1501], label='Noise Only', color='C3')
+        data_zoom = cl_data[i][1300:1501]
+        sim_noise_zoom = cl_sim_noise[i][1300:1501]
+        noise_zoom = cl_noise[i][1300:1501]
+        
+        ax_zoom.plot(ell_zoom, data_zoom, label='Data', color='C0')
+        ax_zoom.plot(ell_zoom, sim_noise_zoom, label='Sim + Noise', color='C2')
+        ax_zoom.plot(ell_zoom, noise_zoom, label='Noise Only', color='C3')
         ax_zoom.set_yscale('log')
         ax_zoom.set_xlabel('Multipole l')
         ax_zoom.set_ylabel(f'C_l {spectra_labels[i]}')
         ax_zoom.legend()
-        ax_zoom.grid(True)
-        ax_zoom.set_title(f'{spectra_labels[i]} Spectrum (Zoom 1300-1500)')
+        ax_zoom.set_title(f'{spectra_labels[i]} Spectrum')
+        
+		# Y-axis range
+        all_vals = np.concatenate([data_zoom, sim_noise_zoom, noise_zoom])
+        y_min = np.min(all_vals[all_vals > 0]) * 0.5  
+        y_max = np.max(all_vals) * 2.0               
+        ax_zoom.set_ylim(y_min, y_max)
+
+    # --- Compute means and ratio ---
+        mean_data = np.mean(data_zoom)
+        mean_sim_noise = np.mean(sim_noise_zoom)
+        ratio = mean_data / mean_sim_noise if mean_sim_noise != 0 else np.nan
+        print(f"{spectra_labels[i]} zoom range (ell=1300-1500): "
+              f"mean(Data)={mean_data:.3e}, mean(Sim+Noise)={mean_sim_noise:.3e}, "
+              f"ratio={ratio:.3f}")
     
     plt.tight_layout()
     plt.show()
-	
 
 
+def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nside=512, min_val=None, max_val=None):
+    """
+    Plot Mollweide projection (hp.mollview) of the real map, simulated map, and noise map
+    for a chosen component (I, Q, or U), WITHOUT applying a mask.
     
+    Parameters
+    ----------
+    map_info : dict
+        Dictionary with map information (e.g., data['WMAP']['23'] or data['Planck']['30'])
+    component : str
+        Which component to plot: 'I', 'Q', or 'U' (default: 'I')
+    use_white_noise : bool
+        If True, use white noise simulation; if False, use regular noise simulation
+    target_nside : int
+        NSIDE to downgrade all maps to (default 512)
+    min_val : float or None
+        Minimum value for color scale (optional, if None let healpy choose)
+    max_val : float or None
+        Maximum value for color scale (optional, if None let healpy choose)
+    """
+    # Map component index
+    comp_dict = {'I': 0, 'Q': 1, 'U': 2}
+    if component not in comp_dict:
+        raise ValueError("Component must be one of 'I', 'Q', or 'U'")
+    comp_idx = comp_dict[component]
+    
+    # Load maps
+    map_data = hp.read_map(map_info['path'], field=(0,1,2), verbose=False)
+    map_sim = hp.read_map(map_info['path_simulated'], field=(0,1,2), verbose=False)
+    
+    noise_file = map_info['white_noise_simulation_1'] if use_white_noise else map_info['noise_simulation_1']
+    noise_path = map_info['path_white_noise_simulations'] + noise_file if use_white_noise else map_info['path_noise_simulations'] + noise_file
+    map_noise = hp.read_map(noise_path, field=(0,1,2), verbose=False)
+    
+    # Ensure NSIDE consistency
+    def downgrade_map(m):
+        if hp.get_nside(m) != target_nside:
+            return np.array([hp.ud_grade(m_ch, target_nside) for m_ch in m])
+        return m
+    
+    map_data = downgrade_map(map_data)
+    map_sim = downgrade_map(map_sim)
+    map_noise = downgrade_map(map_noise)
+    
+    # Extract chosen component
+    map_data_comp = map_data[comp_idx]
+    map_sim_comp = map_sim[comp_idx]
+    map_noise_comp = map_noise[comp_idx]
+    
+    # Plot in a single figure with 3 subplots
+    fig = plt.figure(figsize=(6, 10))
+    
+    hp.mollview(map_data_comp, title=f"Data ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,1), fig=fig)
+    hp.mollview(map_sim_comp, title=f"Simulated ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,2), fig=fig)
+    hp.mollview(map_noise_comp, title=f"Noise ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,3), fig=fig)
+    
+    plt.show()

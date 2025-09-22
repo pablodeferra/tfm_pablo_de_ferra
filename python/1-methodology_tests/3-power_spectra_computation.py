@@ -260,6 +260,10 @@ def compute_all_power_spectra(data, band_list, mask, b,
                 sky_i_path = data[exp_i][band_i]['path_simulated']
                 sky_map_i = hp.read_map(sky_i_path, field=[0,1,2])
                 sky_map_i = np.where(sky_map_i == hp.UNSEEN, 0, sky_map_i)
+                
+                # --- Planck data in mK_CMB ---
+                if exp_i == 'Planck':
+                    sky_map_i *= 1e3
 
             # --- choose noise path ---
             if use_white_noise:
@@ -273,6 +277,10 @@ def compute_all_power_spectra(data, band_list, mask, b,
             noise_path = os.path.join(noise_dir, noise_fname)
             noise_map = hp.read_map(noise_path, field=[0,1,2])
             noise_map = np.where(noise_map == hp.UNSEEN, 0, noise_map)
+
+            # --- Planck data in mK_CMB ---
+            if exp_i == 'Planck':
+                noise_map *= 1e3
 
             if isinstance(sky_map_i, int):  # if only_noise=True
                 sky_map_i = np.zeros_like(noise_map)
@@ -296,6 +304,10 @@ def compute_all_power_spectra(data, band_list, mask, b,
                     sky_j_path = data[exp_j][band_j]['path_simulated']
                     sky_map_j = hp.read_map(sky_j_path, field=[0,1,2])
                     sky_map_j = np.where(sky_map_j == hp.UNSEEN, 0, sky_map_j)
+                    
+                    # --- Planck data in mK_CMB ---
+                    if exp_j == 'Planck':
+                        sky_map_j *= 1e3
 
                 if use_white_noise:
                     noise_dir = data[exp_j][band_j]['path_white_noise_simulations']
@@ -308,6 +320,10 @@ def compute_all_power_spectra(data, band_list, mask, b,
                 noise_path = os.path.join(noise_dir, noise_fname)
                 noise_map = hp.read_map(noise_path, field=[0,1,2])
                 noise_map = np.where(noise_map == hp.UNSEEN, 0, noise_map)
+
+                # --- Planck data in mK_CMB ---
+                if exp_j == 'Planck':
+                    noise_map *= 1e3
 
                 if isinstance(sky_map_j, int):  # if only_noise=True
                     sky_map_j = np.zeros_like(noise_map)

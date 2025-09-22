@@ -737,7 +737,8 @@ from data import data, path_map, masks, path_masks
 import functions 
 
 
-map_info = data['WMAP']['23']
+map_info = data['QUIJOTE']['11']
 mask_path = masks['quijote_galcut']['galcut10']['path']
 
 functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True)
+# functions.plot_maps_mollview(map_info, component='I', use_white_noise=True)

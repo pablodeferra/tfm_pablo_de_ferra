@@ -4,6 +4,7 @@ import healpy as hp
 from astropy import units as u
 import os
 from data import data
+import pysm3.units as pysm_units
 
 nside = 512
 path_save = '/home/pablo/Desktop/Paper/maps/PYSM/'
@@ -22,6 +23,7 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
     band_select : str, list of str, or "all", default "all"
         If "all", generate maps for all bands. Otherwise, only for the given band(s).
     """
+
     # Sky model
     sky = pysm3.Sky(nside=nside, preset_strings=['s1', 'd1', 'a1', 'f1', 'c1'])
 
@@ -53,15 +55,24 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
                 map_IQU, fwhm=fwhm_band
             )
 
+            # --- Convert units depending on experiment ---
+            if experiment in ['WMAP', 'QUIJOTE']:
+                conversion_factor = pysm3.bandpass_unit_conversion(freq_band, output_unit=pysm_units.mK_CMB)
+                map_final = map_IQU_fwhm * conversion_factor
+            elif experiment == 'Planck':
+                conversion_factor = pysm3.bandpass_unit_conversion(freq_band, output_unit=pysm_units.K_CMB)
+                map_final = map_IQU_fwhm * conversion_factor
+            else:
+                map_final = map_IQU_fwhm
+
             # Name and save
             freq_str = str(band_name)
             fwhm_str = f"{int(round(band_info['fwhm'].value * 100)):04d}"
-            filename = f"total_{freq_str}GHz_n{nside}_fwhm_{fwhm_str}.fits"
+            filename = f"{experiment}_{freq_str}GHz_n{nside}_fwhm_{fwhm_str}.fits"
 
-            hp.write_map(os.path.join(path_save, filename), map_IQU_fwhm, overwrite=True)
+            # Save map without units in header
+            hp.write_map(os.path.join(path_save, filename), map_final, overwrite=True)
             print(f"Saved: {filename}")
 
+generate_sky_maps(nside, path_save, experiment_select='QUIJOTE', band_select='11')
 
-# generate_sky_maps(nside, path_save)
-generate_sky_maps(nside, path_save, experiment_select='WMAP', band_select=['23', '33', '41', '61', '94'])
-generate_sky_maps(nside, path_save, experiment_select='Planck', band_select=['30', '44', '70', '100', '143', '217', '353'])

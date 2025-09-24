@@ -418,6 +418,74 @@ def cmb_unit_conversion(nuGHz,option='KCMB2KRJ',help=False):
 
     return fac
 
+
+# ============================================================================================
+
+'''
+# ====================================
+# 3
+# ====================================
+# '''
+
+def read_spectra_from_fits(path_fits, band_list):
+    """
+    Read power spectra from a FITS file into a dictionary.
+
+    The function automatically detects whether the FITS file contains:
+    - Simple spectra (columns: 'ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB')
+    - Averaged spectra with errors (columns: 'TT_MEAN','TT_STD', ...)
+
+    Depending on the case, the returned dictionary has one of the following forms:
+
+    Case 1: simple spectra
+        spectra['band_i_band_j']['TT'] -> array
+
+    Case 2: average+std spectra
+        spectra['band_i_band_j']['TT']['MEAN'] -> array
+        spectra['band_i_band_j']['TT']['STD']  -> array
+
+    Parameters
+    ----------
+    path_fits : str
+        Path to the FITS file containing the spectra.
+    band_list : list of str
+        Ordered list of frequency bands.
+
+    Returns
+    -------
+    spectra_dict : dict
+        Dictionary with spectra for all band pairs.
+    """
+    spectra_dict = {}
+
+    with fits.open(path_fits) as hdul:
+        for band_i in band_list:
+            for band_j in band_list:
+                key = f"{band_i}_{band_j}"
+                hdu = next((h for h in hdul[1:] if h.name == key), None)
+                if hdu is None:
+                    raise ValueError(f"HDU {key} not found in {path_fits}")
+
+                colnames = [c.upper() for c in hdu.data.names]
+                spec_dict = {}
+
+                # Case 2: avg+std
+                if any(name.endswith("_MEAN") for name in colnames):
+                    for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
+                        spec_dict[cl_key] = {
+                            "MEAN": hdu.data[f"{cl_key}_MEAN"],
+                            "STD":  hdu.data[f"{cl_key}_STD"],
+                        }
+
+                # Case 1: simple spectra
+                else:
+                    for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
+                        spec_dict[cl_key] = hdu.data[cl_key]
+
+                spectra_dict[key] = spec_dict
+
+    return spectra_dict
+
 # ============================================================================================
 
 '''
@@ -437,17 +505,17 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 
-def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=1535, target_nside=512):
+def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=1535, target_nside=512, save=False, save_path=None):
     """
     Compute and plot the TT, EE, and BB spectra of a CMB map along with:
     - simulated map
     - simulated map + noise
     - noise only
-    
+
     Parameters
     ----------
     map_info : dict
-        Dictionary with map information (e.g., data['WMAP']['23'] or data['Planck']['30'])
+        Dictionary with map information
     mask_path : str
         Path to the mask FITS file
     use_white_noise : bool
@@ -456,6 +524,10 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         Maximum multipole for spectrum computation
     target_nside : int
         NSIDE to downgrade all maps to (default 512)
+    save : bool
+        If True, saves the figure to save_path
+    save_path : str
+        Directory where to save figures (created if it doesn't exist)
     """
     
     # Load maps
@@ -463,14 +535,15 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     map_sim = hp.read_map(map_info['path_simulated'], field=(0,1,2), verbose=False)
     
     noise_file = map_info['white_noise_simulation_1'] if use_white_noise else map_info['noise_simulation_1']
-    noise_path = map_info['path_white_noise_simulations'] + noise_file if use_white_noise else map_info['path_noise_simulations'] + noise_file
+    noise_path = (map_info['path_white_noise_simulations'] + noise_file 
+                  if use_white_noise else map_info['path_noise_simulations'] + noise_file)
     map_noise = hp.read_map(noise_path, field=(0,1,2), verbose=False)
     
     # Load mask
     mask = hp.read_map(mask_path, verbose=False)
     
     # Ensure all maps have the same NSIDE
-    for i, m in enumerate([map_data, map_sim, map_noise]):
+    for idx, m in enumerate([map_data, map_sim, map_noise]):
         if hp.get_nside(m) != target_nside:
             if m.ndim == 1:
                 map_data = hp.ud_grade(map_data, target_nside)
@@ -492,7 +565,7 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     cl_sim_noise = hp.anafast(map_sim_plus_noise, lmax=lmax)
     cl_noise = hp.anafast(map_noise, lmax=lmax)
     
-    # Create main 3x2 figure for TT, EE, BB
+    # Create figure
     fig, axes = plt.subplots(3, 2, figsize=(14, 12))
     spectra_labels = ['TT', 'EE', 'BB']
     
@@ -505,9 +578,9 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         ax_main.plot(cl_sim_noise[i], label='Sim + Noise', color='C2')
         ax_main.plot(cl_noise[i], label='Noise Only', color='C3')
         ax_main.set_yscale('log')
-        ax_main.set_xlabel('Multipole l')
-        ax_main.set_ylabel(f'C_l {spectra_labels[i]}')
-        ax_main.legend()
+        ax_main.set_xlabel(r'Multipole $\ell$')
+        ax_main.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
+        ax_main.legend(frameon=False)
         ax_main.set_title(f'{spectra_labels[i]} Spectrum')
         
         # Zoom plot
@@ -520,26 +593,42 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         ax_zoom.plot(ell_zoom, sim_noise_zoom, label='Sim + Noise', color='C2')
         ax_zoom.plot(ell_zoom, noise_zoom, label='Noise Only', color='C3')
         ax_zoom.set_yscale('log')
-        ax_zoom.set_xlabel('Multipole l')
-        ax_zoom.set_ylabel(f'C_l {spectra_labels[i]}')
-        ax_zoom.legend()
+        ax_zoom.set_xlabel(r'Multipole $\ell$')
+        ax_zoom.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
+        ax_zoom.legend(frameon=False)
         ax_zoom.set_title(f'{spectra_labels[i]} Spectrum')
         
-		# Y-axis range
+        # Y-axis range
         all_vals = np.concatenate([data_zoom, sim_noise_zoom, noise_zoom])
-        y_min = np.min(all_vals[all_vals > 0]) * 0.5  
-        y_max = np.max(all_vals) * 2.0               
-        ax_zoom.set_ylim(y_min, y_max)
-
-    # --- Compute means and ratio ---
+        positive_vals = all_vals[all_vals > 0]
+        if len(positive_vals) > 0:
+            y_min = np.min(positive_vals) * 0.5
+            y_max = np.max(all_vals) * 2.0
+            ax_zoom.set_ylim(y_min, y_max)
+        
+        # Compute mean and ratio
         mean_data = np.mean(data_zoom)
         mean_sim_noise = np.mean(sim_noise_zoom)
         ratio = mean_data / mean_sim_noise if mean_sim_noise != 0 else np.nan
         print(f"{spectra_labels[i]} zoom range (ell=1300-1500): "
               f"mean(Data)={mean_data:.3e}, mean(Sim+Noise)={mean_sim_noise:.3e}, "
               f"ratio={ratio:.3f}")
+        
+        # Add ratio text
+        ax_zoom.text(0.05, 0.95, f'ratio(Data / Sim+Noise) = {ratio:.3f}',
+                     transform=ax_zoom.transAxes,
+                     fontsize=12, verticalalignment='top',
+                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
     
     plt.tight_layout()
+    
+    if save and save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        map_name = map_info.get('name', 'map')  # Use 'name' key if exists
+        filename = os.path.join(save_path, f"spectra_{map_name}.png")
+        plt.savefig(filename)
+        print(f"Figure saved to {filename}")
+    
     plt.show()
 
 

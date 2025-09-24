@@ -139,13 +139,13 @@ def apply_beam_correction_avg_std(avg_matrix, std_matrix, band_list, data, b):
 
 
 
-# 3. Aplicar corrección de beams
-avg_matrix_corr, std_matrix_corr = apply_beam_correction_avg_std(
-    avg_matrix, std_matrix, band_list, data, b
-)
+# # 3. Aplicar corrección de beams
+# avg_matrix_corr, std_matrix_corr = apply_beam_correction_avg_std(
+#     avg_matrix, std_matrix, band_list, data, b
+# )
 
 
 
-# 5. Apply beam correction
-spectra_matrix_corrected = apply_beam_correction(spectra_matrix, band_list, data, b)
+# # 5. Apply beam correction
+# spectra_matrix_corrected = apply_beam_correction(spectra_matrix, band_list, data, b)
 

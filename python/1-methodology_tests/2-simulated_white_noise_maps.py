@@ -9,7 +9,13 @@ from data import data, path_map, masks, path_masks
 
 nside = 512
 
-def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_sim=100):
+
+import os
+import numpy as np
+import healpy as hp
+from tqdm import tqdm
+
+def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_sim=100, path_map="./"):
     """Generate white noise realizations for experiments and bands in data.
 
     Parameters
@@ -24,6 +30,8 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
         If "all", generate maps for all bands. Otherwise, only for the given band(s).
     n_sim : int, default 100
         Number of white noise realizations to generate.
+    path_map : str, default "./"
+        Root path to store the output maps.
     """
 
     npix = hp.nside2npix(nside)
@@ -40,7 +48,7 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
                 if isinstance(band_select, (list, tuple, set)):
                     if band not in band_select:
                         continue
-                else:  # case string
+                else:
                     if band != band_select:
                         continue
 
@@ -48,23 +56,52 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
                 band_path = band_info['path']
                 print(f" [{experiment}] Band {band} GHz -> {band_path}")
 
-                # Load N_obs depending on experiment
+                # --- QUIJOTE ---
                 if experiment == "QUIJOTE":
-                    nobs = hp.read_map(band_path, field=[3, 4])
-                    nobs_i, nobs_qu = nobs
+                    # Load weights and Q-U covariance maps
+                    wei_i, wei_q, wei_u = hp.read_map(band_path, field=[5,6,7])
+                    cov_qu = hp.read_map(band_path, field=8)
 
-                    nobs_i = np.where(nobs_i == hp.UNSEEN, 0, nobs_i)
-                    nobs_qu = np.where(nobs_qu == hp.UNSEEN, 0, nobs_qu)
+                    # Replace UNSEEN with 0
+                    wei_i = np.where(wei_i == hp.UNSEEN, 0., wei_i)
+                    wei_q = np.where(wei_q == hp.UNSEEN, 0., wei_q)
+                    wei_u = np.where(wei_u == hp.UNSEEN, 0., wei_u)
+                    cov_qu = np.where(cov_qu == hp.UNSEEN, 0., cov_qu)
 
-                    sigma_i = np.zeros_like(nobs_i, dtype=float)
-                    sigma_qu = np.zeros_like(nobs_qu, dtype=float)
+                    # Compute variances from weights
+                    var_i = np.zeros(npix)
+                    var_q = np.zeros(npix)
+                    var_u = np.zeros(npix)
 
-                    valid_i = nobs_i > 0
-                    valid_qu = nobs_qu > 0
+                    mask_i = wei_i > 0
+                    mask_q = wei_q > 0
+                    mask_u = wei_u > 0
 
-                    sigma_i[valid_i] = band_info['noise_I'].value / np.sqrt(nobs_i[valid_i])
-                    sigma_qu[valid_qu] = band_info['noise_QU'].value / np.sqrt(nobs_qu[valid_qu])
+                    var_i[mask_i] = 1.0 / wei_i[mask_i]
+                    var_q[mask_q] = 1.0 / wei_q[mask_q]
+                    var_u[mask_u] = 1.0 / wei_u[mask_u]
 
+                    sigma_i = np.sqrt(var_i)
+
+                    # --- Prepare 2x2 covariance matrices per pixel ---
+                    # Clip COV_QU to ensure positive-definite covariance
+                    cov_qu = np.clip(cov_qu, -np.sqrt(var_q*var_u), np.sqrt(var_q*var_u))
+                    
+                    # Initialize Cholesky matrix
+                    L = np.zeros((npix, 2, 2))
+
+                    # Only compute for pixels with valid variance
+                    valid_pix = (var_q > 0) & (var_u > 0)
+
+                    # Safe Cholesky decomposition
+                    L[valid_pix, 0, 0] = np.sqrt(var_q[valid_pix])
+                    L[valid_pix, 1, 0] = cov_qu[valid_pix] / np.sqrt(var_q[valid_pix])
+                    L[valid_pix, 1, 1] = np.sqrt(var_u[valid_pix] - L[valid_pix, 1, 0]**2)
+
+                    # Ensure no NaNs
+                    L = np.nan_to_num(L, nan=0.0, posinf=0.0, neginf=0.0)
+
+                # --- WMAP ---
                 elif experiment == "WMAP":
                     nobs = hp.read_map(band_path, hdu=2, field=[0,1,2,3])
                     nobs_i, nobs_q, nobs_qu, nobs_u = nobs
@@ -74,28 +111,65 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
                     sigma_q = band_info['noise_QU'].value / np.sqrt(nobs_q_eff)
                     sigma_u = band_info['noise_QU'].value / np.sqrt(nobs_u_eff)
 
+                # --- Planck ---
                 elif experiment == "Planck":
-                    nobs = hp.read_map(band_path, field=[3])
-                    nside_in = hp.get_nside(nobs)
-                    if nside_in != nside:
-                        nobs = hp.ud_grade(nobs, nside_out=nside) * (nside_in / nside)**2 # Sum of the exposure time
-                    nobs_i = nobs_qu = nobs
-                    sigma_i = band_info['noise_I'].value / np.sqrt(nobs_i)
-                    sigma_qu = band_info['noise_QU'].value / np.sqrt(nobs_qu)
+                    # Covariance fields in the FITS: II, IQ, IU, QQ, QU, UU
+                    fields = [4, 5, 6, 7, 8, 9]
+                    cov_maps = [hp.read_map(band_path, field=f) for f in fields]
 
-                # Generate n_sim white noise realizations
-                noise_map = np.zeros([3, npix])
+                    # Resample to target NSIDE if needed
+                    nside_in = hp.get_nside(cov_maps[0])
+                    if nside_in != nside:
+                        factor = (nside_in / nside)**2
+                        cov_maps = [hp.ud_grade(m, nside_out=nside) / factor for m in cov_maps]
+
+                    # Construct 3x3 covariance matrix per pixel
+                    cov_matrix = np.zeros((npix, 3, 3))
+                    cov_matrix[:,0,0], cov_matrix[:,0,1], cov_matrix[:,0,2] = cov_maps[0], cov_maps[1], cov_maps[2]
+                    cov_matrix[:,1,0], cov_matrix[:,1,1], cov_matrix[:,1,2] = cov_maps[1], cov_maps[3], cov_maps[4]
+                    cov_matrix[:,2,0], cov_matrix[:,2,1], cov_matrix[:,2,2] = cov_maps[2], cov_maps[4], cov_maps[5]
+
+                    # Initialize Cholesky matrices
+                    L = np.zeros_like(cov_matrix)
+                    valid_pix = np.zeros(npix, dtype=bool)
+
+                    # Compute Cholesky per pixel with eigenvalue clipping for robustness
+                    for i in range(npix):
+                        try:
+                            w, v = np.linalg.eigh(cov_matrix[i])
+                            w = np.clip(w, 0, None)  # ensure positive semi-definite
+                            cov_matrix[i] = v @ np.diag(w) @ v.T
+                            L[i] = np.linalg.cholesky(cov_matrix[i])
+                            valid_pix[i] = True
+                        except np.linalg.LinAlgError:
+                            L[i] = np.zeros((3,3))
+
+                # --- Generate n_sim white noise realizations ---
                 for ii in tqdm(range(n_sim), desc='generating maps'):
-                    if experiment == "WMAP":
+                    noise_map = np.zeros([3, npix])
+
+                    if experiment == "QUIJOTE":
+                        # I: independent Gaussian noise
+                        noise_map[0] = np.random.normal(0, sigma_i, npix)
+                        # Q,U: correlated Gaussian using Cholesky
+                        z = np.random.normal(size=(npix,2))
+                        noise_map[1:3,:] = np.einsum('ijk,ik->ij', L, z).T
+                        noise_map[1, ~valid_pix] = 0.0
+                        noise_map[2, ~valid_pix] = 0.0
+
+                    elif experiment == "Planck":
+                        # I,Q,U: correlated Gaussian using 3x3 Cholesky
+                        z = np.random.normal(size=(npix,3))
+                        noise_map[:, :] = np.einsum('ijk,ik->ij', L, z).T
+                        noise_map[:, ~valid_pix] = 0.0
+
+                    else:
+                        # WMAP: independent Gaussian noise per component
                         noise_map[0] = np.random.normal(0, sigma_i, npix)
                         noise_map[1] = np.random.normal(0, sigma_q, npix)
                         noise_map[2] = np.random.normal(0, sigma_u, npix)
-                    else:
-                        noise_map[0] = np.random.normal(0, sigma_i, npix)
-                        noise_map[1] = np.random.normal(0, sigma_qu, npix)
-                        noise_map[2] = np.random.normal(0, sigma_qu, npix)
 
-                    # Write map
+                    # --- Save map ---
                     out_dir = os.path.join(path_map, experiment, "noise_simulations", band)
                     os.makedirs(out_dir, exist_ok=True)
                     out_file = os.path.join(out_dir, f"white_noise_{band}ghz_{str(ii+1).zfill(4)}.fits")
@@ -105,5 +179,4 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
                 print(f" ! Band {band} not found in {experiment}")
 
 
-# Example run
-white_noise_maps(data, nside, experiment_select='QUIJOTE', band_select='11', n_sim=1)
+white_noise_maps(data, nside, experiment_select='Planck', band_select='all', n_sim=100, path_map=path_map)

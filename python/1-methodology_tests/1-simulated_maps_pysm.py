@@ -74,5 +74,5 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
             hp.write_map(os.path.join(path_save, filename), map_final, overwrite=True)
             print(f"Saved: {filename}")
 
-generate_sky_maps(nside, path_save, experiment_select='QUIJOTE', band_select='11')
+generate_sky_maps(nside, path_save, experiment_select='QUIJOTE', band_select='all')
 

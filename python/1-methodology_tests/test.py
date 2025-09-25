@@ -59,4 +59,13 @@ band_list = quijote_bands + wmap_bands + planck_bands
 # avg_std_spn_matrix = functions.read_spectra_from_fits(path_avg_std_skyplusnoise, band_list)
 # avg_std_n_matrix = functions.read_spectra_from_fits(path_avg_std_noise, band_list)
 
-functions.plot_band_spectra(path_spectra, band_list, "11", "30", save=False, save_path=save_path)
+# functions.plot_band_spectra(path_spectra, band_list, "11", "30", save=False, save_path=save_path)
+
+
+
+#%%
+
+map_path = data['WMAP']['23']['path']
+
+map_23, h = hp.read_map(map_path, field=[0], hdu=2, h=True)
+

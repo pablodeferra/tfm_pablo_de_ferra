@@ -632,11 +632,12 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     plt.show()
 
 
-def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nside=512, min_val=None, max_val=None):
+def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nside=512, 
+                       min_val=None, max_val=None, save=False, save_path=None):
     """
     Plot Mollweide projection (hp.mollview) of the real map, simulated map, and noise map
     for a chosen component (I, Q, or U), WITHOUT applying a mask.
-    
+
     Parameters
     ----------
     map_info : dict
@@ -648,44 +649,123 @@ def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nsi
     target_nside : int
         NSIDE to downgrade all maps to (default 512)
     min_val : float or None
-        Minimum value for color scale (optional, if None let healpy choose)
+        Minimum value for color scale
     max_val : float or None
-        Maximum value for color scale (optional, if None let healpy choose)
+        Maximum value for color scale
+    save : bool
+        If True, save the figure to save_path
+    save_path : str
+        Directory where to save the figure (created if it doesn't exist)
     """
     # Map component index
     comp_dict = {'I': 0, 'Q': 1, 'U': 2}
     if component not in comp_dict:
         raise ValueError("Component must be one of 'I', 'Q', or 'U'")
     comp_idx = comp_dict[component]
-    
+
     # Load maps
     map_data = hp.read_map(map_info['path'], field=(0,1,2), verbose=False)
     map_sim = hp.read_map(map_info['path_simulated'], field=(0,1,2), verbose=False)
-    
+
     noise_file = map_info['white_noise_simulation_1'] if use_white_noise else map_info['noise_simulation_1']
-    noise_path = map_info['path_white_noise_simulations'] + noise_file if use_white_noise else map_info['path_noise_simulations'] + noise_file
+    noise_path = (map_info['path_white_noise_simulations'] + noise_file 
+                  if use_white_noise else map_info['path_noise_simulations'] + noise_file)
     map_noise = hp.read_map(noise_path, field=(0,1,2), verbose=False)
-    
+
     # Ensure NSIDE consistency
     def downgrade_map(m):
         if hp.get_nside(m) != target_nside:
             return np.array([hp.ud_grade(m_ch, target_nside) for m_ch in m])
         return m
-    
+
     map_data = downgrade_map(map_data)
     map_sim = downgrade_map(map_sim)
     map_noise = downgrade_map(map_noise)
-    
+
     # Extract chosen component
     map_data_comp = map_data[comp_idx]
     map_sim_comp = map_sim[comp_idx]
     map_noise_comp = map_noise[comp_idx]
-    
+
     # Plot in a single figure with 3 subplots
     fig = plt.figure(figsize=(6, 10))
-    
     hp.mollview(map_data_comp, title=f"Data ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,1), fig=fig)
     hp.mollview(map_sim_comp, title=f"Simulated ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,2), fig=fig)
     hp.mollview(map_noise_comp, title=f"Noise ({component})", norm='hist', min=min_val, max=max_val, sub=(3,1,3), fig=fig)
-    
+
+    plt.tight_layout()
+
+    # Save if requested
+    if save and save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        map_name = map_info.get('name', 'map')  # use map name if provided
+        filename = os.path.join(save_path, f"mollview_{map_name}_{component}.png")
+        plt.savefig(filename)
+        print(f"Figure saved to {filename}")
+
+    plt.show()
+
+def plot_band_spectra(path_spectra, band_list, band1, band2, save=False, save_path=None):
+    """
+    Plot TT, EE, BB spectra for the auto of band1, auto of band2,
+    and the cross band1_band2 using spectra_matrix.
+
+    Parameters
+    ----------
+    path_spectra : str
+        Path to the FITS file containing the spectra.
+    band_list : list of str
+        List of all available frequency bands.
+    band1, band2 : str
+        Names of the two bands to compare.
+    save : bool
+        If True, save the figure to save_path
+    save_path : str
+        Directory where to save the figure (created if it doesn't exist)
+    """
+    # Read spectra dictionary
+    spectra_matrix = read_spectra_from_fits(path_spectra, band_list)
+
+    # Keys for the dictionary
+    key_auto1 = f"{band1}_{band1}"
+    key_auto2 = f"{band2}_{band2}"
+    key_cross = f"{band1}_{band2}"
+
+    # Modes to plot
+    modes = ["TT", "EE", "BB"]
+
+    # Create 1x3 figure
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharex=True)
+
+    for i, mode in enumerate(modes):
+        ax = axes[i]
+
+        # ell (multipole)
+        ell = spectra_matrix[key_auto1]["ell_eff"]
+
+        # Auto band1
+        ax.plot(ell, spectra_matrix[key_auto1][mode], label=f"{band1}-{band1}")
+
+        # Auto band2
+        ax.plot(ell, spectra_matrix[key_auto2][mode], label=f"{band2}-{band2}")
+
+        # Cross band1-band2 (absolute value)
+        ax.plot(ell, np.abs(spectra_matrix[key_cross][mode]), label=f"{band1}-{band2}")
+
+        ax.set_title(mode)
+        ax.set_xlabel(r"$\ell$")
+        ax.set_yscale('log')
+        if i == 0:
+            ax.set_ylabel(r"$C_\ell$")
+        ax.legend()
+
+    plt.tight_layout()
+
+    # Save if requested
+    if save and save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        filename = os.path.join(save_path, f"spectra_{band1}_{band2}.png")
+        plt.savefig(filename)
+        print(f"Figure saved to {filename}")
+
     plt.show()

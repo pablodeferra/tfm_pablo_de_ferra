@@ -11,19 +11,17 @@ import re
 nside = 512
 lmax = 2 * nside - 1
 dl = 10
-n_sim = 100 
+n_sim = 5
 
-# --- Choose experiment or band to run ---
-experiment_select = None  # 'QUIJOTE', 'WMAP' or 'Planck'
-band_select = None
+
 mask_select = masks['quijote_galcut']['galcut10']
 mask_name = mask_select['name']
 use_simulated_maps = True
 use_white_noise = True
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 path_spectra = os.path.join(out_path, f'power_spectra_{mask_name}.fits')
-avg_std_skyplusnoise_name = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std10_skyplusnoise.fits')
-avg_std_noise_name = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std10_noise.fits')
+avg_std_skyplusnoise_name = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_skyplusnoise.fits')
+avg_std_noise_name = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_noise.fits')
 
 # Bands to use
 quijote_bands = ['11']
@@ -177,8 +175,7 @@ def compute_all_power_spectra(
 ):
     """
     Compute auto- and cross-power spectra for a list of bands using precomputed NaMaster workspaces.
-
-    Avoids recomputing the NaMaster workspaces for each map pair.
+    Uses load_map() to handle sky + noise map loading.
 
     Parameters
     ----------
@@ -190,16 +187,16 @@ def compute_all_power_spectra(
         Healpy mask (0=masked, 1=unmasked) to apply.
     b : nmt.NmtBin
         NaMaster binning object.
-    use_simulated_maps : bool, optional
+    use_simulated_maps : bool
         If True, use simulated sky + noise maps; if False, use real maps.
-    use_white_noise : bool, optional
+    use_white_noise : bool
         If True, use white noise simulations; otherwise use full noise simulations.
-    noise_realization : int, optional
+    noise_realization : int
         Noise realization number (1-based).
-    only_noise : bool, optional
+    only_noise : bool
         If True, ignore sky and use only noise maps.
-    workspaces : dict, optional
-        Precomputed NaMaster workspaces with keys: 'w00', 'w02', 'w22'.
+    workspaces : dict
+        Precomputed NaMaster workspaces: {'w00','w02','w22'}.
 
     Returns
     -------
@@ -210,86 +207,27 @@ def compute_all_power_spectra(
     N_band = len(band_list)
     spectra_matrix = np.empty((N_band, N_band), dtype=object)
 
-    # Loop over band pairs
     for i, band_i in enumerate(band_list):
         # Identify experiment
         exp_i = next(exp for exp, bands in data.items() if band_i in bands)
-
         # Load map i
-        if use_simulated_maps:
-            sky_map_i = 0
-            if not only_noise:
-                sky_i_path = data[exp_i][band_i]['path_simulated']
-                sky_map_i = hp.read_map(sky_i_path, field=[0,1,2])
-                sky_map_i = np.where(sky_map_i == hp.UNSEEN, 0, sky_map_i)
-                if exp_i == 'Planck':
-                    sky_map_i *= 1e3
-
-            # Load noise
-            if use_white_noise:
-                noise_dir = data[exp_i][band_i]['path_white_noise_simulations']
-                base_name = data[exp_i][band_i]['white_noise_simulation_1']
-            else:
-                noise_dir = data[exp_i][band_i]['path_noise_simulations']
-                base_name = data[exp_i][band_i]['noise_simulation_1']
-
-            noise_fname = get_noise_filename(base_name, noise_realization)
-            noise_map = hp.read_map(os.path.join(noise_dir, noise_fname), field=[0,1,2])
-            noise_map = np.where(noise_map == hp.UNSEEN, 0, noise_map)
-            if exp_i == 'Planck':
-                noise_map *= 1e3
-
-            if isinstance(sky_map_i, int):
-                sky_map_i = np.zeros_like(noise_map)
-            sky_map_i = sky_map_i + noise_map
-        else:
-            sky_i_path = data[exp_i][band_i]['path']
-            sky_map_i = hp.read_map(sky_i_path, field=[0,1,2])
-            sky_map_i = np.where(sky_map_i == hp.UNSEEN, 0, sky_map_i)
+        sky_map_i = load_map(data, exp_i, band_i, use_simulated_maps, use_white_noise, noise_realization, only_noise)
 
         for j, band_j in enumerate(band_list):
             if j < i:
-                spectra_matrix[i,j] = spectra_matrix[j,i]
+                spectra_matrix[i, j] = spectra_matrix[j, i]  # Use symmetry
                 continue
 
             exp_j = next(exp for exp, bands in data.items() if band_j in bands)
-
             # Load map j
-            if use_simulated_maps:
-                sky_map_j = 0
-                if not only_noise:
-                    sky_j_path = data[exp_j][band_j]['path_simulated']
-                    sky_map_j = hp.read_map(sky_j_path, field=[0,1,2])
-                    sky_map_j = np.where(sky_map_j == hp.UNSEEN, 0, sky_map_j)
-                    if exp_j == 'Planck':
-                        sky_map_j *= 1e3
+            sky_map_j = load_map(data, exp_j, band_j, use_simulated_maps, use_white_noise, noise_realization, only_noise)
 
-                if use_white_noise:
-                    noise_dir = data[exp_j][band_j]['path_white_noise_simulations']
-                    base_name = data[exp_j][band_j]['white_noise_simulation_1']
-                else:
-                    noise_dir = data[exp_j][band_j]['path_noise_simulations']
-                    base_name = data[exp_j][band_j]['noise_simulation_1']
-
-                noise_fname = get_noise_filename(base_name, noise_realization)
-                noise_map = hp.read_map(os.path.join(noise_dir, noise_fname), field=[0,1,2])
-                noise_map = np.where(noise_map == hp.UNSEEN, 0, noise_map)
-                if exp_j == 'Planck':
-                    noise_map *= 1e3
-
-                if isinstance(sky_map_j, int):
-                    sky_map_j = np.zeros_like(noise_map)
-                sky_map_j = sky_map_j + noise_map
-            else:
-                sky_j_path = data[exp_j][band_j]['path']
-                sky_map_j = hp.read_map(sky_j_path, field=[0,1,2])
-                sky_map_j = np.where(sky_map_j == hp.UNSEEN, 0, sky_map_j)
-
-            # Compute cross-spectrum using precomputed workspaces
+            # Compute cross-spectrum
             cl = cross_spectrum(mask, sky_map_i, sky_map_j, b, workspaces)
-            spectra_matrix[i,j] = cl
+            spectra_matrix[i, j] = cl
 
     return spectra_matrix
+
 
 
 
@@ -630,28 +568,28 @@ workspaces = prepare_workspaces(mask, b, nside)
 spectra_dict = read_spectra_from_fits(path_spectra, band_list)
 
 # 6. Compute mean and std over noise realizations (sky + noise)
-avg_matrix, std_matrix = average_and_std_spectra(
+avg_std_skyplusnoise_dict = average_and_std_spectra(
     data, spectra_dict, band_list, mask, b,
-    use_white_noise=True,
-    n_sim=5, 
+    use_white_noise=use_white_noise,
+    n_sim=n_sim, 
     only_noise=False,
     workspaces=workspaces
 )
 
-save_avg_std_to_fits(avg_matrix, std_matrix, band_list,
+save_avg_std_to_fits(avg_std_skyplusnoise_dict, band_list,
                      file_name=avg_std_skyplusnoise_name,
                      out_path=out_path)
 
 # 7. Compute mean and std for noise-only maps
-avg_matrix_noise, std_matrix_noise = average_and_std_spectra(
+avg_std_noise_dict = average_and_std_spectra(
     data, spectra_dict, band_list, mask, b,
-    use_white_noise=True,
-    n_sim=5,
+    use_white_noise=use_white_noise,
+    n_sim=n_sim,
     only_noise=True,
     workspaces=workspaces
 )
 
-save_avg_std_to_fits(avg_matrix_noise, std_matrix_noise, band_list,
+save_avg_std_to_fits(avg_std_noise_dict, band_list,
                      file_name=avg_std_noise_name,
                      out_path=out_path)
 

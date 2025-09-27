@@ -508,14 +508,27 @@ from astropy.io import fits
 def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=1535, target_nside=512, save=False, save_path=None):
     """
     Compute and plot the TT, EE, and BB spectra of a CMB map along with:
+    - observed data map
     - simulated map
     - simulated map + noise
     - noise only
+    - HMDM map
 
+    Notes
+    -----
+    - All maps (data, simulation, noise, HMDM, and mask) are downgraded to the same NSIDE = target_nside
+      before applying the mask and computing spectra. This ensures consistency across inputs.
+    - HMDM (Half-Mission Difference Map or similar) is now explicitly downgraded to target_nside.
+    - A zoomed-in range in multipole space is also plotted to better visualize ratios.
+    
     Parameters
     ----------
     map_info : dict
-        Dictionary with map information
+        Dictionary with map information, expected to contain:
+        - 'path', 'path_simulated', 'hmdm'
+        - 'white_noise_simulation_1' / 'noise_simulation_1'
+        - 'path_white_noise_simulations' / 'path_noise_simulations'
+        - optionally 'name'
     mask_path : str
         Path to the mask FITS file
     use_white_noise : bool
@@ -530,9 +543,20 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         Directory where to save figures (created if it doesn't exist)
     """
     
+    # Helper function to downgrade maps to target NSIDE
+    def downgrade_map(m, target_nside):
+        """Downgrade a map (I, Q/U, or IQU) to target_nside."""
+        if hp.get_nside(m) == target_nside:
+            return m
+        if m.ndim == 1:  # intensity map
+            return hp.ud_grade(m, target_nside)
+        else:  # polarization or IQU map
+            return np.array([hp.ud_grade(m_ch, target_nside) for m_ch in m])
+
     # Load maps
     map_data = hp.read_map(map_info['path'], field=(0,1,2), verbose=False)
     map_sim = hp.read_map(map_info['path_simulated'], field=(0,1,2), verbose=False)
+    map_hmdm = hp.read_map(map_info['hmdm'], field=(0,1,2), verbose=False)
     
     noise_file = map_info['white_noise_simulation_1'] if use_white_noise else map_info['noise_simulation_1']
     noise_path = (map_info['path_white_noise_simulations'] + noise_file 
@@ -542,32 +566,32 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     # Load mask
     mask = hp.read_map(mask_path, verbose=False)
     
-    # Ensure all maps have the same NSIDE
-    for idx, m in enumerate([map_data, map_sim, map_noise]):
-        if hp.get_nside(m) != target_nside:
-            if m.ndim == 1:
-                map_data = hp.ud_grade(map_data, target_nside)
-            else:
-                map_data = np.array([hp.ud_grade(m_ch, target_nside) for m_ch in m])
-    
-    if hp.get_nside(mask) != target_nside:
-        mask = hp.ud_grade(mask, target_nside)
+    # Downgrade all maps and mask to the same NSIDE
+    map_data = downgrade_map(map_data, target_nside)
+    map_sim = downgrade_map(map_sim, target_nside)
+    map_noise = downgrade_map(map_noise, target_nside)
+    map_hmdm = downgrade_map(map_hmdm, target_nside)
+    mask = downgrade_map(mask, target_nside)
     
     # Apply the mask
     map_data *= mask
     map_sim *= mask
     map_noise *= mask
     map_sim_plus_noise = map_sim + map_noise
+    map_hmdm *= mask
     
     # Compute spectra
     cl_data = hp.anafast(map_data, lmax=lmax)
     cl_sim = hp.anafast(map_sim, lmax=lmax)
     cl_sim_noise = hp.anafast(map_sim_plus_noise, lmax=lmax)
     cl_noise = hp.anafast(map_noise, lmax=lmax)
+    cl_hmdm = hp.anafast(map_hmdm, lmax=lmax)
     
     # Create figure
     fig, axes = plt.subplots(3, 2, figsize=(14, 12))
     spectra_labels = ['TT', 'EE', 'BB']
+    ell1 = 600
+    ell2 = 800
     
     for i, ax_pair in enumerate(axes):
         ax_main, ax_zoom = ax_pair
@@ -577,6 +601,7 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         ax_main.plot(cl_sim[i], label='Simulated', color='C1')
         ax_main.plot(cl_sim_noise[i], label='Sim + Noise', color='C2')
         ax_main.plot(cl_noise[i], label='Noise Only', color='C3')
+        ax_main.plot(cl_hmdm[i], label='HMDM', color='C4')
         ax_main.set_yscale('log')
         ax_main.set_xlabel(r'Multipole $\ell$')
         ax_main.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
@@ -584,14 +609,16 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         ax_main.set_title(f'{spectra_labels[i]} Spectrum')
         
         # Zoom plot
-        ell_zoom = np.arange(1300, 1501)
-        data_zoom = cl_data[i][1300:1501]
-        sim_noise_zoom = cl_sim_noise[i][1300:1501]
-        noise_zoom = cl_noise[i][1300:1501]
+        ell_zoom = np.arange(ell1, ell2)
+        data_zoom = cl_data[i][ell1:ell2]
+        sim_noise_zoom = cl_sim_noise[i][ell1:ell2]
+        noise_zoom = cl_noise[i][ell1:ell2]
+        hmdm_zoom = cl_hmdm[i][ell1:ell2]
         
         ax_zoom.plot(ell_zoom, data_zoom, label='Data', color='C0')
         ax_zoom.plot(ell_zoom, sim_noise_zoom, label='Sim + Noise', color='C2')
         ax_zoom.plot(ell_zoom, noise_zoom, label='Noise Only', color='C3')
+        ax_zoom.plot(ell_zoom, hmdm_zoom, label='HMDM', color='C4')
         ax_zoom.set_yscale('log')
         ax_zoom.set_xlabel(r'Multipole $\ell$')
         ax_zoom.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
@@ -610,7 +637,7 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         mean_data = np.mean(data_zoom)
         mean_sim_noise = np.mean(sim_noise_zoom)
         ratio = mean_data / mean_sim_noise if mean_sim_noise != 0 else np.nan
-        print(f"{spectra_labels[i]} zoom range (ell=1300-1500): "
+        print(f"{spectra_labels[i]} zoom range (ell={ell1}-{ell2}): "
               f"mean(Data)={mean_data:.3e}, mean(Sim+Noise)={mean_sim_noise:.3e}, "
               f"ratio={ratio:.3f}")
         
@@ -630,6 +657,8 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
         print(f"Figure saved to {filename}")
     
     plt.show()
+
+
 
 
 def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nside=512, 

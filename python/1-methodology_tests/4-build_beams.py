@@ -5,15 +5,15 @@ from data import data
 
 # Differential Assemblies per band
 BANDS = {
-    "K": ["K1"],
-    "Ka": ["Ka1"],
-    "Q": ["Q1", "Q2"],
-    "V": ["V1", "V2"],
-    "W": ["W1", "W2", "W3", "W4"],
+    'K': ['K1'],
+    'Ka': ['Ka1'],
+    'Q': ['Q1', 'Q2'],
+    'V': ['V1', 'V2'],
+    'W': ['W1', 'W2', 'W3', 'W4'],
 }
 
 def load_beam_file(file_path):
-    """
+    '''
     Load B_l data from a WMAP beam file, keeping all columns.
 
     Returns
@@ -22,7 +22,7 @@ def load_beam_file(file_path):
         List of header lines (starting with '#').
     data : numpy.ndarray
         Array with shape (N,3) containing l, B_l, fractional error.
-    """
+    '''
     header_lines = []
     data_lines = []
     with open(file_path, 'r') as f:
@@ -36,7 +36,7 @@ def load_beam_file(file_path):
 
 
 def save_band_beam(band_name, header_template, data, save_path):
-    """
+    '''
     Save the averaged beam for a frequency band to a txt file,
     preserving the original WMAP header format and modifying the
     description to indicate the frequency band instead of the DA.
@@ -44,10 +44,10 @@ def save_band_beam(band_name, header_template, data, save_path):
     Parameters
     ----------
     band_name : str
-        Name of the frequency band (e.g., "K", "Ka", "Q", "V", "W").
+        Name of the frequency band (e.g., 'K', 'Ka', 'Q', 'V', 'W').
     header_template : list of str
         List of header lines from the original DA beam file (lines starting with '#').
-        The function will replace the line mentioning "differencing assembly"
+        The function will replace the line mentioning 'differencing assembly'
         with a line indicating the frequency band.
     data : numpy.ndarray
         Array with shape (N,3), where:
@@ -61,28 +61,28 @@ def save_band_beam(band_name, header_template, data, save_path):
     -------
     None
         The function writes a txt file to disk and prints a confirmation message.
-    """
+    '''
     new_header = []
     for line in header_template:
         # Replace DA description with frequency band
-        if "differencing assembly" in line:
-            line = f"# Beam Transfer Function (amplitude) for frequency band {band_name},"
+        if 'differencing assembly' in line:
+            line = f'# Beam Transfer Function (amplitude) for frequency band {band_name},'
         new_header.append(line)
     
-    file_name = f"wmap_ampl_bl_{band_name}_9yr_v5p1.txt"
+    file_name = f'wmap_ampl_bl_{band_name}_9yr_v5p1.txt'
     file_path = os.path.join(save_path, file_name)
     
     with open(file_path, 'w') as f:
         for line in new_header:
             f.write(line + '\n')
         for row in data:
-            f.write(f"{int(row[0]):>5} {row[1]:>14.8f} {row[2]:>14.8f}\n")
+            f.write(f'{int(row[0]):>5} {row[1]:>14.8f} {row[2]:>14.8f}\n')
     
-    print(f"Saved band beam file: {file_path}")
+    print(f'Saved band beam file: {file_path}')
 
 
 def generate_band_beams(BANDS, beam_path, save_path):
-    """
+    '''
     Generate averaged beams for each frequency band from DA beams.
     
     Parameters
@@ -98,23 +98,23 @@ def generate_band_beams(BANDS, beam_path, save_path):
     -------
     None
         The function writes a text file for each band to disk and prints a confirmation message.
-    """
+    '''
     
     for band, das in BANDS.items():
         all_data = []
         header_template = None
         for da in das:
-            file_name = f"wmap_ampl_bl_{da}_9yr_v5p1.txt"
+            file_name = f'wmap_ampl_bl_{da}_9yr_v5p1.txt'
             file_path = os.path.join(beam_path, file_name)
             if not os.path.exists(file_path):
-                print(f"WARNING: Beam file not found: {file_path}")
+                print(f'WARNING: Beam file not found: {file_path}')
                 continue
             header, data = load_beam_file(file_path)
             if header_template is None:
                 header_template = header
             all_data.append(data)
         if len(all_data) == 0:
-            print(f"No beams found for band {band}")
+            print(f'No beams found for band {band}')
             continue
         # Average B_l (column 2) and fractional error (column 3) across DAs
         avg_data = np.copy(all_data[0])

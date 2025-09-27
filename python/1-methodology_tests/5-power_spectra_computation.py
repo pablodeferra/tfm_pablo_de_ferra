@@ -11,7 +11,7 @@ import re
 nside = 512
 lmax = 2 * nside - 1
 dl = 10
-n_sim = 5
+n_sim = 10
 
 
 mask_select = masks['quijote_galcut']['galcut10']

@@ -11,10 +11,12 @@ mask_path = masks['quijote_galcut']['galcut10']['path']
 save_base = '/home/pablo/Desktop/master/tfm/figures/noise_spectra'
 
 experiments = {
-    'QUIJOTE': ['11'],
-    'WMAP': ['23', '33', '41', '61', '94'],
-    'Planck': ['30', '44', '70', '100', '143', '217', '353']
+    # 'QUIJOTE': ['11'],
+    'WMAP': ['23'],
+    # 'Planck': ['30', '44', '70', '100', '143', '217', '353']
 }
+
+# functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, save=False, save_path=save_path)
 
 for experiment, map_names in experiments.items():
     save_path = os.path.join(save_base, experiment)
@@ -33,7 +35,7 @@ import os
 from data import data, path_map, masks, path_masks
 import functions 
 
-n_sim = 5
+n_sim = 10
 
 mask_select = masks['quijote_galcut']['galcut10']
 mask_name = mask_select['name']
@@ -55,17 +57,16 @@ band_list = quijote_bands + wmap_bands + planck_bands
 
 # mask = hp.read_map(mask_select['path'])
 
-# spectra_matrix = functions.read_spectra_from_fits(path_spectra, band_list)
-# avg_std_spn_matrix = functions.read_spectra_from_fits(path_avg_std_skyplusnoise, band_list)
-# avg_std_n_matrix = functions.read_spectra_from_fits(path_avg_std_noise, band_list)
+spectra_matrix = functions.read_spectra_from_fits(path_spectra, band_list)
+avg_std_spn_matrix = functions.read_spectra_from_fits(path_avg_std_skyplusnoise, band_list)
+avg_std_n_matrix = functions.read_spectra_from_fits(path_avg_std_noise, band_list)
 
-# functions.plot_band_spectra(path_spectra, band_list, "11", "30", save=False, save_path=save_path)
+# functions.plot_band_spectra(path_spectra, b   and_list, "11", "30", save=False, save_path=save_path)
 
 
 
 #%%
 
-map_path = data['WMAP']['23']['path']
+hmdm_23, h = hp.read_map(data['WMAP']['23']['hmdm'], field=[0,1,2], h=True)
 
-map_23, h = hp.read_map(map_path, field=[0], hdu=2, h=True)
-
+hp.mollview(hmdm_23[0], norm='hist')

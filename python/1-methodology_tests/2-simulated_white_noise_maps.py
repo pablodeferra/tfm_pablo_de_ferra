@@ -179,4 +179,4 @@ def white_noise_maps(data, nside, experiment_select="all", band_select="all", n_
                 print(f" ! Band {band} not found in {experiment}")
 
 
-white_noise_maps(data, nside, experiment_select='Planck', band_select='all', n_sim=100, path_map=path_map)
+white_noise_maps(data, nside, experiment_select='QUIJOTE', band_select='11', n_sim=1, path_map=path_map)

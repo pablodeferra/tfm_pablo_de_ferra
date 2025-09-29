@@ -67,6 +67,14 @@ avg_std_n_matrix = functions.read_spectra_from_fits(path_avg_std_noise, band_lis
 
 #%%
 
-hmdm_23, h = hp.read_map(data['WMAP']['23']['hmdm'], field=[0,1,2], h=True)
 
-hp.mollview(hmdm_23[0], norm='hist')
+mask_select = masks['quijote_galcut']['galcut10']
+mask_name = mask_select['name']
+out_path = '/home/pablo/Desktop/master/tfm/spectra/'
+path_corrected_spectra = os.path.join(out_path, f'corrected_power_spectra_{mask_name}.fits')
+
+spectra_dict = functions.read_corrected_cls(path_corrected_spectra, band_list)
+
+save_base = '/home/pablo/Desktop/master/tfm/figures/spectra_test'
+
+functions.plot_cls_auto_cross(spectra_dict, '11', '11', save=True, save_path=save_path)

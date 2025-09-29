@@ -103,10 +103,10 @@ def cmb_unit_conversion(nuGHz,option='KCMB2KRJ',help=False):
     return fac
 
 
-def correct_power_spectra_with_noise(path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
-                                     band_list, data, nside,
-                                     correct_beam=True, correct_unit=True, correct_pixel=True,
-                                     save=False, mask_name=None):
+def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
+                          band_list, data, nside,
+                          correct_beam=True, correct_unit=True, correct_pixel=True,
+                          save=False, path_out_file=None):
     """
     Correct power spectra for specified band pairs using beam/unit/pixel window,
     subtract noise spectra, compute corrected error bars, and optionally save as FITS.
@@ -133,8 +133,9 @@ def correct_power_spectra_with_noise(path_spectra, path_avg_std_skyplusnoise, pa
         Whether to apply corresponding corrections.
     save : bool, default False
         Whether to save the output FITS file.
-    mask_name : str, optional
-        Required if save=True; used in filename.
+    path_out_file : str, optional
+        Full output filename including path (must end in .fits). If not provided and
+        save=True, defaults to "corrected_cls.fits" in the current working directory.
 
     Returns
     -------
@@ -147,8 +148,8 @@ def correct_power_spectra_with_noise(path_spectra, path_avg_std_skyplusnoise, pa
         Path to saved FITS file if save=True, else None.
     """
 
-    if save and mask_name is None:
-        raise ValueError("mask_name must be provided if save=True")
+    if save and path_out_file is None:
+        path_out_file = "corrected_cls.fits"
 
     # Load spectra
     spectra = functions.read_spectra_from_fits(path_spectra, band_list)
@@ -205,8 +206,7 @@ def correct_power_spectra_with_noise(path_spectra, path_avg_std_skyplusnoise, pa
     # Save to FITS if requested
     out_file = None
     if save:
-        out_path = os.path.dirname(path_spectra)
-        file_name = f"corrected_cls_{mask_name}.fits"
+        out_file = path_out_file
         hdu_list = fits.HDUList([fits.PrimaryHDU()])
 
         for band_i in band_list:
@@ -229,13 +229,13 @@ def correct_power_spectra_with_noise(path_spectra, path_avg_std_skyplusnoise, pa
                 hdu.name = key
                 hdu_list.append(hdu)
 
-        out_file = os.path.join(out_path, file_name)
         hdu_list.writeto(out_file, overwrite=True)
         print(f"Saved corrected spectra with errors to {out_file}")
 
     return corr_spectra, out_file
 
-n_sim = 10
+
+n_sim = 100
 nside = 512
 
 mask_select = masks['quijote_galcut']['galcut10']
@@ -247,7 +247,7 @@ path_spectra = os.path.join(out_path, f'power_spectra_{mask_name}.fits')
 path_avg_std_skyplusnoise = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_skyplusnoise.fits')
 path_avg_std_noise = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_noise.fits')
 
-save_path = '/home/pablo/Desktop/master/tfm/figures/spectra_auto_cross_test/'
+path_corrected_spectra = os.path.join(out_path, f'corrected_power_spectra_{mask_name}.fits')
 
 # Bands to use
 quijote_bands = ['11']
@@ -257,16 +257,11 @@ planck_bands = ['30', '44', '70', '100', '143', '217', '353']
 band_list = quijote_bands + wmap_bands + planck_bands
 
 
-corr_spectra, out_file = correct_power_spectra_with_noise(
+corr_spectra, out_file = correct_power_spectra(
     path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
     band_list, data, nside, correct_beam=True, correct_unit=True,
-    correct_pixel=True, save=True, mask_name=mask_name
+    correct_pixel=True, save=True, path_out_file=path_corrected_spectra
 )
 
 
-#%%
-spectra_matrix = functions.read_spectra_from_fits(path_spectra, band_list)
 
-ell_eff = spectra_matrix['11_11']['ell_eff']
-
-beam_23 = get_beam_for_band('23', data, ell_eff)

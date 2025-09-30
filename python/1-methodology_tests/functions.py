@@ -793,8 +793,6 @@ def plot_maps_mollview(map_info, component='I', use_white_noise=True, target_nsi
     plt.show()
 
 	
-
-
 def plot_cls_auto_cross(spectra_dict, band1, band2, save=False, save_path=None):
     """
     Plot EE, BB, and EB power spectra with error bars for autos (band1_band1, band2_band2)
@@ -811,7 +809,13 @@ def plot_cls_auto_cross(spectra_dict, band1, band2, save=False, save_path=None):
     save_path : str, optional
         Directory where to save the plot. The filename is automatically generated.
     """
+
     keys = [f"{band1}_{band1}", f"{band2}_{band2}", f"{band1}_{band2}"]
+    colors = {
+        f"{band1}_{band1}": "steelblue",
+        f"{band1}_{band2}": "k",
+        f"{band2}_{band2}": "goldenrod"
+    }
     modes = ['EE', 'BB', 'EB']
 
     fig, axes = plt.subplots(3, 1, figsize=(8, 10), sharex=True)
@@ -825,15 +829,26 @@ def plot_cls_auto_cross(spectra_dict, band1, band2, save=False, save_path=None):
             spectrum = spec_dict[mode]['SPECTRUM']
             error = spec_dict[mode]['ERROR']
 
+            band_label = key.replace("_", r"$\times$") + " GHz"
+
             axes[i].errorbar(
-                ell, spectrum, yerr=error, fmt='o', markersize=3, capsize=2, label=key
+                ell, spectrum, yerr=error, fmt='o', markersize=2.5, capsize=1.5, 
+                label=band_label, color=colors[key]
             )
 
-        axes[i].set_ylabel(rf"$C_\ell^{{{mode}}}$")
-        axes[i].legend()
-        axes[i].grid(True, alpha=0.3)
+        axes[i].set_ylabel(rf"$C_\ell^{{{mode}}} \; [\mathrm{{mK}}^2]$")
+        axes[i].legend(frameon=False)
+        axes[i].set_yscale('log')
+        axes[i].set_xlim(0, 300)
+        
+		
+        ymin = np.min(spectrum[np.isfinite(spectrum)])
+        ymax = np.max(spectrum[np.isfinite(spectrum)])
+        axes[i].set_ylim(ymin*0.01, ymax*10) 
 
-    axes[-1].set_xlabel(r"$\ell$ (multipole)")
+    axes[-1].set_xlabel(r"$\ell$")
+    plt.suptitle(f"Power Spectra: {band1} GHz & {band2} GHz", fontsize=14)
+
     plt.tight_layout()
 
     if save:
@@ -841,6 +856,82 @@ def plot_cls_auto_cross(spectra_dict, band1, band2, save=False, save_path=None):
             raise ValueError("save_path must be provided if save=True")
         os.makedirs(save_path, exist_ok=True)
         filename = os.path.join(save_path, f"cls_{band1}_{band2}.png")
+        plt.savefig(filename, dpi=150)
+        print(f"Figure saved to {filename}")
+    
+    plt.show()
+
+
+
+def plot_cls_auto_bands(spectra_dict, bands, save=False, save_path=None):
+    """
+    Plot EE and BB power spectra with error bars for autos of any number of bands.
+
+    Parameters
+    ----------
+    spectra_dict : dict
+        Dictionary from read_corrected_cls containing the spectra.
+    bands : list of str
+        List of frequency bands (e.g., ['11', '30', '44', '70', '100']).
+    save : bool, default False
+        Whether to save the plot to a file.
+    save_path : str, optional
+        Directory where the plot will be saved. The filename is automatically generated.
+    """
+    if len(bands) == 0:
+        raise ValueError("At least one band must be provided")
+    
+    modes = ['EE', 'BB']
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
+
+    # Use viridis colormap for better visual distinction
+    cmap = plt.get_cmap('viridis')
+    colors = [cmap(i / max(1, len(bands)-1)) for i in range(len(bands))]
+
+    for i, mode in enumerate(modes):
+        for j, band in enumerate(bands):
+            key = f"{band}_{band}"
+            if key not in spectra_dict:
+                print(f"Warning: {key} not found in spectra_dict, skipping")
+                continue
+            spec_dict = spectra_dict[key]
+            ell = spec_dict['ell_eff']
+            spectrum = spec_dict[mode]['SPECTRUM']
+            error = spec_dict[mode]['ERROR']
+
+            # Pretty label for the legend
+            band_label = rf"${band}\mathrm{{GHz}}$"
+
+            axes[i].errorbar(
+                ell, spectrum, yerr=error, fmt='o', markersize=3, capsize=2,
+                label=band_label, color=colors[j]
+            )
+
+        axes[i].set_ylabel(rf"$C_\ell^{{{mode}}} \; [\mathrm{{mK}}^2]$")
+        axes[i].legend(frameon=False)
+        axes[i].set_yscale('log')
+        axes[i].set_xlim(0, 300)
+
+        # Dynamic y-axis adjustment
+        finite_vals = np.concatenate([
+            spectra_dict[f"{b}_{b}"][mode]['SPECTRUM'] 
+            for b in bands if f"{b}_{b}" in spectra_dict
+        ])
+        finite_vals = finite_vals[np.isfinite(finite_vals)]
+        if len(finite_vals) > 0:
+            ymin = np.min(finite_vals)
+            ymax = np.max(finite_vals)
+            axes[i].set_ylim(ymin*0.01, ymax*10)
+
+    axes[-1].set_xlabel(r"$\ell$")
+    plt.suptitle("Auto Power Spectra: EE and BB", fontsize=14)
+    plt.tight_layout()
+
+    if save:
+        if save_path is None:
+            raise ValueError("save_path must be provided if save=True")
+        os.makedirs(save_path, exist_ok=True)
+        filename = os.path.join(save_path, "cls_autos.png")
         plt.savefig(filename, dpi=150)
         print(f"Figure saved to {filename}")
     

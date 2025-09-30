@@ -18,6 +18,7 @@ mask_select = masks['quijote_galcut']['galcut10']
 mask_name = mask_select['name']
 use_simulated_maps = True
 use_white_noise = True
+use_simulated_maps = True
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 path_spectra = os.path.join(out_path, f'power_spectra_{mask_name}.fits')
 avg_std_skyplusnoise_name = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_skyplusnoise.fits')
@@ -554,7 +555,7 @@ workspaces = prepare_workspaces(mask, b, nside)
 # 3. Compute all spectra
 # spectra_matrix = compute_all_power_spectra(
 #     data, band_list, mask, b,
-#     use_simulated_maps=True,
+#     use_simulated_maps=use_simulated_maps,
 #     use_white_noise=use_white_noise,
 #     noise_realization=1,
 #     only_noise=False,

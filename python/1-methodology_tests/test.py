@@ -34,19 +34,7 @@ import healpy as hp
 import os
 from data import data, path_map, masks, path_masks
 import functions 
-
-n_sim = 10
-
-mask_select = masks['quijote_galcut']['galcut10']
-mask_name = mask_select['name']
-use_simulated_maps = True
-use_white_noise = True
-out_path = '/home/pablo/Desktop/master/tfm/spectra/'
-path_spectra = os.path.join(out_path, f'power_spectra_{mask_name}.fits')
-path_avg_std_skyplusnoise = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_skyplusnoise.fits')
-path_avg_std_noise = os.path.join(out_path, f'spectra_avg_std_{mask_name}_avg_std{n_sim}_noise.fits')
-
-save_path = '/home/pablo/Desktop/master/tfm/figures/spectra_auto_cross_test/'
+import itertools
 
 # Bands to use
 quijote_bands = ['11']
@@ -55,26 +43,22 @@ planck_bands = ['30', '44', '70', '100', '143', '217', '353']
 
 band_list = quijote_bands + wmap_bands + planck_bands
 
-# mask = hp.read_map(mask_select['path'])
-
-spectra_matrix = functions.read_spectra_from_fits(path_spectra, band_list)
-avg_std_spn_matrix = functions.read_spectra_from_fits(path_avg_std_skyplusnoise, band_list)
-avg_std_n_matrix = functions.read_spectra_from_fits(path_avg_std_noise, band_list)
-
-# functions.plot_band_spectra(path_spectra, b   and_list, "11", "30", save=False, save_path=save_path)
-
-
-
-#%%
-
-
 mask_select = masks['quijote_galcut']['galcut10']
 mask_name = mask_select['name']
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 path_corrected_spectra = os.path.join(out_path, f'corrected_power_spectra_{mask_name}.fits')
+save_path = '/home/pablo/Desktop/master/tfm/figures/spectra_test/'
 
 spectra_dict = functions.read_corrected_cls(path_corrected_spectra, band_list)
 
-save_base = '/home/pablo/Desktop/master/tfm/figures/spectra_test'
+# functions.plot_cls_auto_cross(spectra_dict, '11', '30', save=False, save_path=save_path)
 
-functions.plot_cls_auto_cross(spectra_dict, '11', '11', save=True, save_path=save_path)
+
+# Plot all unique cross combinations (no repeats, no autos)
+for band1, band2 in itertools.combinations(band_list, 2):
+    print(f"Plotting {band1} x {band2}")
+    functions.plot_cls_auto_cross(spectra_dict, band1, band2, save=True, save_path=save_path)
+
+bands_to_plot = ['11', '23', '30', '61', '100', '217', '353']
+
+functions.plot_cls_auto_bands(spectra_dict, bands_to_plot, save=False, save_path=save_path)

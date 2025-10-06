@@ -30,7 +30,6 @@ def get_beam_for_band(band_name, data, ell_eff):
         transfer function at the effective multipoles `ell_eff`.
     """
 
-
     # QUIJOTE
     if band_name in data.get('QUIJOTE', {}):
         with fits.open(data['QUIJOTE'][band_name]['beam']) as hdul:
@@ -38,17 +37,23 @@ def get_beam_for_band(band_name, data, ell_eff):
             col_map = {
                 "11": "Bl_311",
                 "13": "Bl_313",
-                "17": "Bl_417",  # or "Bl_217"
-                "19": "Bl_419",  # or "Bl_219"
+                "17": "Bl_417",
+                "19": "Bl_419",
             }
-            colname = col_map[band_name]
+            colname = col_map.get(band_name)
+            if colname is None:
+                # fallback: take first column-like Bl_*
+                for name in beam_hdu.columns.names:
+                    if name.lower().startswith('bl_'):
+                        colname = name
+                        break
             beam_arr = beam_hdu.data[colname][0]
             beam_interp = np.interp(ell_eff, np.arange(len(beam_arr)), beam_arr)
         return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
 
     # WMAP
     elif band_name in data.get('WMAP', {}):
-        beam_arr = np.loadtxt(data['WMAP'][band_name]['beam']).T[1]  # second column
+        beam_arr = np.loadtxt(data['WMAP'][band_name]['beam']).T[1]
         beam_interp = np.interp(ell_eff, np.arange(len(beam_arr)), beam_arr)
         return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
 
@@ -56,8 +61,15 @@ def get_beam_for_band(band_name, data, ell_eff):
     elif band_name in data.get('Planck', {}):
         if int(band_name) <= 70:  # LFI
             hdul = fits.open(data['Planck'][band_name]['beam'])
-            beam_hdu = hdul[f'BEAMWF_0{band_name}X0{band_name}']
-            Bl = beam_hdu.data['BL']
+            # try to find correct extension name
+            extname = f'BEAMWF_0{band_name}X0{band_name}'
+            if extname in hdul:
+                beam_hdu = hdul[extname]
+                Bl = beam_hdu.data['BL']
+            else:
+                # fallback: take first extension with 'BL' column
+                beam_hdu = hdul[1]
+                Bl = beam_hdu.data[beam_hdu.columns.names[0]]
             beam_interp = np.interp(ell_eff, np.arange(len(Bl)), Bl)
             hdul.close()
             return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
@@ -76,28 +88,7 @@ def cmb_unit_conversion(nuGHz, option='KCMB2KRJ', help=False):
     """
     Compute conversion factors between CMB thermodynamic temperature units,
     Rayleigh-Jeans temperature, and surface brightness in Jy/sr.
-
-    Parameters
-    ----------
-    nuGHz : float
-        Frequency in GHz.
-    option : str, optional
-        Conversion type. One of:
-            'KCMB2KRJ'   : From Kelvin_CMB to Kelvin_RJ
-            'KRJ2KCMB'   : From Kelvin_RJ to Kelvin_CMB
-            'KCMB2Jysr'  : From Kelvin_CMB to Jy/sr
-            'Jysr2KCMB'  : From Jy/sr to Kelvin_CMB
-            'KRJ2Jysr'   : From Kelvin_RJ to Jy/sr
-            'Jysr2KRJ'   : From Jy/sr to Kelvin_RJ
-    help : bool, optional
-        If True, prints available options. Default is False.
-
-    Returns
-    -------
-    fac : float
-        Conversion factor for the chosen option.
     """
-
     Tcmb = 2.72548
 
     cases = ['KCMB2KRJ', 'KRJ2KCMB', 'KCMB2Jysr', 'Jysr2KCMB', 'KRJ2Jysr', 'Jysr2KRJ']
@@ -135,43 +126,7 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
     """
     Correct power spectra for specified band pairs using beam, unit, and pixel windows.
     Subtract noise spectra, compute corrected error bars, and optionally save to FITS.
-
-    Parameters
-    ----------
-    path_spectra : str
-        Path to FITS file with the original sky+noise spectra (contains ell_eff).
-    path_avg_std_skyplusnoise : str
-        Path to FITS file with avg+std sky+noise spectra (for error calculation).
-    path_avg_std_noise : str
-        Path to FITS file with avg+std noise spectra.
-    band_list : list of str
-        List of frequency bands to include (e.g., ['11','30']).
-    data : dict
-        Experiment/band information including frequencies and beam paths.
-    nside : int
-        HEALPix nside for pixel window computation.
-    correct_beam : bool, optional
-        Whether to apply beam window correction. Default is True.
-    correct_unit : bool, optional
-        Whether to apply unit conversion. Default is True.
-    correct_pixel : bool, optional
-        Whether to apply pixel window correction. Default is True.
-    save : bool, optional
-        Whether to save the output FITS file. Default is False.
-    path_out_file : str, optional
-        Path to output FITS file. If None and save=True, defaults to "corrected_cls.fits".
-
-    Returns
-    -------
-    corrected_cls : dict
-        Dictionary with corrected spectra and errors, e.g.:
-            corrected_cls['band1_band2']['EE']['SPECTRUM']
-            corrected_cls['band1_band2']['EE']['ERROR']
-            corrected_cls['band1_band2']['ell_eff']
-    out_file : str or None
-        Path to saved FITS file if save=True, else None.
     """
-
     if save and path_out_file is None:
         path_out_file = "corrected_cls.fits"
 
@@ -180,7 +135,9 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
     avg_std_skyplusnoise = functions.read_spectra_from_fits(path_avg_std_skyplusnoise, band_list)
     avg_std_noise = functions.read_spectra_from_fits(path_avg_std_noise, band_list)
 
-    ell_eff = next(iter(spectra.values()))['ell_eff']
+    # get ell_eff from first entry
+    first_entry = next(iter(spectra.values()))
+    ell_eff = np.array(first_entry['ell_eff'])
 
     # Pixel window
     if correct_pixel:
@@ -192,22 +149,31 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
     # Precompute factors for each band
     all_bands = set()
     for key in spectra.keys():
-        band1, band2 = key.split('_')
-        all_bands.update([band1, band2])
+        if "_" in key:
+            band1, band2 = key.split('_', 1)
+            all_bands.update([band1, band2])
 
     beam_dict, unit_dict, wp_dict = {}, {}, {}
     for band in all_bands:
         for exp in data:
             if band in data[exp]:
                 beam_dict[band] = get_beam_for_band(band, data, ell_eff) if correct_beam else {"T": np.ones_like(ell_eff), "E": np.ones_like(ell_eff), "B": np.ones_like(ell_eff)}
-                unit_dict[band] = cmb_unit_conversion(data[exp][band]['freq'].to('GHz').value, 'KCMB2KRJ') if correct_unit else 1.
+                # handle frequency quantity or plain number
+                freq = data[exp][band].get('freq')
+                try:
+                    nuGHz = freq.to('GHz').value
+                except Exception:
+                    nuGHz = float(freq)
+                unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
                 wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
                 break
 
     # Apply corrections and subtract noise
     corr_spectra = {}
     for key, spec in spectra.items():
-        band1, band2 = key.split('_')
+        if "_" not in key:
+            continue
+        band1, band2 = key.split('_', 1)
 
         corr_spectra[key] = {}
         for cl_key in ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
@@ -227,18 +193,39 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
 
             factor = beam_factor * unit_dict[band1] * unit_dict[band2] * wp_dict[band1] * wp_dict[band2]
 
-            Nl = avg_std_noise[key][cl_key]['MEAN']
-            Cl = spec[cl_key] - Nl
-            spectrum_corr = np.abs(Cl / factor)
-            errbar = np.abs(np.sqrt(avg_std_skyplusnoise[key][cl_key]['STD']**2 +
-                             avg_std_noise[key][cl_key]['STD']**2) / factor)
+            # robust handling of input spectrum formats
+            spec_val = spec.get(cl_key, None)
+            if spec_val is None:
+                # no data for this mode
+                continue
+            if isinstance(spec_val, dict):
+                if 'MEAN' in spec_val:
+                    Cl_raw = np.array(spec_val['MEAN'])
+                elif 'SPECTRUM' in spec_val:
+                    Cl_raw = np.array(spec_val['SPECTRUM'])
+                else:
+                    raise ValueError(f"Unexpected dict format for spectrum {key} {cl_key}")
+            else:
+                Cl_raw = np.array(spec_val)
+
+            Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
+            Cl = Cl_raw - Nl
+
+            # avoid division by zero -> use nan where factor == 0
+            safe_factor = np.array(factor, dtype=float)
+            safe_factor[safe_factor == 0] = np.nan
+
+            spectrum_corr = np.abs(Cl / safe_factor)
+            err_num = np.sqrt(np.array(avg_std_skyplusnoise[key][cl_key]['STD'])**2 +
+                              np.array(avg_std_noise[key][cl_key]['STD'])**2)
+            errbar = np.abs(err_num / safe_factor)
 
             corr_spectra[key][cl_key] = {'SPECTRUM': spectrum_corr, 'ERROR': errbar}
 
         # Keep multipole info
-        corr_spectra[key]['ell1'] = spec['ell1']
-        corr_spectra[key]['ell2'] = spec['ell2']
-        corr_spectra[key]['ell_eff'] = spec['ell_eff']
+        corr_spectra[key]['ell1'] = np.array(spec['ell1'])
+        corr_spectra[key]['ell2'] = np.array(spec['ell2'])
+        corr_spectra[key]['ell_eff'] = np.array(spec['ell_eff'])
 
     # Save to FITS if requested
     out_file = None
@@ -246,25 +233,25 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         out_file = path_out_file
         hdu_list = fits.HDUList([fits.PrimaryHDU()])
 
-        for band_i in band_list:
-            for band_j in band_list:
-                key = f"{band_i}_{band_j}"
-                spec_dict = corr_spectra[key]
+        # iterate only over computed pairs
+        for key, spec_dict in sorted(corr_spectra.items()):
+            band_i, band_j = key.split('_', 1)
+            cols = []
+            for cl_key in ['ell1', 'ell2', 'ell_eff', 'TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
+                if cl_key in ['ell1', 'ell2', 'ell_eff']:
+                    cols.append(fits.Column(name=cl_key, format='D', array=spec_dict[cl_key]))
+                else:
+                    if cl_key not in spec_dict:
+                        continue
+                    cols.append(fits.Column(name=f"{cl_key}_SPECTRUM", format='D', array=spec_dict[cl_key]['SPECTRUM']))
+                    cols.append(fits.Column(name=f"{cl_key}_ERROR",  format='D', array=spec_dict[cl_key]['ERROR']))
 
-                cols = []
-                for cl_key in ['ell1', 'ell2', 'ell_eff', 'TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
-                    if cl_key in ['ell1', 'ell2', 'ell_eff']:
-                        cols.append(fits.Column(name=cl_key, format='D', array=spec_dict[cl_key]))
-                    else:
-                        cols.append(fits.Column(name=f"{cl_key}_SPECTRUM", format='D', array=spec_dict[cl_key]['SPECTRUM']))
-                        cols.append(fits.Column(name=f"{cl_key}_ERROR",  format='D', array=spec_dict[cl_key]['ERROR']))
-
-                hdu = fits.BinTableHDU.from_columns(cols)
-                hdu.header['BAND_I'] = band_i
-                hdu.header['BAND_J'] = band_j
-                hdu.header['COMMENT'] = "Corrected spectra with noise subtraction, beam/unit/pixel correction applied"
-                hdu.name = key
-                hdu_list.append(hdu)
+            hdu = fits.BinTableHDU.from_columns(cols)
+            hdu.header['BAND_I'] = band_i
+            hdu.header['BAND_J'] = band_j
+            hdu.header['COMMENT'] = "Corrected spectra with noise subtraction, beam/unit/pixel correction applied"
+            hdu.name = key
+            hdu_list.append(hdu)
 
         hdu_list.writeto(out_file, overwrite=True)
         print(f"Saved corrected spectra with errors to {out_file}")

@@ -6,6 +6,7 @@ import functions
 import emcee
 import corner
 import matplotlib.pyplot as plt
+from scipy.constants import c,h,k
 
 # Bands to use
 quijote_bands = ['11']
@@ -187,11 +188,41 @@ def prepare_mcmc_data(
     }
     return result
 
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
-def model_synchrotron(theta, datasets, ell, fit_c_terms=False):
+
+def planck(nu_GHz, T):
+    # asegurar tipo numérico (scalar o array)
+    nu_GHz = np.asarray(nu_GHz, dtype=float)
+    nu = nu_GHz * 1e9
+    x = h * nu / (k * T)
+    return (2.0 * h * nu**3 / c**2) / np.expm1(x)
+
+def g_RJ(nu_GHz):
+    nu_GHz = np.asarray(nu_GHz, dtype=float)
+    nu = nu_GHz * 1e9
+    return 2.0 * k * nu**2 / c**2
+
+def mbb_scaling_KRJ(nu_GHz, nu0_GHz=353.0, beta=1.59, T_d=19.6):
+    nu_GHz = np.asarray(nu_GHz, dtype=float)
+    nu0_GHz = float(nu0_GHz)
+    power = (nu_GHz / nu0_GHz)**beta
+    planck_ratio = planck(nu_GHz, T_d) / planck(nu0_GHz, T_d)
+    rj_ratio = g_RJ(nu0_GHz) / g_RJ(nu_GHz)
+    return power * planck_ratio * rj_ratio
+
+
+# ============================================================================
+# SYNCHROTRON MODEL
+# ============================================================================
+
+def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
+                      freq_ref=11.1, ell_ref=80.0):
     """
-    General synchrotron model for any number of bands, covering both auto and cross spectra.
-    Autos and cross use the same frequency formula, constant terms c_i are only added for autos.
+    Synchrotron power-spectrum model with (ell/ell_ref)^α scaling.
+    Optionally includes constant c_i offsets for auto-spectra.
 
     Parameters
     ----------
@@ -201,630 +232,572 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False):
               [A_ref, alpha, beta]
           If fit_c_terms = True:
               [A_ref, alpha, beta, c_1, ..., c_N]
-          where N = number of unique bands in datasets.
-          - A_ref : amplitude at reference freq (11.1 GHz) and ell=80
-          - alpha : multipole spectral index
-          - beta  : frequency spectral index
-          - c_i   : constant noise term for band i (only for autos)
+          where N = number of unique frequency bands in `datasets`.
+        - A_ref : amplitude at reference frequency (freq_ref) and ell = ell_ref
+        - alpha : multipole spectral slope
+        - beta  : frequency spectral index
+        - c_i   : constant noise/offset term for each auto-spectrum band
     datasets : list of dict
-        List from prepare_mcmc_data['datasets'], each dict has:
-          { 'pair': '11_23', 'mode':'EE', 'freqs': (f1,f2), 'slice': (start,stop) }
-    ell : array
-        Multipole values (ell_eff).
-    fit_c_terms : bool, default False
-        Whether to include constant c_i terms in auto-spectra.
+        Each element must contain:
+          { 'pair': '23_33', 'freqs': (f1, f2), 'slice': (start, stop), ... }
+    ell : array-like
+        Multipole values (effective ell of each bin).
+    fit_c_terms : bool, optional
+        If True, include constant offset terms for autos (default False).
+    freq_ref : float, optional
+        Reference frequency in GHz (default 23.0 GHz).
+    ell_ref : float, optional
+        Reference multipole (default 80.0).
 
     Returns
     -------
     model_all : ndarray
-        1D stacked array of model values, aligned with datasets order.
+        1D stacked array of predicted synchrotron power spectra, aligned with datasets order.
     """
-    # --- parameters
-    A_ref = theta[0]
-    alpha = theta[1]
-    beta  = theta[2]
-
-    # Unique frequencies in datasets (needed for mapping c_i terms)
+    A_ref, alpha, beta = theta[:3]
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
     freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
     N = len(unique_freqs)
 
-    # Constant terms (if included)
     c_terms = np.zeros(N)
     if fit_c_terms:
         if len(theta) != 3 + N:
             raise ValueError(f"Expected {3+N} parameters, got {len(theta)}")
         c_terms = theta[3:]
 
-    # --- build model
+    model_list = []
+    for d in datasets:
+        f1, f2 = d['freqs']
+        freq_factor = ((f1 * f2) / freq_ref**2)**beta
+        c_i = c_terms[freq_to_idx[f1]] if (fit_c_terms and f1 == f2) else 0.0
+        cl = A_ref * freq_factor * (ell / ell_ref)**alpha + c_i
+        model_list.append(cl)
+
+    return np.concatenate(model_list)
+
+
+# ============================================================================
+# DUST MODEL
+# ============================================================================
+
+def model_dust(theta, datasets, ell, fit_c_terms=False,
+               freq_ref=353.0, T_d=19.6, ell_ref=80.0):
+    """
+    Dust power-spectrum model with modified blackbody (MBB) frequency scaling.
+    Optionally includes constant c_i offsets for auto-spectra.
+
+    Parameters
+    ----------
+    theta : array-like
+        Model parameters:
+          If fit_c_terms = False:
+              [A_ref, alpha, beta_d]
+          If fit_c_terms = True:
+              [A_ref, alpha, beta_d, c_1, ..., c_N]
+          where N = number of unique frequency bands in `datasets`.
+        - A_ref : amplitude at reference frequency (freq_ref) and ell = ell_ref
+        - alpha : multipole spectral slope
+        - beta_d: dust emissivity index
+        - c_i   : constant noise/offset term for each auto-spectrum band
+    datasets : list of dict
+        Same format as in model_synchrotron().
+    ell : array-like
+        Multipole values (effective ell of each bin).
+    fit_c_terms : bool, optional
+        If True, include constant offset terms for autos (default False).
+    freq_ref : float, optional
+        Reference frequency in GHz (default 353.0 GHz).
+    T_d : float, optional
+        Dust temperature in Kelvin (default 19.6 K).
+    ell_ref : float, optional
+        Reference multipole (default 80.0).
+
+    Returns
+    -------
+    model_all : ndarray
+        1D stacked array of predicted dust power spectra, aligned with datasets order.
+    """
+    A_ref, alpha, beta_d = theta[:3]
+    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
+
+    c_terms = np.zeros(N)
+    if fit_c_terms:
+        if len(theta) != 3 + N:
+            raise ValueError(f"Expected {3+N} parameters, got {len(theta)}")
+        c_terms = theta[3:]
+
+    model_list = []
+    for d in datasets:
+        f1, f2 = d['freqs']
+        fscale1 = mbb_scaling_KRJ(f1, nu0_GHz=freq_ref, beta=beta_d, T_d=T_d)
+        fscale2 = mbb_scaling_KRJ(f2, nu0_GHz=freq_ref, beta=beta_d, T_d=T_d)
+        freq_factor = fscale1 * fscale2
+        c_i = c_terms[freq_to_idx[f1]] if (fit_c_terms and f1 == f2) else 0.0
+        cl = A_ref * freq_factor * (ell / ell_ref)**alpha + c_i
+        model_list.append(cl)
+
+    return np.concatenate(model_list)
+
+
+# ============================================================================
+# SYNCHROTRON-DUST CROSS MODEL
+# ============================================================================
+
+def model_cross(theta, datasets, ell,
+                ref_sync=23.0, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
+    """
+    Synchrotron-dust cross-correlation power-spectrum model.
+
+    Parameters
+    ----------
+    theta : array-like
+        [rho_sd, A_sync, A_dust, alpha_s, alpha_d, beta_s, beta_d]
+        - rho_sd : correlation coefficient between dust and synchrotron (|rho| ≤ 1)
+        - A_sync : synchrotron amplitude at ref_sync and ell = ell_ref
+        - A_dust : dust amplitude at ref_dust and ell = ell_ref
+        - alpha_s, alpha_d : multipole slopes for synchrotron and dust
+        - beta_s, beta_d   : frequency spectral indices
+    datasets : list of dict
+        Same format as before, with frequency pairs and metadata.
+    ell : array-like
+        Multipole values (effective ell of each bin).
+    ref_sync : float, optional
+        Reference frequency for synchrotron in GHz (default 23.0 GHz).
+    ref_dust : float, optional
+        Reference frequency for dust in GHz (default 353.0 GHz).
+    T_d : float, optional
+        Dust temperature in Kelvin (default 19.6 K).
+    ell_ref : float, optional
+        Reference multipole (default 80.0).
+
+    Returns
+    -------
+    model_all : ndarray
+        1D stacked array of predicted synchrotron-dust cross-spectra,
+        aligned with datasets order.
+    """
+    rho_sd, A_sync, A_dust, alpha_s, alpha_d, beta_s, beta_d = theta
+
     model_list = []
     for d in datasets:
         f1, f2 = d['freqs']
 
-        # frequency scaling
-        freq_factor = ((f1 * f2) / 11.1**2)**beta
+        f_s1 = (f1 / ref_sync)**beta_s
+        f_s2 = (f2 / ref_sync)**beta_s
+        f_d1 = mbb_scaling_KRJ(f1, nu0_GHz=ref_dust, beta=beta_d, T_d=T_d)
+        f_d2 = mbb_scaling_KRJ(f2, nu0_GHz=ref_dust, beta=beta_d, T_d=T_d)
 
-        # constant term only for autos
-        if f1 == f2 and fit_c_terms:
-            i = freq_to_idx[f1]
-            c_i = c_terms[i]
-        else:
-            c_i = 0.0
-
-        cl = (A_ref *
-              freq_factor *
-              (ell/80.)**alpha +
-              c_i)
+        ell_factor = (ell / ell_ref)**((alpha_s + alpha_d) / 2.)
+        cl = rho_sd * np.sqrt(A_sync * A_dust) * \
+             (f_s1 * f_d2 + f_s2 * f_d1) * ell_factor
 
         model_list.append(cl)
 
-    # stack into 1D array in the same order as y_all
-    model_all = np.concatenate(model_list)
-    return model_all
+    return np.concatenate(model_list)
 
 
+'''
+# ==========================================================================
+'''
 
-def lnlike(theta, datasets, ell, y_all, yerr_all, fit_c_terms=False):
+def lnlike(theta, datasets, ell, y_all, yerr_all,
+           fit_c_terms=False,
+           fit_components=('sync', 'dust', 'cross')):
     """
-    General log-likelihood for synchrotron model with arbitrary number of bands.
+    Log-likelihood for synchrotron, dust, and cross models combined.
 
     Parameters
     ----------
     theta : array
-        Model parameters (depends on fit_c_terms).
-    datasets : list
-        From prepare_mcmc_data['datasets'].
+        Model parameters concatenated for each fitted component.
+        Expected structure depends on fit_components:
+          If ('sync',):
+              [A_s, alpha_s, beta_s, (c_i...)]
+          If ('sync','dust'):
+              [A_s, alpha_s, beta_s, (c_i_s...),
+               A_d, alpha_d, beta_d, (c_i_d...)]
+          If ('sync','dust','cross'):
+              [A_s, alpha_s, beta_s, (c_i_s...),
+               A_d, alpha_d, beta_d, (c_i_d...),
+               rho_sd, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d]
+    datasets : list of dict
+        From prepare_mcmc_data()['datasets'].
     ell : array
-        Multipole values.
+        Multipole values (effective ell per bin).
     y_all : array
-        Observed data (stacked).
+        Observed data (1D stacked).
     yerr_all : array
-        Errors of observed data (stacked).
+        Observational errors (1D stacked).
     fit_c_terms : bool
-        Whether constants c_i are included.
+        Whether constant terms per auto band are included.
+    fit_components : tuple of str
+        Components to include: any combination of
+        ('sync', 'dust', 'cross').
 
     Returns
     -------
     lnlike : float
+        Log-likelihood value.
     """
-    model_vals = model_synchrotron(theta, datasets, ell, fit_c_terms=fit_c_terms)
-    chi2 = np.sum(((y_all - model_vals) / yerr_all)**2)
+    # running index for parameter slicing
+    idx = 0
+    model_total = np.zeros_like(y_all)
+
+    # --- SYNCHROTRON ---------------------------------------------------------
+    if 'sync' in fit_components:
+        unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+        n_c = len(unique_freqs) if fit_c_terms else 0
+        n_params = 3 + n_c  # A_ref, alpha, beta, (+ constants)
+        theta_sync = theta[idx:idx+n_params]
+        idx += n_params
+
+        model_total += model_synchrotron(
+            theta_sync, datasets, ell,
+            fit_c_terms=fit_c_terms
+        )
+
+    # --- DUST ----------------------------------------------------------------
+    if 'dust' in fit_components:
+        unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+        n_c = len(unique_freqs) if fit_c_terms else 0
+        n_params = 3 + n_c
+        theta_dust = theta[idx:idx+n_params]
+        idx += n_params
+
+        model_total += model_dust(
+            theta_dust, datasets, ell,
+            fit_c_terms=fit_c_terms
+        )
+
+    # --- CROSS TERM ----------------------------------------------------------
+    if 'cross' in fit_components:
+        # fixed 7 parameters: [rho_sd, A_sync, A_dust, alpha_s, alpha_d, beta_s, beta_d]
+        theta_cross = theta[idx:idx+7]
+        idx += 7
+
+        model_total += model_cross(theta_cross, datasets, ell)
+
+    # --- COMPUTE LIKELIHOOD --------------------------------------------------
+    chi2 = np.sum(((y_all - model_total) / yerr_all)**2)
     return -0.5 * chi2
 
-def lnprior(theta, datasets, fit_c_terms=False):
+
+# ============================================================================
+# PRIORS
+# ============================================================================
+
+def lnprior(theta, datasets, fit_c_terms=False,
+            fit_components=('sync', 'dust', 'cross')):
     """
-    General prior for synchrotron parameters.
+    Prior for multi-component (sync + dust + cross) Galactic model.
 
     Parameters
     ----------
     theta : array
-        Model parameters.
-    datasets : list
-        From prepare_mcmc_data['datasets'] (used only if fit_c_terms=True).
+        Model parameters, same ordering as in lnlike().
+    datasets : list of dict
+        From prepare_mcmc_data()['datasets'].
     fit_c_terms : bool
-        Whether constants c_i are included.
+        Whether constant terms are included.
+    fit_components : tuple of str
+        Which components are active.
 
     Returns
     -------
     lnprior : float
+        Log-prior value (0 if valid, -inf if invalid).
     """
-    A_ref, alpha, beta = theta[:3]
+    idx = 0
 
-    # Priors on spectral indices
-    if not (-6 < alpha < -0.5 and -5 < beta < -1):
-        return -np.inf
+    # --- SYNCHROTRON ---------------------------------------------------------
+    if 'sync' in fit_components:
+        unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+        n_c = len(unique_freqs) if fit_c_terms else 0
+        n_params = 3 + n_c
+        A_ref, alpha, beta = theta[idx:idx+3]
+        idx += n_params
 
-    # Optional priors on c_i > 0
-    if fit_c_terms:
-        c_terms = theta[3:]
-        if np.any(c_terms < 0):
+        if not (A_ref > 0 and -6 < alpha < -0.5 and -5 < beta < -1):
+            return -np.inf
+        if fit_c_terms:
+            c_terms = theta[idx-n_c:idx]
+            if np.any(c_terms < 0):
+                return -np.inf
+
+    # --- DUST ----------------------------------------------------------------
+    if 'dust' in fit_components:
+        unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+        n_c = len(unique_freqs) if fit_c_terms else 0
+        n_params = 3 + n_c
+        A_ref, alpha, beta_d = theta[idx:idx+3]
+        idx += n_params
+
+        if not (A_ref > 0 and -6 < alpha < -0.5 and 0.5 < beta_d):
+            return -np.inf
+        if fit_c_terms:
+            c_terms = theta[idx-n_c:idx]
+            if np.any(c_terms < 0):
+                return -np.inf
+
+    # --- CROSS TERM ----------------------------------------------------------
+    if 'cross' in fit_components:
+        rho_sd, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d = theta[idx:idx+7]
+        idx += 7
+        if not (-1 <= rho_sd <= 1):
+            return -np.inf
+        if not (A_s > 0 and A_d > 0):
+            return -np.inf
+        if not (-6 < alpha_s < -0.5 and -6 < alpha_d < -0.5):
+            return -np.inf
+        if not (-5 < beta_s < -1 and 0.5 < beta_d):
             return -np.inf
 
     return 0.0
 
 
-def lnprob(theta, datasets, ell, y_all, yerr_all, fit_c_terms=False):
-    lp = lnprior(theta, datasets, fit_c_terms=fit_c_terms)
-    if not np.isfinite(lp):
-        return -np.inf
-    return lp + lnlike(theta, datasets, ell, y_all, yerr_all, fit_c_terms=fit_c_terms)
+# ============================================================================
+# POSTERIOR
+# ============================================================================
 
-
-# ======================================================================0
-
-
-def run_mcmc_fit(p0, nwalkers, niter, ndim, lnprob, lnlike, data, burnin_frac=0.5, thin=10, labels=None, corner_title=""):
+def lnprob(theta, datasets, ell, y_all, yerr_all,
+           fit_c_terms=False,
+           fit_components=('sync', 'dust', 'cross')):
     """
-    Run MCMC sampler and return flattened samples along with a corner plot.
-    
+    Combined log-posterior = lnprior + lnlike for the Galactic emission model.
+
     Parameters
     ----------
-    p0 : list of np.array
-        Initial positions of walkers.
-    nwalkers : int
-        Number of walkers.
-    niter : int
-        Number of iterations for production run.
-    ndim : int
-        Number of dimensions in the parameter space.
-    lnprob : function
-        Log-probability function.
-    lnlike : function
-        Log-likelihood function.
-    data : tuple
-        Arguments to pass to lnprob.
-    burnin_frac : float
-        Fraction of iterations to discard as burn-in.
-    thin : int
-        Thinning factor for chain.
-    labels : list of str
-        Labels for corner plot.
-    corner_title : str
-        Title for the corner plot.
+    theta : array
+        Parameter vector.
+    datasets, ell, y_all, yerr_all : see lnlike().
+    fit_c_terms : bool
+        Whether constant terms are included.
+    fit_components : tuple of str
+        Components to include: any of ('sync','dust','cross').
 
     Returns
     -------
-    samples : np.ndarray
-        Flattened MCMC chain.
-    sampler : emcee.EnsembleSampler
-        The sampler object.
+    lnprob : float
+        Log posterior value.
     """
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=data)
-
-    # Burn-in
-    print("Running burn-in...")
-    p0, _, _ = sampler.run_mcmc(p0, 100, progress=True, store=True)
-    sampler.reset()
-
-    # Production run
-    print("Running production...")
-    pos, prob, state = sampler.run_mcmc(p0, niter, progress=True, store=True)
-
-    # Flatten chain and discard burn-in
-    burnin = int(burnin_frac * niter)
-    samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
-
-    # Corner plot
-    if labels is None:
-        labels = [f"param_{i}" for i in range(ndim)]
-    fig = corner.corner(samples, labels=labels, show_titles=True, plot_datapoints=True, quantiles=[0.16,0.5,0.84])
-    fig.suptitle(corner_title, fontsize=14)
-    plt.show()
-
-    # Best-fit parameters and reduced chi^2
-    best_index = np.argmax(prob)
-    best_params = pos[best_index]
-    chi_squared = -2 * lnlike(best_params, *data)
-    reduced_chi2 = chi_squared / (len(data[2]) - ndim)  # data[2] assumed to be ell array
-
-    return samples, sampler, best_params, reduced_chi2
+    lp = lnprior(theta, datasets, fit_c_terms=fit_c_terms,
+                 fit_components=fit_components)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike(theta, datasets, ell, y_all, yerr_all,
+                       fit_c_terms=fit_c_terms,
+                       fit_components=fit_components)
 
 
-fit_data_ee = prepare_mcmc_data(spectra_dict, band_list=band_list, modes=['EE'], band_pairs=['11_11', '11_23', '23_23', '11_30', '30_30', '23_30'])
 
-#%%
+band_pairs = [
+            #   '11_11', '11_23', '23_23', '11_30', '30_30', '23_30',
+              '94_94', '94_143', '143_143', '143_353', '353_353', '94_353', '217_217', '143_217', '94_217', '217_353',
+            #   '143_143', '217_217', '143_217', '100_100', '100_143', '100_217'
+              ]
 
-nwalkers = 100
-niter = 5000
-ndim = 5  # or len(theta) for number of free parameters
-p0 = [np.array([1.5, -3., -3., 0., 0.]) + 1e-1*np.random.randn(ndim) for _ in range(nwalkers)]
-labels = ['A_ref', 'alpha', 'beta', 'c1', 'c2']
+fit_data_ee = prepare_mcmc_data(spectra_dict, band_list=band_list, modes=['EE'], band_pairs=band_pairs)
 
-samples, sampler, best_params, reduced_chi2 = run_mcmc_fit(
-    p0, nwalkers, niter, ndim,
-    lnprob, lnlike,
-    data=(fit_data_ee['freqs'][0], None, fit_data_ee['ell_eff'], fit_data_ee['cl_data'][0], fit_data_ee['cl_data'][1], fit_data_ee['cl_data'][3],
-          fit_data_ee['cl_err'][0], fit_data_ee['cl_err'][1], fit_data_ee['cl_err'][3]),
-    labels=labels,
-    corner_title="EE 11-23 GHz"
+
+# -------------------------------
+# Fitting configuration
+# -------------------------------
+
+nwalkers = 50
+ninter = 10000
+discard_fraction = 0.5  # Burn-in fraction
+
+fit_components = (
+    # 'sync', 
+    'dust', 
+    # 'cross'
+)
+fit_c_terms = False
+
+datasets = fit_data_ee['datasets']
+ell = fit_data_ee['ell_eff']
+y_all = fit_data_ee['y_all']
+yerr_all = fit_data_ee['yerr_all']
+
+# -------------------------------
+# Determine number of parameters
+# -------------------------------
+
+unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+n_c = len(unique_freqs) if fit_c_terms else 0
+
+ndim = 0
+if 'sync' in fit_components:
+    ndim += 3 + n_c
+if 'dust' in fit_components:
+    ndim += 3 + n_c
+if 'cross' in fit_components:
+    ndim += 7
+
+# -------------------------------
+# Initial positions (p0)
+# -------------------------------
+
+p0 = []
+
+# --- SYNCHROTRON ---
+if 'sync' in fit_components:
+    # rough guesses for amplitude, ell slope, frequency index
+    A_sync_guess = 1.5
+    alpha_sync_guess = -3.0
+    beta_sync_guess = -3.0
+    if fit_c_terms:
+        c_guess = np.zeros(n_c)
+        p0 += [A_sync_guess, alpha_sync_guess, beta_sync_guess] + c_guess.tolist()
+    else:
+        p0 += [A_sync_guess, alpha_sync_guess, beta_sync_guess]
+
+# --- DUST ---
+if 'dust' in fit_components:
+    # rough guesses
+    A_dust_guess = 1e-1
+    alpha_dust_guess = -2.5
+    beta_dust_guess = 1.59
+    if fit_c_terms:
+        c_guess = np.zeros(n_c)
+        p0 += [A_dust_guess, alpha_dust_guess, beta_dust_guess] + c_guess.tolist()
+    else:
+        p0 += [A_dust_guess, alpha_dust_guess, beta_dust_guess]
+
+# --- CROSS ---
+if 'cross' in fit_components:
+    # use the same values as above for consistency
+    rho_guess = 0.5
+    p0 += [rho_guess, A_sync_guess, A_dust_guess,
+           alpha_sync_guess, alpha_dust_guess,
+           beta_sync_guess, beta_dust_guess]
+
+
+# Convert p0 into initial positions for all walkers by adding small random noise
+p0_walkers = np.array(p0) + 1e-1 * np.random.randn(nwalkers, ndim)
+
+# -------------------------------
+# Run emcee
+# -------------------------------
+
+sampler = emcee.EnsembleSampler(
+    nwalkers, ndim, lnprob,
+    args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components)
 )
 
+print("Starting MCMC...")
+sampler.run_mcmc(p0_walkers, ninter, progress=True)
+
+# -------------------------------
+# Discard burn-in and flatten
+# -------------------------------
+
+discard = int(ninter * discard_fraction)
+samples = sampler.get_chain(discard=discard, flat=True)
+
+print(f"Shape of flattened samples: {samples.shape}")
+
+# -------------------------------
+# Corner plot
+# -------------------------------
 
 
+# Determine parameter indices for scaling
+idx = 0
+scaling = np.ones(ndim)  # default 1
 
-def plot_corner(sampler, ndim, labels=None, burnin=0, thin=1, truths=None):
-    """
-    Make a corner plot from an emcee sampler.
+labels = []
 
-    Parameters
-    ----------
-    sampler : emcee.EnsembleSampler
-        The MCMC sampler after running.
-    ndim : int
-        Number of parameters.
-    labels : list of str, optional
-        Names of parameters to show on axes.
-    burnin : int, default 0
-        Number of initial steps to discard.
-    thin : int, default 1
-        Thinning factor for the chain.
-    truths : list, optional
-        Reference "true" parameter values for vertical/horizontal lines.
-    """
-    # Flatten the chains (discard burn-in, apply thinning)
-    samples = sampler.get_chain(discard=burnin, thin=thin, flat=True)
+# --- Synchrotron ---
+if 'sync' in fit_components:
+    labels += [r'$A_{\rm sync}\ (\mu{\rm K}^2)$', r'$\alpha_{\rm sync}$', r'$\beta_{\rm sync}$']
+    scaling[idx] = 1e6  # scale amplitude
+    idx += 3
+    if fit_c_terms:
+        for f in unique_freqs:
+            labels.append(fr'$c_{{\rm sync,{int(f)}GHz}}$')
+            idx += 1
 
-    # If no labels provided, use generic names
-    if labels is None:
-        labels = [f"$\\theta_{i}$" for i in range(ndim)]
+# --- Dust ---
+if 'dust' in fit_components:
+    labels += [r'$A_{\rm dust}\ (\mu{\rm K}^2)$', r'$\alpha_{\rm dust}$', r'$\beta_{\rm dust}$']
+    scaling[idx] = 1e6
+    idx += 3
+    if fit_c_terms:
+        for f in unique_freqs:
+            labels.append(fr'$c_{{\rm dust,{int(f)}GHz}}$')
+            idx += 1
 
-    fig = corner.corner(
-        samples,
-        labels=labels,
-        truths=truths,
-        show_titles=True,
-        title_fmt=".3f",
-        title_kwargs={"fontsize": 12}
-    )
+# --- Cross ---
+if 'cross' in fit_components:
+    labels += [r'$\rho_{\rm sd}$',
+               r'$A_{\rm sync}^{\rm cross}\ (\mu{\rm K}^2)$',
+               r'$A_{\rm dust}^{\rm cross}\ (\mu{\rm K}^2)$',
+               r'$\alpha_{\rm sync}^{\rm cross}$',
+               r'$\alpha_{\rm dust}^{\rm cross}$',
+               r'$\beta_{\rm sync}^{\rm cross}$',
+               r'$\beta_{\rm dust}^{\rm cross}$']
+    scaling[idx+1] = 1e6  # A_sync_cross
+    scaling[idx+2] = 1e6  # A_dust_cross
+    idx += 7
 
-    plt.show()
-    return fig
+# Apply scaling
+samples_scaled = samples.copy()
+for i, s in enumerate(scaling):
+    samples_scaled[:, i] *= s
 
-# Supón que tienes ndim=3 (A_ref, alpha, beta)
-labels = [r"$A_\mathrm{ref}$", r"$\alpha$", r"$\beta$"]
-
-fig = plot_corner(sampler, ndim=3, labels=labels, burnin=200, thin=10)
-
+# Create corner plot
+fig = corner.corner(samples_scaled, labels=labels,
+                    quantiles=[0.16, 0.5, 0.84], show_titles=True,
+                    title_fmt=".2f", label_kwargs={"fontsize":12})
+plt.show()
 
 #%%
-import numpy as np
-import matplotlib.pyplot as plt
-import emcee
-import corner
 
-plt.rcParams['figure.figsize'] = [15, 8]
+import matplotlib.cm as cm
 
-masks = ['north', 'south']
-freq_auto = ['11', '23', '30']
-freq_cross = ['11-23', '11-30', '23-30']
+# ==============================
+# COMPARISON PLOT: DATA vs DUST (solo autos)
+# ==============================
 
-cl_auto = np.zeros([len(masks), len(freq_auto), 7, 102])
-cl_cross = np.zeros([len(masks), len(freq_cross), 7, 102])
-error_auto = np.zeros([len(masks), len(freq_auto), 7, 102])
-error_cross = np.zeros([len(masks), len(freq_cross), 7, 102])
+# --- Define fixed dust parameters ---
+A_dust = 1e-6      # en K^2
+alpha_dust = -2.5
+beta_dust = 1.59
+T_d = 19.6        # temperatura polvo
+freq_ref = 353.0
+ell_ref = 80.0
 
-for ii in range(len(masks)):
-    for jj in range(len(freq_auto)):
-        cl_auto[ii,jj] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/spectra/cl_' + freq_auto[jj] + 'ghz_' + masks[ii] + '.txt', skiprows=1)
-        cl_cross[ii,jj] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/spectra/cross_' + freq_cross[jj] + 'ghz_' + masks[ii] + '.txt', skiprows=1)
-        error_auto[ii,jj] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/errorbars/errorbar_' + freq_auto[jj] + 'ghz_' + masks[ii] + '.txt', skiprows=1)
-        error_cross[ii,jj] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/errorbars/errorbar_cross_' + freq_cross[jj] + 'ghz_' + masks[ii] + '.txt', skiprows=1)
+theta_dust_fixed = [A_dust, alpha_dust, beta_dust]
 
-ccorr_ee = np.ones([len(masks), 4, 3])
-ccorr_bb = np.ones([len(masks), 4, 3])
-ccorr_ee_bb = np.ones([len(masks), 4, 3])
+plt.figure(figsize=(10,6))
 
-for ii in range(len(masks)):
-    ccorr_ee[ii] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/colour_corrections/north_south_colour_corrections_ee_' + masks[ii] + '.txt', skiprows=1)
-    ccorr_bb[ii] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/colour_corrections/north_south_colour_corrections_bb_' + masks[ii] + '.txt', skiprows=1)
-    ccorr_ee_bb[ii] = np.loadtxt('/home/pablo/Desktop/Paper/3_north_south/data/colour_corrections/north_south_colour_corrections_ee_bb_' + masks[ii] + '.txt', skiprows=1)
-    
-ell = cl_auto[0, 0, 0, 3:30] # 30 < ell < 300
+# Generar colores distintos según el número de frecuencias
+unique_freqs = sorted({d['freqs'][0] for d in datasets if d['freqs'][0] == d['freqs'][1]})
+colors = cm.viridis(np.linspace(0,1,len(unique_freqs)))
+freq_to_color = {f: c for f,c in zip(unique_freqs, colors)}
 
-cl_ee_11_north = cl_auto[0, 0, 2, 3:30]
-cl_ee_23_north = cl_auto[0, 1, 2, 3:30]
-cl_ee_30_north = cl_auto[0, 2, 2, 3:30]
+for d in datasets:
+    f1, f2 = d['freqs']
+    if f1 != f2:
+        continue  # solo autos
 
-cl_ee_11_south = cl_auto[1, 0, 2, 3:30]
-cl_ee_23_south = cl_auto[1, 1, 2, 3:30]
-cl_ee_30_south = cl_auto[1, 2, 2, 3:30]
+    color = freq_to_color[f1]
 
-cl_ee_11 = np.array([cl_ee_11_north, cl_ee_11_south])
-cl_ee_23 = np.array([cl_ee_23_north, cl_ee_23_south])
-cl_ee_30 = np.array([cl_ee_30_north, cl_ee_30_south])
+    # Datos
+    plt.errorbar(ell, d['spectrum']*1e6, yerr=d['error']*1e6, fmt='o', label=f"Data {int(f1)} GHz", alpha=0.6, color=color)
 
-error_ee_11_north = error_auto[0, 0, 2, 3:30]
-error_ee_23_north = error_auto[0, 1, 2, 3:30]
-error_ee_30_north = error_auto[0, 2, 2, 3:30]
+    # Modelo de polvo
+    fscale1 = mbb_scaling_KRJ(f1, nu0_GHz=freq_ref, beta=beta_dust, T_d=T_d)
+    cl_model = A_dust * fscale1**2 * (ell / ell_ref)**alpha_dust
+    plt.plot(ell, cl_model*1e6, linestyle='--', color=color, label=f"Dust model {int(f1)} GHz")
 
-error_ee_11_south = error_auto[1, 0, 2, 3:30]
-error_ee_23_south = error_auto[1, 1, 2, 3:30]
-error_ee_30_south = error_auto[1, 2, 2, 3:30]
+plt.xlabel(r"$\ell$", fontsize=14)
+plt.ylabel(r"$C_\ell^{EE}\ [\mu K^2]$", fontsize=14)
+plt.title("Comparison: Auto-spectra Data vs Dust Model")
+plt.yscale('log')
+plt.legend(fontsize=10, frameon=False, ncol=2)
+plt.show()
 
-
-error_ee_11 = np.array([error_ee_11_north, error_ee_11_south])
-error_ee_23 = np.array([error_ee_23_north, error_ee_23_south])
-error_ee_30 = np.array([error_ee_30_north, error_ee_30_south])
-
-cl_bb_11_north = cl_auto[0, 0, 3, 3:30]
-cl_bb_23_north = cl_auto[0, 1, 3, 3:30]
-cl_bb_30_north = cl_auto[0, 2, 3, 3:30]
-
-cl_bb_11_south = cl_auto[1, 0, 3, 3:30]
-cl_bb_23_south = cl_auto[1, 1, 3, 3:30]
-cl_bb_30_south = cl_auto[1, 2, 3, 3:30]
-
-
-cl_bb_11 = np.array([cl_bb_11_north, cl_bb_11_south])
-cl_bb_23 = np.array([cl_bb_23_north, cl_bb_23_south])
-cl_bb_30 = np.array([cl_bb_30_north, cl_bb_30_south])
-
-error_bb_11_north = error_auto[0, 0, 3, 3:30]
-error_bb_23_north = error_auto[0, 1, 3, 3:30]
-error_bb_30_north = error_auto[0, 2, 3, 3:30]
-
-error_bb_11_south = error_auto[1, 0, 3, 3:30]
-error_bb_23_south = error_auto[1, 1, 3, 3:30]
-error_bb_30_south = error_auto[1, 2, 3, 3:30]
-
-
-error_bb_11 = np.array([error_bb_11_north, error_bb_11_south])
-error_bb_23 = np.array([error_bb_23_north, error_bb_23_south])
-error_bb_30 = np.array([error_bb_30_north, error_bb_30_south])
-
-# ===============================================================
-
-cl_ee_11_23_north = cl_cross[0, 0, 2, 3:30]
-cl_ee_11_30_north = cl_cross[0, 1, 2, 3:30]
-cl_ee_23_30_north = cl_cross[0, 2, 2, 3:30]
-
-cl_ee_11_23_south = cl_cross[1, 0, 2, 3:30]
-cl_ee_11_30_south = cl_cross[1, 1, 2, 3:30]
-cl_ee_23_30_south = cl_cross[1, 2, 2, 3:30]
-
-cl_ee_11_23 = np.array([cl_ee_11_23_north, cl_ee_11_23_south])
-cl_ee_11_30 = np.array([cl_ee_11_30_north, cl_ee_23_30_south])
-cl_ee_23_30 = np.array([cl_ee_23_30_north, cl_ee_23_30_south])
-
-error_ee_11_23_north = error_cross[0, 0, 2, 3:30]
-error_ee_11_30_north = error_cross[0, 1, 2, 3:30]
-error_ee_23_30_north = error_cross[0, 2, 2, 3:30]
-
-error_ee_11_23_south = error_cross[1, 0, 2, 3:30]
-error_ee_11_30_south = error_cross[1, 1, 2, 3:30]
-error_ee_23_30_south = error_cross[1, 2, 2, 3:30]
-
-error_ee_11_23 = np.array([error_ee_11_23_north, error_ee_11_23_south])
-error_ee_11_30 = np.array([error_ee_11_30_north, error_ee_11_30_south])
-error_ee_23_30 = np.array([error_ee_23_30_north, error_ee_23_30_south])
-
-
-cl_bb_11_23_north = cl_cross[0, 0, 3, 3:30]
-cl_bb_11_30_north = cl_cross[0, 1, 3, 3:30]
-cl_bb_23_30_north = cl_cross[0, 2, 3, 3:30]
-
-cl_bb_11_23_south = cl_cross[1, 0, 3, 3:30]
-cl_bb_11_30_south = cl_cross[1, 1, 3, 3:30]
-cl_bb_23_30_south = cl_cross[1, 2, 3, 3:30]
-
-cl_bb_11_23 = np.array([cl_bb_11_23_north, cl_bb_11_23_south])
-cl_bb_11_30 = np.array([cl_bb_11_30_north, cl_bb_23_30_south])
-cl_bb_23_30 = np.array([cl_bb_23_30_north, cl_bb_23_30_south])
-
-error_bb_11_23_north = error_cross[0, 0, 3, 3:30]
-error_bb_11_30_north = error_cross[0, 1, 3, 3:30]
-error_bb_23_30_north = error_cross[0, 2, 3, 3:30]
-
-error_bb_11_23_south = error_cross[1, 0, 3, 3:30]
-error_bb_11_30_south = error_cross[1, 1, 3, 3:30]
-error_bb_23_30_south = error_cross[1, 2, 3, 3:30]
-
-error_bb_11_23 = np.array([error_bb_11_23_north, error_bb_11_23_south])
-error_bb_11_30 = np.array([error_bb_11_30_north, error_bb_11_30_south])
-error_bb_23_30 = np.array([error_bb_23_30_north, error_bb_23_30_south])
-
-"""
-# ==================================================================================
-# Models
-# ==================================================================================
-"""
-
-def model_f1_f2(theta, freq, cc, ell=ell):
-    A_f1, alpha, betha, c_f1, c_f2 = theta
-    f1, f2 = freq
-    cc_f1, cc_f2 = cc[0], cc[1]
-    cl_f1 = A_f1 * 1e-6 * (f1/11.1)**(2*betha) * (ell/80.)**alpha + c_f1 * 1e-9
-    cl_f2 = A_f1 * 1e-6 * (f2/11.1)**(2*betha) * (ell/80.)**alpha + c_f2 * 1e-9
-    return np.array([cl_f1/cc_f1**2, cl_f2/cc_f2**2])
-
-def model_f1_f2_f3(theta, freq, cc, ell=ell):
-    A_f1, alpha, betha, c_f1, c_f2, c_f3 = theta
-    f1, f2, f3 = freq
-    cc_f1, cc_f2, cc_f3 = cc[0], cc[1], cc[2]
-    cl_f1 = A_f1 * 1e-6 * (f1/11.1)**(2*betha) * (ell/80.)**alpha + c_f1 * 1e-9
-    cl_f2 = A_f1 * 1e-6 * (f2/11.1)**(2*betha) * (ell/80.)**alpha + c_f2 * 1e-9
-    cl_f3 = A_f1 * 1e-6 * (f3/11.1)**(2*betha) * (ell/80.)**alpha + c_f3 * 1e-9
-    return np.array([cl_f1/cc_f1**2, cl_f2/cc_f2**2, cl_f3/cc_f3**2])
-
-def cross_model_f1_f2(theta, freq, cc, ell=ell):
-    A_f1, alpha, betha, c_f1, c_f2 = theta
-    f1, f2 = freq
-    cl = A_f1 * 1e-6 * (f1*f2/11.1**2)**(betha) * (ell/80.)**alpha 
-    return cl / (cc[0] * cc[1])
-
-def cross_model_f1_f2_f3(theta, freq, cc, ell=ell):
-    A_f1, alpha, betha, c_f1, c_f2, c_f3 = theta
-    f1, f2 = freq
-    cl = A_f1 * 1e-6 * (f1*f2/11.1**2)**(betha) * (ell/80.)**alpha
-    return cl / (cc[0] * cc[1])
-
-# =============================================================================
-# Likeness function, priors setting, probability function and MCMC main 
-# =============================================================================
-
-def lnlike_f1_f2(theta, freq, cc, x, y_f1, y_f2, y_f1_f2, yerr_f1, yerr_f2, yerr_f1_f2):
-    return -0.5 * (np.sum(((y_f1 - model_f1_f2(theta, freq, cc)[0]) / yerr_f1)**2) + 
-                   np.sum(((y_f2 - model_f1_f2(theta, freq, cc)[1]) / yerr_f2)**2) + 
-                   np.sum(((y_f1_f2 - cross_model_f1_f2(theta, freq, cc)) / yerr_f1_f2)**2))
-
-def lnlike_f1_f2_f3(theta, freq, cc, x, y_f1, y_f2, y_f3, y_f1_f2, y_f1_f3, y_f2_f3, yerr_f1, yerr_f2, yerr_f3, yerr_f1_f2, yerr_f1_f3, yerr_f2_f3):
-    return -0.5 * (np.sum(((y_f1 - model_f1_f2_f3(theta, freq, cc)[0]) / yerr_f1)**2) + 
-                   np.sum(((y_f2 - model_f1_f2_f3(theta, freq, cc)[1]) / yerr_f2)**2) + 
-                   np.sum(((y_f3 - model_f1_f2_f3(theta, freq, cc)[2]) / yerr_f3)**2) + 
-                   np.sum(((y_f1_f2 - cross_model_f1_f2_f3(theta, [freq[0],freq[1]], [cc[0],cc[1]])) / yerr_f1_f2)**2) + 
-                   np.sum(((y_f1_f3 - cross_model_f1_f2_f3(theta, [freq[0],freq[2]], [cc[0],cc[2]])) / yerr_f1_f3)**2) + 
-                   np.sum(((y_f2_f3 - cross_model_f1_f2_f3(theta, [freq[1],freq[2]], [cc[1],cc[2]])) / yerr_f2_f3)**2) )
-
-def lnprior_f1_f2(theta):
-    A_f1, alpha, betha, c_f1, c_f2 = theta
-    if -6 < alpha < -0.5 and -5 < betha < -1: # and c_f1 > 0 and c_f2 > 0:
-        return 0.0
-    return -np.inf
-
-def lnprior_f1_f2_f3(theta):
-    A_f1, alpha, betha, c_f1, c_f2, c_f3 = theta
-    if -6 < alpha < -0.5 and -5 < betha < -1: # and c_f1 > 0 and c_f2 > 0 and c_f3 > 0:
-        return 0.0
-    return -np.inf
-
-def lnprob_f1_f2(theta, freq, cc, x, y_f1, y_f2, y_f1_f2, yerr_f1, yerr_f2, yerr_f1_f2):
-    lp = lnprior_f1_f2(theta)
-    if not np.isfinite(lp): # If the parameter is not within the priors, return a -infinite
-        return -np.inf
-    return lp + lnlike_f1_f2(theta, freq, cc, x, y_f1, y_f2,  y_f1_f2, yerr_f1, yerr_f2, yerr_f1_f2) # if theta fulfills the priors, then lp = 0
-
-def lnprob_f1_f2_f3(theta, freq, cc, x, y_f1, y_f2, y_f3, y_f1_f2, y_f1_f3, y_f2_f3, yerr_f1, yerr_f2, yerr_f3, yerr_f1_f2, yerr_f1_f3, yerr_f2_f3):
-    lp = lnprior_f1_f2_f3(theta)
-    if not np.isfinite(lp): # If the parameter is not within the priors, return a -infinite
-        return -np.inf
-    return lp + lnlike_f1_f2_f3(theta, freq, cc, x, y_f1, y_f2, y_f3, y_f1_f2, y_f1_f3, y_f2_f3, yerr_f1, yerr_f2, yerr_f3, yerr_f1_f2, yerr_f1_f3, yerr_f2_f3)
-
-def main(p0, nwalkers, niter, ndim, lnprob, lnlike, data):
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=data)
-
-    print("Running burn-in...")
-    p0, _, _ = sampler.run_mcmc(p0, 100, progress=True) # Run 100 iterations for each initial position
-    sampler.reset()
-
-    print("Running production...")
-    pos, prob, state = sampler.run_mcmc(p0, niter, progress=True) # Run niter iterations with the new initial positions
-
-    best_index = np.argmax(prob)
-    best_params = pos[best_index]
-    chi_squared = -2 * lnlike(best_params, *data)
-    reduced_chi = chi_squared / (ell.size - ndim)
-
-    return sampler, pos, prob, state, reduced_chi
-
-# =============================================================================
-# Walkers, iteartions and initial parameters
-# =============================================================================
-
-nwalkers = 100
-niter = 10000
-ndim_f1_f2 = 5
-ndim_f1_f2_f3 = 6
-discard_frac = 0.5
-initial_f1_f2 = [1.5, -3., -3., 0., 0.]
-initial_f1_f2_f3 = [1.5, -3., -3., 0., 0., 0.]
-
-variations_f1_f2 = np.array([1e-1, 1e-1, 1e-1, 1e-1, 1e-1])
-variations_f1_f2_f3 = np.array([1e-1, 1e-1, 1e-1, 1e-1, 1e-1, 1e-1])
-
-p0_f1_f2 = [np.array(initial_f1_f2) + variations_f1_f2 * np.random.randn(ndim_f1_f2) for i in range(nwalkers)]
-p0_f1_f2_f3 = [np.array(initial_f1_f2_f3) + variations_f1_f2_f3 * np.random.randn(ndim_f1_f2_f3) for i in range(nwalkers)]
-
-labels = [['A_11', 'alpha', 'betha', 'c_11', 'c_23'], ['A_11', 'alpha', 'betha', 'c_11', 'c_30'], ['A_23', 'alpha', 'betha', 'c_23', 'c_30'], ['A_11', 'alpha', 'betha', 'c_11', 'c_23', 'c_30']]
-
-#%%
-# ========================
-# EE-mode
-# ========================
-
-names = [['A' , 'alpha', 'betha', 'c_1', 'c_2'], ['A' , 'alpha', 'betha', 'c_1', 'c_2', 'c_3']]
-tables = ['11-23', '11-30', '23-30', '11-23-30']
-
-
-all_samples_ee_11_23 = np.zeros([len(masks), int(discard_frac*niter*nwalkers/10), ndim_f1_f2]) # Mask, samples
-all_samples_ee_11_30 = np.zeros_like(all_samples_ee_11_23)
-all_samples_ee_23_30 = np.zeros_like(all_samples_ee_11_23)
-all_samples_ee_11_23_30 = np.zeros([len(masks), int(discard_frac*niter*nwalkers/10), ndim_f1_f2_f3])
-
-chi_squared_ee = np.zeros([len(masks), 4])
-
-for ii in range(len(masks)):
-
-    data_11_23 = ([11.1, 22.82], ccorr_ee[ii, 0, :2], ell, cl_ee_11[ii], cl_ee_23[ii], cl_ee_11_23[ii], error_ee_11[ii], error_ee_23[ii], error_ee_11_23[ii])
-    data_11_30 = ([11.1, 28.40], ccorr_ee[ii, 1, :2], ell, cl_ee_11[ii], cl_ee_30[ii], cl_ee_11_30[ii], error_ee_11[ii], error_ee_30[ii], error_ee_11_30[ii])
-    data_23_30 = ([22.82, 28.4], ccorr_ee[ii, 2, :2], ell, cl_ee_23[ii], cl_ee_30[ii], cl_ee_23_30[ii], error_ee_23[ii], error_ee_30[ii], error_ee_23_30[ii])
-    data_11_23_30 = ([11.1, 22.82, 28.40], ccorr_ee[ii, 3, :], ell, cl_ee_11[ii], cl_ee_23[ii], cl_ee_30[ii], cl_ee_11_23[ii], cl_ee_11_30[ii], cl_ee_23_30[ii], error_ee_11[ii], error_ee_23[ii], error_ee_30[ii], error_ee_11_23[ii], error_ee_11_30[ii], error_ee_23_30[ii])
-
-    sampler_11_23, _, _, _, chi2_11_23   = main(p0_f1_f2, nwalkers, niter, ndim_f1_f2, lnprob_f1_f2, lnlike_f1_f2, data_11_23)
-    sampler_11_30, _, _, _, chi2_11_30 = main(p0_f1_f2, nwalkers, niter, ndim_f1_f2, lnprob_f1_f2, lnlike_f1_f2, data_11_30)
-    sampler_23_30, _, _, _, chi2_23_30 = main(p0_f1_f2, nwalkers, niter, ndim_f1_f2, lnprob_f1_f2, lnlike_f1_f2, data_23_30)
-    sampler_11_23_30, _, _, _, chi2_11_23_30 = main(p0_f1_f2_f3, nwalkers, niter, ndim_f1_f2_f3, lnprob_f1_f2_f3, lnlike_f1_f2_f3, data_11_23_30)
-    
-    samples_11_23 = sampler_11_23.get_chain(flat=True, thin=10, discard = int(discard_frac * niter))
-    samples_11_30 = sampler_11_30.get_chain(flat=True, thin=10, discard = int(discard_frac * niter))
-    samples_23_30 = sampler_23_30.get_chain(flat=True, thin=10, discard = int(discard_frac * niter))
-    samples_11_23_30 = sampler_11_23_30.get_chain(flat=True, thin=10, discard = int(discard_frac * niter))
-
-
-    fig_11_23 = corner.corner(samples_11_23, show_titles=True, labels=labels[0], plot_datapoints=True, quantiles=[0.16, 0.5, 0.84])
-    fig_11_23.suptitle('11-23 GHz, ' + masks[ii] , fontsize=13)
-    plt.show()
-
-    fig_11_30 = corner.corner(samples_11_30, show_titles=True, labels=labels[1], plot_datapoints=True, quantiles=[0.16, 0.5, 0.84])
-    fig_11_30.suptitle('11-30 GHz, ' + masks[ii] , fontsize=13)
-    plt.show()
-
-    fig_23_30 = corner.corner(samples_23_30, show_titles=True, labels=labels[2], plot_datapoints=True, quantiles=[0.16, 0.5, 0.84])
-    fig_23_30.suptitle('23-30 GHz, ' + masks[ii] , fontsize=13)
-    plt.show()
-
-    fig_11_23_30 = corner.corner(samples_11_23_30, show_titles=True, labels=labels[3], plot_datapoints=True, quantiles=[0.16, 0.5, 0.84])
-    fig_11_23_30.suptitle('11-23-30 GHz, ' + masks[ii] , fontsize=13)
-    plt.show()
-
-    all_samples_ee_11_23[ii] = samples_11_23
-    all_samples_ee_11_30[ii] = samples_11_30
-    all_samples_ee_23_30[ii] = samples_23_30
-    all_samples_ee_11_23_30[ii] = samples_11_23_30
-
-    chi_squared_ee[ii] = np.array([chi2_11_23, chi2_11_30, chi2_23_30, chi2_11_23_30])
-
-all_samples_ee_f1_f2 = np.array([all_samples_ee_11_23, all_samples_ee_11_30, all_samples_ee_23_30])
-all_samples_ee_f1_f2_f3 = np.array([all_samples_ee_11_23_30])
-
-# ============================
-# Saving data
-# ============================
-
-values_ee_f1_f2 = np.zeros([ndim_f1_f2, len(masks)])
-values_ee_f1_f2_f3 = np.zeros([ndim_f1_f2_f3, len(masks)])
-errors_ee_f1_f2 = np.zeros([ndim_f1_f2, len(masks)])
-errors_ee_f1_f2_f3 = np.zeros([ndim_f1_f2_f3, len(masks)])
-
-for ii in range(len(all_samples_ee_f1_f2)):
-    for jj in range(len(masks)):
-        A_ee, alpha_ee, betha_ee, c_f1, c_f2 = np.percentile(all_samples_ee_f1_f2[ii,jj], [16, 50, 84], axis=0).T
-
-        A_value, A_error = A_ee[1], np.max([np.abs(A_ee[1] - A_ee[0]), np.abs(A_ee[1] - A_ee[2])])
-        alpha_value, alpha_error = alpha_ee[1], np.max([np.abs(alpha_ee[1] - alpha_ee[0]), np.abs(alpha_ee[1] - alpha_ee[2])])
-        betha_value, betha_error = betha_ee[1], np.max([np.abs(betha_ee[1] - betha_ee[0]), np.abs(betha_ee[1] - betha_ee[2])])
-        c_f1_value, c_f1_error = c_f1[1], np.max([np.abs(c_f1[1] - c_f1[0]), np.abs(c_f1[1] - c_f1[2])])
-        c_f2_value, c_f2_error = c_f2[1], np.max([np.abs(c_f2[1] - c_f2[0]), np.abs(c_f2[1] - c_f2[2])])
-
-        values_ee_f1_f2[:, jj] = A_value, alpha_value, betha_value, c_f1_value, c_f2_value
-        errors_ee_f1_f2[:, jj] = A_error, alpha_error, betha_error, c_f1_error, c_f2_error
-
-    with open('/home/pablo/Desktop/Paper/3_north_south/data/tables/values/values_ee_north_south_' + tables[ii] + '.txt', 'w') as f:
-        f.write('\t'.join(names[0]) + '\n')
-        np.savetxt(f, values_ee_f1_f2, fmt='%.12e', delimiter='\t')
-
-    with open('/home/pablo/Desktop/Paper/3_north_south/data/tables/errors/errors_ee_north_south_' + tables[ii] + '.txt', 'w') as f:
-        f.write('\t'.join(names[1]) + '\n')
-        np.savetxt(f, errors_ee_f1_f2, fmt='%.12e', delimiter='\t')
-
-
-for ii in range(len(all_samples_ee_f1_f2_f3)):
-    for jj in range(len(masks)):
-        A_ee, alpha_ee, betha_ee, c_f1, c_f2, c_f3 = np.percentile(all_samples_ee_f1_f2_f3[ii,jj], [16, 50, 84], axis=0).T
-
-        A_value_ee, A_error_ee = A_ee[1], np.max([np.abs(A_ee[1] - A_ee[0]), np.abs(A_ee[1] - A_ee[2])])
-        alpha_value, alpha_error = alpha_ee[1], np.max([np.abs(alpha_ee[1] - alpha_ee[0]), np.abs(alpha_ee[1] - alpha_ee[2])])
-        betha_value, betha_error = betha_ee[1], np.max([np.abs(betha_ee[1] - betha_ee[0]), np.abs(betha_ee[1] - betha_ee[2])])
-        c_f1_value, c_f1_error = c_f1[1], np.max([np.abs(c_f1[1] - c_f1[0]), np.abs(c_f1[1] - c_f1[2])])
-        c_f2_value, c_f2_error = c_f2[1], np.max([np.abs(c_f2[1] - c_f2[0]), np.abs(c_f2[1] - c_f2[2])])
-        c_f3_value, c_f3_error = c_f3[1], np.max([np.abs(c_f3[1] - c_f3[0]), np.abs(c_f3[1] - c_f3[2])])
-
-        values_ee_f1_f2_f3[:, jj] = A_value_ee, alpha_value, betha_value, c_f1_value, c_f2_value, c_f3_value
-        errors_ee_f1_f2_f3[:, jj] = A_error_ee, alpha_error, betha_error, c_f1_error, c_f2_error, c_f3_error
-
-    with open('/home/pablo/Desktop/Paper/3_north_south/data/tables/values/values_ee_north_south_' + tables[ii+3] + '.txt', 'w') as f:
-        f.write('\t'.join(names[0]) + '\n')
-        np.savetxt(f, values_ee_f1_f2_f3, fmt='%.12e', delimiter='\t')
-
-    with open('/home/pablo/Desktop/Paper/3_north_south/data/tables/errors/errors_ee_north_south_' + tables[ii+3] + '.txt', 'w') as f:
-        f.write('\t'.join(names[1]) + '\n')
-        np.savetxt(f, errors_ee_f1_f2_f3, fmt='%.12e', delimiter='\t')

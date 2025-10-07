@@ -427,7 +427,7 @@ def cmb_unit_conversion(nuGHz,option='KCMB2KRJ',help=False):
 # ====================================
 # '''
 
-def read_spectra_from_fits(path_fits, band_list):
+def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
     """
     Read power spectra from a FITS file into a dictionary.
 
@@ -447,15 +447,28 @@ def read_spectra_from_fits(path_fits, band_list):
     Parameters
     ----------
     path_fits : str
-        Path to the FITS file containing the spectra.
+        Path to the FITS file containing the spectra (without '_wn' suffix).
     band_list : list of str
         Ordered list of frequency bands.
+    use_white_noise : bool, optional
+        If True, '_wn' will be appended to the filename **only** if the file
+        contains average+std spectra.
 
     Returns
     -------
     spectra_dict : dict
         Dictionary with spectra for all band pairs.
     """
+    # Try to open file — if use_white_noise=True, assume it's an avg+std file
+    if use_white_noise:
+        base, ext = os.path.splitext(path_fits)
+        if ext.lower() != ".fits":
+            ext = ".fits"
+        path_fits = f"{base}_wn{ext}"
+
+    if not os.path.exists(path_fits):
+        raise FileNotFoundError(f"FITS file not found: {path_fits}")
+
     spectra_dict = {}
 
     with fits.open(path_fits) as hdul:
@@ -469,22 +482,23 @@ def read_spectra_from_fits(path_fits, band_list):
                 colnames = [c.upper() for c in hdu.data.names]
                 spec_dict = {}
 
-                # Case 2: avg+std
+                # Detect case automatically
                 if any(name.endswith("_MEAN") for name in colnames):
+                    # Case 2: avg+std spectra
                     for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
                         spec_dict[cl_key] = {
                             "MEAN": hdu.data[f"{cl_key}_MEAN"],
                             "STD":  hdu.data[f"{cl_key}_STD"],
                         }
-
-                # Case 1: simple spectra
                 else:
+                    # Case 1: simple spectra (no _wn suffix logic)
                     for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
                         spec_dict[cl_key] = hdu.data[cl_key]
 
                 spectra_dict[key] = spec_dict
 
     return spectra_dict
+
 
 
 '''
@@ -543,6 +557,119 @@ def read_corrected_cls(path_file, band_list):
                 spectra[key] = spec_dict
 
     return spectra
+
+
+
+def get_beam_for_band(band_name, data, ell_eff):
+    """
+    Return the interpolated beam transfer functions for a given frequency band.
+
+    Parameters
+    ----------
+    band_name : str
+        Name of the frequency band, e.g., '11', '30', '100'.
+    data : dict
+        Dictionary containing experiment and band information, including beam file paths.
+    ell_eff : array_like
+        Array of effective multipoles at which to interpolate the beam.
+
+    Returns
+    -------
+    beam_interp : dict of numpy.ndarray
+        Dictionary with keys 'T','E','B'. Each is the interpolated beam
+        transfer function at the effective multipoles `ell_eff`.
+    """
+
+    # QUIJOTE
+    if band_name in data.get('QUIJOTE', {}):
+        with fits.open(data['QUIJOTE'][band_name]['beam']) as hdul:
+            beam_hdu = hdul[1]
+            col_map = {
+                "11": "Bl_311",
+                "13": "Bl_313",
+                "17": "Bl_417",
+                "19": "Bl_419",
+            }
+            colname = col_map.get(band_name)
+            if colname is None:
+                # fallback: take first column-like Bl_*
+                for name in beam_hdu.columns.names:
+                    if name.lower().startswith('bl_'):
+                        colname = name
+                        break
+            beam_arr = beam_hdu.data[colname][0]
+            beam_interp = np.interp(ell_eff, np.arange(len(beam_arr)), beam_arr)
+        return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
+
+    # WMAP
+    elif band_name in data.get('WMAP', {}):
+        beam_arr = np.loadtxt(data['WMAP'][band_name]['beam']).T[1]
+        beam_interp = np.interp(ell_eff, np.arange(len(beam_arr)), beam_arr)
+        return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
+
+    # Planck
+    elif band_name in data.get('Planck', {}):
+        if int(band_name) <= 70:  # LFI
+            hdul = fits.open(data['Planck'][band_name]['beam'])
+            # try to find correct extension name
+            extname = f'BEAMWF_0{band_name}X0{band_name}'
+            if extname in hdul:
+                beam_hdu = hdul[extname]
+                Bl = beam_hdu.data['BL']
+            else:
+                # fallback: take first extension with 'BL' column
+                beam_hdu = hdul[1]
+                Bl = beam_hdu.data[beam_hdu.columns.names[0]]
+            beam_interp = np.interp(ell_eff, np.arange(len(Bl)), Bl)
+            hdul.close()
+            return {"T": beam_interp, "E": beam_interp, "B": beam_interp}
+        else:  # HFI
+            hdul = fits.open(data['Planck'][band_name]['beam'])
+            window_hdu = hdul['WINDOW FUNCTIONS']
+            Bl_T = np.interp(ell_eff, np.arange(len(window_hdu.data['T'])), window_hdu.data['T'])
+            Bl_E = np.interp(ell_eff, np.arange(len(window_hdu.data['E'])), window_hdu.data['E'])
+            Bl_B = np.interp(ell_eff, np.arange(len(window_hdu.data['B'])), window_hdu.data['B'])
+            hdul.close()
+            return {"T": Bl_T, "E": Bl_E, "B": Bl_B}
+    else:
+        raise ValueError(f"Band '{band_name}' not found in data.")
+
+
+
+def cmb_unit_conversion(nuGHz, option='KCMB2KRJ', help=False):
+    """
+    Compute conversion factors between CMB thermodynamic temperature units,
+    Rayleigh-Jeans temperature, and surface brightness in Jy/sr.
+    """
+    Tcmb = 2.72548
+
+    cases = ['KCMB2KRJ', 'KRJ2KCMB', 'KCMB2Jysr', 'Jysr2KCMB', 'KRJ2Jysr', 'Jysr2KRJ']
+    if help:
+        print('  Syntax -- cmb_unit_conversion(nuGHz, option=)')
+        print('  Possible options are', cases)
+
+    nu = nuGHz * 1e9
+    x = h * nu / (k * Tcmb)
+    thermo = x**2 * np.exp(x) / (np.exp(x) - 1.)**2
+    rj = (2.0 * k * nu**2 / c**2) * 1e26
+
+    if option == 'KCMB2KRJ':
+        fac = thermo
+    elif option == 'KRJ2KCMB':
+        fac = 1 / thermo
+    elif option == 'KCMB2Jysr':
+        fac = thermo * rj
+    elif option == 'Jysr2KCMB':
+        fac = 1 / (thermo * rj)
+    elif option == 'KRJ2Jysr':
+        fac = rj
+    elif option == 'Jysr2KRJ':
+        fac = 1 / rj
+    else:
+        print("Units not identified. Returning -1")
+        fac = -1
+
+    return fac
 
 # ============================================================================================
 

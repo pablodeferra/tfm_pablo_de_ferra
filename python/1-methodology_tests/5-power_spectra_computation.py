@@ -446,7 +446,7 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
     return avg_std_dict
 
 
-def save_avg_std_to_fits(avg_std_dict, band_list, file_name, out_path):
+def save_avg_std_to_fits(avg_std_dict, band_list, file_name, out_path, use_white_noise=False):
     """
     Save average and standard deviation spectra (dict format) into a FITS file.
 
@@ -459,12 +459,14 @@ def save_avg_std_to_fits(avg_std_dict, band_list, file_name, out_path):
     band_list : list of str
         Ordered list of frequency bands.
     file_name : str
-        Output FITS file name.
+        Output FITS file name (e.g., 'spectra.fits').
     out_path : str
         Directory where FITS will be saved.
+    use_white_noise : bool, optional
+        If True, '_wn' will be appended before the '.fits' extension in the file name.
     """
     hdu_list = fits.HDUList()
-    hdu_list.append(fits.PrimaryHDU())  
+    hdu_list.append(fits.PrimaryHDU())
 
     # Loop over all band pairs in band_list
     for band_i in band_list:
@@ -473,7 +475,7 @@ def save_avg_std_to_fits(avg_std_dict, band_list, file_name, out_path):
             spec_dict = avg_std_dict[key]
 
             cols = []
-            for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
+            for cl_key in ['ell1', 'ell2', 'ell_eff', 'TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
                 cols.append(fits.Column(name=f"{cl_key}_MEAN", format="D", array=spec_dict[cl_key]['MEAN']))
                 cols.append(fits.Column(name=f"{cl_key}_STD", format="D", array=spec_dict[cl_key]['STD']))
 
@@ -484,12 +486,19 @@ def save_avg_std_to_fits(avg_std_dict, band_list, file_name, out_path):
             hdu.name = key
             hdu_list.append(hdu)
 
+    # Adjust filename if white noise option is used
+    if use_white_noise:
+        base, ext = os.path.splitext(file_name)
+        if ext.lower() != ".fits":
+            ext = ".fits"
+        file_name = f"{base}_wn{ext}"
+
     out_file = os.path.join(out_path, file_name)
     hdu_list.writeto(out_file, overwrite=True)
     print(f"Saved avg+std spectra to {out_file}")
 
 
-def read_spectra_from_fits(path_fits, band_list):
+def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
     """
     Read power spectra from a FITS file into a dictionary.
 
@@ -509,15 +518,28 @@ def read_spectra_from_fits(path_fits, band_list):
     Parameters
     ----------
     path_fits : str
-        Path to the FITS file containing the spectra.
+        Path to the FITS file containing the spectra (without '_wn' suffix).
     band_list : list of str
         Ordered list of frequency bands.
+    use_white_noise : bool, optional
+        If True, '_wn' will be appended to the filename **only** if the file
+        contains average+std spectra.
 
     Returns
     -------
     spectra_dict : dict
         Dictionary with spectra for all band pairs.
     """
+    # Try to open file — if use_white_noise=True, assume it's an avg+std file
+    if use_white_noise:
+        base, ext = os.path.splitext(path_fits)
+        if ext.lower() != ".fits":
+            ext = ".fits"
+        path_fits = f"{base}_wn{ext}"
+
+    if not os.path.exists(path_fits):
+        raise FileNotFoundError(f"FITS file not found: {path_fits}")
+
     spectra_dict = {}
 
     with fits.open(path_fits) as hdul:
@@ -531,16 +553,16 @@ def read_spectra_from_fits(path_fits, band_list):
                 colnames = [c.upper() for c in hdu.data.names]
                 spec_dict = {}
 
-                # Case 2: avg+std
+                # Detect case automatically
                 if any(name.endswith("_MEAN") for name in colnames):
+                    # Case 2: avg+std spectra
                     for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
                         spec_dict[cl_key] = {
                             "MEAN": hdu.data[f"{cl_key}_MEAN"],
                             "STD":  hdu.data[f"{cl_key}_STD"],
                         }
-
-                # Case 1: simple spectra
                 else:
+                    # Case 1: simple spectra (no _wn suffix logic)
                     for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
                         spec_dict[cl_key] = hdu.data[cl_key]
 
@@ -549,48 +571,51 @@ def read_spectra_from_fits(path_fits, band_list):
     return spectra_dict
 
 
+
 # 2. Precompute workspaces
 workspaces = prepare_workspaces(mask, b, nside)
 
 # 3. Compute all spectra
-# spectra_matrix = compute_all_power_spectra(
-#     data, band_list, mask, b,
-#     use_simulated_maps=use_simulated_maps,
-#     use_white_noise=use_white_noise,
-#     noise_realization=1,
-#     only_noise=False,
-#     workspaces=workspaces
-# )
-
-# 4. Save spectra matrix into a FITS file
-# save_spectra_to_fits(spectra_matrix, band_list, mask_name=mask_name, out_path=out_path)
-
-# 5. Read spectra matrix from FITS
-spectra_dict = read_spectra_from_fits(path_spectra, band_list)
-
-# 6. Compute mean and std over noise realizations (sky + noise)
-avg_std_skyplusnoise_dict = average_and_std_spectra(
-    data, spectra_dict, band_list, mask, b,
+spectra_matrix = compute_all_power_spectra(
+    data, band_list, mask, b,
+    use_simulated_maps=use_simulated_maps,
     use_white_noise=use_white_noise,
-    n_sim=n_sim, 
+    noise_realization=1,
     only_noise=False,
     workspaces=workspaces
 )
 
-save_avg_std_to_fits(avg_std_skyplusnoise_dict, band_list,
-                     file_name=avg_std_skyplusnoise_name,
-                     out_path=out_path)
+# 4. Save spectra matrix into a FITS file
+save_spectra_to_fits(spectra_matrix, band_list, mask_name=mask_name, out_path=out_path)
 
-# 7. Compute mean and std for noise-only maps
-avg_std_noise_dict = average_and_std_spectra(
-    data, spectra_dict, band_list, mask, b,
-    use_white_noise=use_white_noise,
-    n_sim=n_sim,
-    only_noise=True,
-    workspaces=workspaces
-)
+# 5. Read spectra matrix from FITS
+# spectra_dict = read_spectra_from_fits(path_spectra, band_list)
 
-save_avg_std_to_fits(avg_std_noise_dict, band_list,
-                     file_name=avg_std_noise_name,
-                     out_path=out_path)
+# # 6. Compute mean and std over noise realizations (sky + noise)
+# avg_std_skyplusnoise_dict = average_and_std_spectra(
+#     data, spectra_dict, band_list, mask, b,
+#     use_white_noise=use_white_noise,
+#     n_sim=n_sim, 
+#     only_noise=False,
+#     workspaces=workspaces
+# )
+
+# save_avg_std_to_fits(avg_std_skyplusnoise_dict, band_list,
+#                      file_name=avg_std_skyplusnoise_name,
+#                      use_white_noise=use_white_noise,
+#                      out_path=out_path)
+
+# # 7. Compute mean and std for noise-only maps
+# avg_std_noise_dict = average_and_std_spectra(
+#     data, spectra_dict, band_list, mask, b,
+#     use_white_noise=use_white_noise,
+#     n_sim=n_sim,
+#     only_noise=True,
+#     workspaces=workspaces
+# )
+
+# save_avg_std_to_fits(avg_std_noise_dict, band_list,
+#                      file_name=avg_std_noise_name,
+#                      use_white_noise=use_white_noise,
+#                      out_path=out_path)
 

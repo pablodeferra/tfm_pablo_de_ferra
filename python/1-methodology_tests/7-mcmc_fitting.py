@@ -5,15 +5,8 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
 
-import numpy as np
 from data import data, path_map, masks, path_masks
 import functions 
-import emcee
-import corner
-import matplotlib.pyplot as plt
-from scipy.constants import c,h,k
-import multiprocessing as mp
-from scipy.stats import gaussian_kde
 
 # Bands to use
 quijote_bands = ['11']
@@ -41,8 +34,8 @@ fit_mode = 'BB'
 ell_min = 30
 ell_max = 200
 
-nwalkers = 100
-ninter = 10000
+nwalkers = 200
+ninter = 5000
 discard_fraction = 0.5
 
 fit_components = (
@@ -67,7 +60,6 @@ fit_c_terms = False
 # Save path of the figure
 components_str = '_'.join(fit_components)
 save_path = f'/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/corner/corner_{components_str}_{fit_mode}.pdf'
-
 # save_path = None
 
 
@@ -91,6 +83,7 @@ sampler, samples_full, samples_free, param_map = functions.run_mcmc(
     discard_fraction=discard_fraction
 )
 
+
 # Plot and save the corner plot
-fig = functions.plot_corner(samples_free, param_map, save_path=save_path)
+fig = functions.plot_corner(samples_free, param_map, save_path=save_path, title=f'{fit_mode} mode')
 

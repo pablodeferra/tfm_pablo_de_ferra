@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2025.9.15)  9 OCT 2025 15:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2025.9.15)  15 OCT 2025 20:11
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -385,61 +385,89 @@ Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quij
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf>]
-</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf, id=25, 1156.32pt x 1156.32pt>
-File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf  used on input line 83.
-(pdftex.def)             Requested size: 455.24411pt x 455.23283pt.
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf, id=25, 1035.66635pt x 1079.7815pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf  used on input line 83.
+(pdftex.def)             Requested size: 455.24411pt x 474.62752pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf, id=26, 1156.32pt x 1156.32pt>
-File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf  used on input line 90.
-(pdftex.def)             Requested size: 455.24411pt x 455.23283pt.
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf, id=26, 1028.69745pt x 1079.7815pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf  used on input line 90.
+(pdftex.def)             Requested size: 455.24411pt x 477.84036pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf, id=27, 1156.32pt x 433.62pt>
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_EE.pdf, id=27, 553.80075pt x 565.54561pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_EE.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_EE.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_EE.pdf  used on input line 109.
+(pdftex.def)             Requested size: 218.51521pt x 223.14212pt.
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_BB.pdf, id=28, 545.57979pt x 570.29614pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_BB.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_BB.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_BB.pdf  used on input line 114.
+(pdftex.def)             Requested size: 218.51521pt x 228.41028pt.
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf, id=29, 1156.32pt x 433.62pt>
 File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf  used on input line 105.
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf  used on input line 145.
 (pdftex.def)             Requested size: 455.24411pt x 170.71231pt.
-</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf, id=28, 1156.32pt x 433.62pt>
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf, id=30, 1156.32pt x 433.62pt>
 File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf  used on input line 112.
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf  used on input line 152.
 (pdftex.def)             Requested size: 455.24411pt x 170.71231pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf, id=29, 1004.553pt x 1004.553pt>
-File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf  used on input line 122.
-(pdftex.def)             Requested size: 455.24411pt x 455.24828pt.
+[2]
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf, id=35, 1156.32pt x 433.62pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf  used on input line 167.
+(pdftex.def)             Requested size: 455.24411pt x 170.71231pt.
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf, id=36, 1156.32pt x 433.62pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf  used on input line 174.
+(pdftex.def)             Requested size: 455.24411pt x 170.71231pt.
+
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[2] [3 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf>] [4 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf>] [5 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf>] [6 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf>] (build/main.aux
+</home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/spectra_noise_sim_new.pdf, id=37, 1156.32pt x 433.62pt>
+File: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/spectra_noise_sim_new.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/spectra_noise_sim_new.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/spectra_noise_sim_new.pdf  used on input line 185.
+(pdftex.def)             Requested size: 455.24411pt x 170.71231pt.
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[3] [4 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf>] [5 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf>] [6 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_EE.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/corner/corner_sync_BB.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf>] [7 </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf> </home/pablo/Desktop/master/tfm/figures//1-methodology_tests/spectra/spectra_noise_sim_new.pdf>] (build/main.aux
 LaTeX Info: Redefining \. on input line 8.
 LaTeX Info: Redefining \% on input line 8.
 ) ) 
 Here is how much of TeX's memory you used:
- 6252 strings out of 480112
- 105721 string characters out of 5892631
- 422221 words of memory out of 5000000
- 24155 multiletter control sequences out of 15000+600000
+ 6287 strings out of 480112
+ 108353 string characters out of 5892631
+ 423237 words of memory out of 5000000
+ 24186 multiletter control sequences out of 15000+600000
  473751 words of font info for 44 fonts, out of 8000000 for 9000
  85 hyphenation exceptions out of 8191
- 55i,8n,63p,1121b,363s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,8n,63p,1150b,363s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
-Output written on build/main.pdf (6 pages, 330280 bytes).
+Output written on build/main.pdf (7 pages, 393292 bytes).
 PDF statistics:
- 286 PDF objects out of 1000 (max. 8388607)
- 90 compressed objects within 1 object stream
+ 490 PDF objects out of 1000 (max. 8388607)
+ 130 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 31 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 51 words of extra memory for PDF output out of 10000 (max. 10000000)
 

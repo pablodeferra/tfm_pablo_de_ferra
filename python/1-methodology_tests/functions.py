@@ -2564,8 +2564,7 @@ def apply_corner_scales(samples, labels, scale_map):
             X[:, j] *= factor
     return X
 
-
-def plot_corner(samples_free, param_map, save_path=None):
+def plot_corner(samples_free, param_map, save_path=None, title=None):
     """
     Generate a publication-quality corner plot for MCMC samples.
     
@@ -2577,6 +2576,8 @@ def plot_corner(samples_free, param_map, save_path=None):
         List of (parameter_name, is_free) tuples.
     save_path : str or None
         If provided, save the figure to this path (e.g., 'corner_plot.png').
+    title : str or None
+        Optional title to display at the top of the figure.
 
     Returns
     -------
@@ -2584,18 +2585,17 @@ def plot_corner(samples_free, param_map, save_path=None):
         The corner plot figure.
     """
 
+
     # -------------------------------
     # Prepare labels and scaling
     # -------------------------------
     labels_free = [name for name, is_free in param_map if is_free]
 
-    # Scaling factors and units
     scale_map = {
         'A_s': (1e6, r'$\mu\mathrm{K}^2$'),
         'A_d': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
     }
 
-    # Scale constant terms if present
     for name in labels_free:
         if name.startswith('c_sync') or name.startswith('c_dust'):
             scale_map[name] = (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$')
@@ -2603,7 +2603,7 @@ def plot_corner(samples_free, param_map, save_path=None):
     samples_plot = apply_corner_scales(samples_free, labels_free, scale_map)
 
     # -------------------------------
-    # LaTeX labels for corner plot
+    # LaTeX labels
     # -------------------------------
     latex_labels = {
         'A_s': r'$A_{\mathrm{s}}\,[\mu\mathrm{K}^2]$',
@@ -2615,7 +2615,6 @@ def plot_corner(samples_free, param_map, save_path=None):
         'rho': r'$\rho$',
     }
 
-    # Dynamic labels for c_sync and c_dust terms
     for name in labels_free:
         if name.startswith('c_sync'):
             freq = name.split('[')[-1].strip(']')
@@ -2634,8 +2633,8 @@ def plot_corner(samples_free, param_map, save_path=None):
         quantiles=[0.16, 0.5, 0.84],
         show_titles=True,
         title_fmt=".3f",
-        label_kwargs={"fontsize": 15},
-        title_kwargs={"fontsize": 14, "color": "k"},
+        label_kwargs={"fontsize": 13},        # ← más pequeño
+        title_kwargs={"fontsize": 12, "color": "k"},
         smooth=1.3,
         smooth1d=1.0,
         plot_datapoints=False,
@@ -2648,14 +2647,29 @@ def plot_corner(samples_free, param_map, save_path=None):
         max_n_ticks=4,
     )
 
-    # Create the corner plot
     fig = corner.corner(samples_plot, **corner_kwargs)
     fig.set_facecolor("white")
 
-    # Adjust tick and spacing
-    plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95, wspace=0.15, hspace=0.15)
+    # -------------------------------
+    # Adjust tick size and spacing
+    # -------------------------------
+    for ax in fig.get_axes():
+        ax.tick_params(axis='both', labelsize=12)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontsize(12)
 
+    plt.subplots_adjust(
+        left=0.12, right=0.95,
+        bottom=0.12, top=0.93,
+    )
+
+    # Add title if requested
+    if title is not None:
+        fig.suptitle(title, fontsize=16, y=0.995)
+
+    # -------------------------------
     # Fill histograms and mark medians
+    # -------------------------------
     axes = np.array(fig.axes).reshape(len(labels_plot), len(labels_plot))
     for i in range(len(labels_plot)):
         ax = axes[i, i]
@@ -2681,16 +2695,15 @@ def plot_corner(samples_free, param_map, save_path=None):
                 ax.cla()
                 ax.hist(samples_plot[:, i], bins=50, color="steelblue", alpha=0.5)
 
-        # Add median line
+        # Median line
         median_val = np.median(samples_plot[:, i])
         ax.axvline(median_val, color="k", lw=1.2, ls="--")
-
-        # Adjust tick labels and titles
-        ax.tick_params(axis='both', labelsize=12)
         if ax.get_title():
-            ax.set_title(ax.get_title(), fontsize=14, color='k')
+            ax.set_title(ax.get_title(), fontsize=12, color='k')
 
+    # -------------------------------
     # Save or show
+    # -------------------------------
     if save_path:
         fig.savefig(save_path, dpi=200, bbox_inches="tight")
         print(f"[plot_corner] Saved corner plot to: {save_path}")
@@ -2698,6 +2711,7 @@ def plot_corner(samples_free, param_map, save_path=None):
         plt.show()
 
     return fig
+
 
 # ==========================================================
 
@@ -3130,16 +3144,6 @@ def fastcc(freq, alpha=False, td=False, bd=False, detector=False, debug=False, o
 # Test functions
 # ====================================
 '''
-
-
-import numpy as np
-import healpy as hp
-import matplotlib.pyplot as plt
-import os
-import healpy as hp
-import numpy as np
-import matplotlib.pyplot as plt
-from astropy.io import fits
 
 
 def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=1535, target_nside=512, save=False, save_path=None):

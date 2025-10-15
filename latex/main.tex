@@ -74,28 +74,68 @@ We perform a Markov Chain Monte Carlo (MCMC) fitting procedure to model the tota
 
 \paragraph{}
 
-The most interesting thing to see is that we are obtaining an $\alpha_s$ of -2 instead of the expected value of -3 for the synchrotron emission. Also, the $\beta_d$ that we are obtaining is 1.34 in contrast of the expected 1.54, characteristic of the polarized dust emission. 
+The most interesting thing to see is that we are obtaining an $\alpha_s$ of -2.385 for the EE- and -2.126 for the BB-mode instead of the expected value of -3 for the synchrotron emission. Also, in the EE-mode, we are obtaining a $\beta_d$ of 1.40 in contrast of the expected 1.54, characteristic of the polarized dust emission. 
 
 \paragraph{}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf}
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf}
     \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the EE mode data.}
     \label{fig:corner_sd_ee}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf}
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf}
     \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the BB mode data.}
     \label{fig:corner_sd_bb}
 \end{figure}
 
 
-In order to study the origin of this value of $\alpha_s$, we considered various options. First, we compared the spectra to fit with that obtained last year using this same mask, in the wide survey analysis of the polarized synchrotron emission using the 11 GHz band from QUIJOTE, 23 GHz from WMAP and 30 GHz from Planck. In Figure \ref{fig:auto_cross_sim_ws} we compare the auto- and cross-spectra obtained in both cases. We can see that these spectra seem to be similar but there is a tendency of the simulated spectra to be greater at smaller angular scales that could be leading to this difference in $\alpha_s$. 
+In order to study the origin of this value of $\alpha_s$, we considered various options. First, we tested the possibility of a problem in the new model or in the new MCMC fitting program. We tested to run just a synchrotron model (excluding any dust or correlation from the model previously explained) using the 11, 23 and 30 GHz (auto- and cross-) data for the fit. The results are presented in Figure \ref{fig:corner_synch}, where we can see that we are obtaining very similar values of $\alpha_s$, being -2.478 for the EE- and -2.460 for the BB-mode. So in this way we can see that this $\alpha_s$ value is not a consequence of any flattening caused by the dust data. Furthermore, we ran this MCMC fitting using the data obtained last year using this same mask, in the wide survey analysis of the polarized synchrotron emission using the 11 GHz band from QUIJOTE, 23 GHz from WMAP and 30 GHz from Planck- We obtained the same results as we did in that previous study, so we can conclude that this $\alpha_s$ value does not appear as a consequence of the model or the program. 
 
-Anyway, we tested the possibility of a problem in the new model or in the new MCMC fitting program. We tested to run just a synchrotron model (excluding any dust or correlation from the model previously explained) using the 11, 23 and 30 GHz (auto- and cross-) data for the fit. In this case accounting for the constant terms as we did last year to test any effects in the data as a missmodelling of the noise. The results are presented in Figure \ref{fig:corner_new}, were we can see that we are obtaining a very similar value of -2.17 for $\alpha_s$ and constant terms compatible with 0 in all cases at a $2\sigma$ level. So in this way we can see that this $\alpha_s$ value is not a consequence of any flattening caused by the dust data or the noise. Furthermore, we ran the the old program using the old model and the new data in order to check if the problem was in fact the program or the model. In this case we obtained the exact same results, so we can conclude that this $\alpha_s$ value does not appear as a consequence of the model or the program.  
+\paragraph{}
+
+Second, we added a constant term for each band of this synchrotron-only fitting as we did in the wide survey study. The results obtained in this case are compatible with those presented in Figure \ref{fig:corner_synch} for all polarization modes. Additionally, all constant terms obtained are compatible with 0 at a $2\sigma$ level. 
+
+\paragraph{}
+
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_EE.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_BB.pdf}
+    \end{minipage}
+    \caption{Corner plots of the posterior distributions for the synchrotron-only model parameters, obtained from the EE mode data (left) and BB mode data (right).}
+    \label{fig:corner_synch}
+\end{figure}
+
+% \begin{figure}[h]
+%     \centering
+%     \begin{minipage}[b]{0.48\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_EE_WS.pdf}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}[b]{0.48\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_BB_WS.pdf}
+%     \end{minipage}
+%     \caption{Corner plots of the posterior distributions for the synchrotron-only model parameters using the data obtained for the wide survey study (real data), obtained from the EE mode data (left) and BB mode data (right).}
+%     \label{fig:corner_ws}
+% \end{figure}
+
+
+As the fitting does not seem to be the problem, we compared the spectra to fit with that obtained in the wide survey study previously mentioned. In Figure \ref{fig:auto_cross_sim_ws} we compare the auto- and cross-spectra obtained in both cases. We can see that these spectra seem to be similar but there is a tendency of the simulated spectra to be greater at smaller angular scales. This is the most likely reason that could be leading to this difference in $\alpha_s$. 
+
+\paragraph{}
 
 
 \begin{figure}[h]
@@ -116,19 +156,37 @@ Anyway, we tested the possibility of a problem in the new model or in the new MC
     \label{fig:auto_cross_sim_ws}
 \end{figure}
 
+We have to find the origin of this flattening of the spectra. For this purpose, we ran the code again using the same data as we used for the wide survey analysis. This is: the real sky data in the 11, 23 and 30 GHz bands and the realistic noise simulations. A comparison between the spectra obtained using this new program and that from the wide survey study is presented in Figure \ref{fig:auto_cross_ws_new}. As one can see, the spectra are identical, so we can conclude that the computational and correction processes are no responsible of the $\alpha_s$ flattening. Also, the MCMC fitting has been carried out using both data, resulting in identical parameters for the synchrotron model, 
+
+\paragraph{}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf}
-    \caption{Corner plot of the posterior distributions for the synchrotron only model with constant terms parameters, obtained from the EE mode data.}
-    \label{fig:corner_new}
+    \begin{minipage}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf}
+    \end{minipage}
+
+    \vspace{0.5em} 
+
+    \begin{minipage}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf}
+    \end{minipage}
+
+    \caption{Comparison between the spectra obtained in the wide survey analysis (circles labeled as WS) and that obtaining with the new code using the same data (squares). Auto-spectra are presented in the top row for the EE and BB modes, while the cross-spectra are presented in the bottom row with no errors in all cases for simplicity.}
+    \label{fig:auto_cross_ws_new}
 \end{figure}
 
-% \begin{figure}[h]
-%     \centering
-%     \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_wd_data_synch_11_23_30_c_terms.pdf}
-%     \caption{Corner plot of the posterior distributions for the old synchrotron model parameters, obtained from the EE mode data.}
-%     \label{fig:corner_old}
-% \end{figure}
+To conclude this section, the only remaining variables that can be responsible for the stronger spectra behavior observed in Figure \ref{fig:auto_cross_sim_ws} have to be the simulated maps. Figure \ref{fig:spectra_noise_sim_new} compares: the uncorrected spectra $C_{\ell}$ of the simulated sky maps, and that of the real sky maps; the noise spectra $N_{\ell}$ of the white noise, and the realistic noise realizations. As one can see, there are no important differences between simulated and real sky spectra. The most interesting thing to note is that the simulated maps spectra seem to be equal to the real maps or even higher in the case of WMAP at $\ell < 100$. This is interesting as the noise added to the simulated maps was white noise. Therefore it does not strongly affect this range, and one should expect to observe stronger spectra for the real map as in this case we have the signal of the sky + the $1/f$ noise component. May this be the cause of the flat spectra? Could it be resolved by accounting a $1/f$ noise component also for the simulated maps analysis?
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/spectra/spectra_noise_sim_new.pdf}
+    \caption{Uncorrected spectra of: simulated sky maps (squares) and real maps (triangles). Noise spectra obtained using: white (lines) and realistic (dashed lines) noise realizations for each experiment and band.}
+    \label{fig:spectra_noise_sim_new}
+\end{figure}
+
+
 
 \end{document}

@@ -1,6 +1,5 @@
 \documentclass[12pt,a4paper]{article}
 
-% Paquetes necesarios
 \usepackage[utf8]{inputenc}
 \usepackage[spanish]{babel}
 \usepackage{geometry}
@@ -11,10 +10,12 @@
 \usepackage{multicol}
 \usepackage{xcolor}
 \usepackage{graphicx}
+\graphicspath{{/home/pablo/Desktop/master/tfm/figures/}}
+\usepackage{amsmath}
+
 \usepackage{float}
 \usepackage{caption}
 
-% Configuración de la página
 \geometry{
     top=2.5cm,
     bottom=2.5cm,
@@ -22,14 +23,112 @@
     right=2.5cm
 }
 
-% Título del documento
 \title{}
 \author{Pablo de Ferra}
 \date{\today}
 
 \begin{document}
 
-% \input{tables/results_fit_free.tex}
-\input{tables/results_fit_full.tex}
+\section*{Mask}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{masks/mask_quijote_galcut10.pdf}
+    \caption{Mask used for the analysis.}
+    \label{fig:mask}
+\end{figure}
+
+\section*{MCMC Fitting}
+
+The total angular power spectrum between frequencies $\nu_i$ and $\nu_j$ is modeled as the sum of synchrotron, dust, and synchrotron--dust cross-correlation components, 
+
+\begin{equation}
+C_\ell(\nu_i, \nu_j) = C_\ell^{\rm sync}(\nu_i, \nu_j) + C_\ell^{\rm dust}(\nu_i, \nu_j) + C_\ell^{\rm sd}(\nu_i, \nu_j),
+\end{equation}
+where the synchrotron term is
+\begin{equation}
+C_\ell^{\rm sync}(\nu_i, \nu_j) = A_s \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_s} 
+\left(\frac{\nu_i}{\nu_{\rm ref}}\right)^{\beta_s} \left(\frac{\nu_j}{\nu_{\rm ref}}\right)^{\beta_s},
+\end{equation}
+the dust term is
+\begin{equation}
+C_\ell^{\rm dust}(\nu_i, \nu_j) = A_d \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_d} 
+S(\nu_i, \nu_0, \beta_d, T_d) \, S(\nu_j, \nu_0, \beta_d, T_d),
+\end{equation}
+with the modified blackbody scaling
+\begin{equation}
+S(f, \nu_0, \beta_d, T_d) = \frac{B_\nu(f, T_d)}{B_\nu(\nu_0, T_d)} \left(\frac{\nu}{\nu_0}\right)^{\beta_d},
+\end{equation}
+and the cross-correlation term is
+\begin{equation}
+C_\ell^{\rm sd}(\nu_i, \nu_j) = \rho \sqrt{A_s A_d} \left[ S_s(\nu_i) S_d(\nu_j) + S_s(\nu_j) S_d(\nu_i) \right] 
+\left(\frac{\ell}{\ell_{\rm ref}}\right)^{(\alpha_s + \alpha_d)/2},
+\end{equation}
+where $S_s(f) = (\nu / \nu_{\rm ref})^{\beta_s}$ and $S_d(\nu) = S(\nu, \nu_0, \beta_d, T_d)$ denote the synchrotron and dust frequency scalings, respectively. 
+Here, $A_s$ and $A_d$ are the amplitudes of the synchrotron and dust components at the reference multipole $\ell_{\rm ref}$ (taken as 80) and frequencies $\nu_{\rm ref}$ (11.1 GHz) and $\nu_0$ (353.0 GHz), 
+$\alpha_s$ and $\alpha_d$ are the multipole spectral indices, $\beta_s$ and $\beta_d$ the frequency spectral indices and $T_d$ the dust temperature.
+
+\paragraph{}
+
+We perform a Markov Chain Monte Carlo (MCMC) fitting procedure to model the total angular power spectrum across multiple frequency bands, using the synchrotron, dust, and synchrotron--dust cross-correlation model described above. Specifically, we fit simulated sky maps from the following frequency bands: QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz in the multipole range of $30 < \ell < 200$. These maps are generated using the \texttt{Python} library \texttt{PySM}, including all the radiation components of the sky. These maps have been smoothed using the beam window functions provided by each experiment. The resulting posterior distributions are visualized in the corner plots: Figure~\ref{fig:corner_sd_ee} for the EE mode and Figure~\ref{fig:corner_sd_bb} for the BB mode, showing the constraints on the synchrotron and dust parameters and their correlations.
+
+\paragraph{}
+
+The most interesting thing to see is that we are obtaining an $\alpha_s$ of -2 instead of the expected value of -3 for the synchrotron emission. Also, the $\beta_d$ that we are obtaining is 1.34 in contrast of the expected 1.54, characteristic of the polarized dust emission. 
+
+\paragraph{}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_dust_corr_ee_old.pdf}
+    \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the EE mode data.}
+    \label{fig:corner_sd_ee}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_dust_corr_bb_old.pdf}
+    \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the BB mode data.}
+    \label{fig:corner_sd_bb}
+\end{figure}
+
+
+In order to study the origin of this value of $\alpha_s$, we considered various options. First, we compared the spectra to fit with that obtained last year using this same mask, in the wide survey analysis of the polarized synchrotron emission using the 11 GHz band from QUIJOTE, 23 GHz from WMAP and 30 GHz from Planck. In Figure \ref{fig:auto_cross_sim_ws} we compare the auto- and cross-spectra obtained in both cases. We can see that these spectra seem to be similar but there is a tendency of the simulated spectra to be greater at smaller angular scales that could be leading to this difference in $\alpha_s$. 
+
+Anyway, we tested the possibility of a problem in the new model or in the new MCMC fitting program. We tested to run just a synchrotron model (excluding any dust or correlation from the model previously explained) using the 11, 23 and 30 GHz (auto- and cross-) data for the fit. In this case accounting for the constant terms as we did last year to test any effects in the data as a missmodelling of the noise. The results are presented in Figure \ref{fig:corner_new}, were we can see that we are obtaining a very similar value of -2.17 for $\alpha_s$ and constant terms compatible with 0 in all cases at a $2\sigma$ level. So in this way we can see that this $\alpha_s$ value is not a consequence of any flattening caused by the dust data or the noise. Furthermore, we ran the the old program using the old model and the new data in order to check if the problem was in fact the program or the model. In this case we obtained the exact same results, so we can conclude that this $\alpha_s$ value does not appear as a consequence of the model or the program.  
+
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf}
+    \end{minipage}
+
+    \vspace{0.5em} 
+
+    \begin{minipage}{\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf}
+    \end{minipage}
+
+    \caption{Comparison between the spectra obtained in this work from simulated data (squares labeled as Sim) and those from the wide survey analysis (circles labeled as WS). Auto-spectra are presented in the top row for the EE and BB modes, while the cross-spectra are presented in the bottom row with no errors in all cases for simplicity.}
+    \label{fig:auto_cross_sim_ws}
+\end{figure}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_synch_11_23_30_c_terms.pdf}
+    \caption{Corner plot of the posterior distributions for the synchrotron only model with constant terms parameters, obtained from the EE mode data.}
+    \label{fig:corner_new}
+\end{figure}
+
+% \begin{figure}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_wd_data_synch_11_23_30_c_terms.pdf}
+%     \caption{Corner plot of the posterior distributions for the old synchrotron model parameters, obtained from the EE mode data.}
+%     \label{fig:corner_old}
+% \end{figure}
 
 \end{document}

@@ -328,7 +328,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/LFI_SkyMap_030-BPassCorrected_1024_R3.00_full-ringhalf-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/30_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/30/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_030_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_30ghz_0001.fits',
         },
         '44': {
@@ -344,7 +344,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/LFI_SkyMap_044-BPassCorrected_1024_R3.00_full-ringhalf-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/44_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/44/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_044_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_44ghz_0001.fits',
         },
         '70': {
@@ -360,7 +360,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/LFI_SkyMap_070-BPassCorrected_1024_R3.00_full-ringhalf-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/70_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/70/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_070_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_70ghz_0001.fits',
         },
         '100': {
@@ -376,7 +376,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/HFI_SkyMap_100_2048_R3.01_halfmission-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/100_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/100/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_100_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_100ghz_0001.fits',
         },
         '143': {
@@ -392,7 +392,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/HFI_SkyMap_143_2048_R3.01_halfmission-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/143_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/143/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_143_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_143ghz_0001.fits',
         },
         '217': {
@@ -408,7 +408,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/HFI_SkyMap_217_2048_R3.01_halfmission-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/217_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/217/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_217_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_217ghz_0001.fits',
         },
         '353': {
@@ -424,7 +424,7 @@ data = {
             'half_2': path_map + 'Planck/hmdm/HFI_SkyMap_353-psb_2048_R3.01_halfmission-2.fits',
             'path_noise_simulations': path_map + 'Planck/noise_simulations/353_pla/',
             'path_white_noise_simulations': path_map + 'Planck/noise_simulations/353/',
-            'noise_simulation_1': '',
+            'noise_simulation_1': 'ffp10_noise_353_psb_full_map_mc_00001.fits',
             'white_noise_simulation_1': 'white_noise_353ghz_0001.fits',
         },
 

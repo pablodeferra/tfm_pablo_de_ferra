@@ -4,14 +4,13 @@ import pandas as pd
 import requests
 from urllib.parse import quote
 from pathlib import Path
-
+from data import path_map
 # === CONFIGURATION ===
-base_dir = Path("/home/pablo/Desktop/Paper/maps/Planck/noise_simulations/")
+base_dir = Path(path_map + "Planck/noise_simulations/")
 
 # Use any subset of Planck frequency bands
-# bands = ["030", "044", "070", "100", "143", "217", "353"]
+bands = ["044", "070", "100", "143", "217", "353"]
 
-bands = ["044"]
 # Base URL for the Planck Legacy Archive
 BASE_URL = "https://pla.esac.esa.int/pla/aio/product-action?SIMULATED_MAP.FILE_ID="
 

@@ -186,7 +186,7 @@ def _load_instrument_beam_TEB(exp, band_name, data_dict, lmax):
     Bl = _interp_from_xy(x, y)
     return (Lout, Bl, Bl, Bl)
 
-
+ 
 # ---------------------------------------------------------------------
 def _convolve_IQU_with_beam(iqu_map, exp, band_name, data_dict, lmax=None):
     """
@@ -218,7 +218,7 @@ def _convolve_IQU_with_beam(iqu_map, exp, band_name, data_dict, lmax=None):
         lmax = 3 * nside_map - 1
 
     iqu64 = np.asarray(iqu_map, dtype=np.float64, order="C")
-    almT, almE, almB = hp.map2alm(iqu64, lmax=lmax, pol=True, iter=0)
+    almT, almE, almB = hp.map2alm(iqu64, lmax=lmax, pol=True, iter=3)
     _, Bl_T, Bl_E, Bl_B = _load_instrument_beam_TEB(exp, band_name, data_dict, lmax)
 
     almT = hp.almxfl(almT, Bl_T)
@@ -246,11 +246,12 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
 
     Notes
     -----
-    - Simulates synchrotron ('s1') and dust ('d1') components.
+    - Simulates synchrotron ('s1'), dust ('d1'), AME ('a1), 
+      free-free ('f1') and CMB ('c1') components.
     - Saves FITS files with metadata in headers.
     """
     os.makedirs(path_save, exist_ok=True)
-    sky = pysm3.Sky(nside=nside, preset_strings=['s1', 'd1'])  # synchrotron + dust
+    sky = pysm3.Sky(nside=nside, preset_strings=['s1', 'd1', 'a1', 'f1', 'c1']) 
 
     experiments = list(data.keys()) if experiment_select == "all" else [experiment_select]
     for exp in experiments:
@@ -272,7 +273,7 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
 
         for band in bands:
             try:
-                nu = data[exp][band]['freq']  # e.g., 28.4 * u.GHz
+                nu = data[exp][band]['freq']
                 nu_GHz = nu.to_value(u.GHz)
 
                 iqu = sky.get_emission(nu).to(
@@ -281,14 +282,24 @@ def generate_sky_maps(nside, path_save, experiment_select="all", band_select="al
 
                 iqu_conv = _convolve_IQU_with_beam(iqu, exp, band, data, lmax=3 * nside - 1)
 
-                out_dir = os.path.join(path_save, exp, str(band))
+                # Convert units based on experiment
+                if exp.upper() == "PLANCK":
+                    # Convert from uK to K for Planck
+                    iqu_conv = iqu_conv / 1e6  # uK to K
+                    unit_str = "K_CMB"
+                else:
+                    # Convert from uK to mK for other experiments
+                    iqu_conv = iqu_conv / 1e3  # uK to mK
+                    unit_str = "mK_CMB"
+
+                out_dir = path_save
                 os.makedirs(out_dir, exist_ok=True)
                 out_f = os.path.join(out_dir, f"map_{exp}_{band}_nside{nside}_beamconv.fits")
 
                 header = [
                     ("FREQ_GHZ", float(nu_GHz), "Band center frequency [GHz]"),
                     ("NSIDE", int(nside), "HEALPix NSIDE"),
-                    ("UNIT", "uK_CMB", "Units"),
+                    ("UNIT", unit_str, "Units"),
                     ("EXPERIM", str(exp), "Experiment"),
                     ("BAND", str(band), "Band name"),
                 ]
@@ -665,11 +676,117 @@ def make_hmdm(data, bands, save=False):
                 h1 = hp.read_map(path_half1, field=[0, 1, 2])
                 h2 = hp.read_map(path_half2, field=[0, 1, 2])
 
-                sigma1 = np.sqrt(hp.read_map(path_half1, field=[4, 7, 9]))
-                sigma2 = np.sqrt(hp.read_map(path_half2, field=[4, 7, 9]))
-
-                w = np.sqrt((1 / sigma1**2 + 1 / sigma2**2) * (sigma1**2 + sigma2**2))
-                hmdm = (h1 - h2) / w
+                # Get bad data value from header
+                with fits.open(path_half1) as hdul:
+                    bad_data = hdul[1].header.get('BAD_DATA', -1.6375e+30)
+                
+                # Detect LFI vs HFI based on frequency band
+                try:
+                    freq_num = int(band)
+                    is_hfi = freq_num >= 100
+                except:
+                    is_hfi = False
+                
+                if is_hfi:
+                    # HFI processing: robust BAD_DATA handling with covariance weighting
+                    print(f"[{exp} {band}] Processing HFI band with robust BAD_DATA handling")
+                    
+                    # Read covariance fields for HFI (same fields as LFI)
+                    cov1 = hp.read_map(path_half1, field=[4, 7, 9])
+                    cov2 = hp.read_map(path_half2, field=[4, 7, 9])
+                    
+                    # Convert to arrays for manipulation
+                    h1 = np.array(h1)
+                    h2 = np.array(h2)
+                    cov1 = np.array(cov1)
+                    cov2 = np.array(cov2)
+                    
+                    # Create robust bad data masks
+                    # Use more restrictive threshold for BAD_DATA detection
+                    bad_threshold = np.abs(bad_data) * 0.01  # More restrictive
+                    
+                    mask1 = np.abs(h1 - bad_data) < bad_threshold
+                    mask2 = np.abs(h2 - bad_data) < bad_threshold
+                    
+                    # Also check for extreme values that might not be exactly BAD_DATA
+                    extreme_mask1 = np.abs(h1) > 1e10  # Extremely large values
+                    extreme_mask2 = np.abs(h2) > 1e10
+                    
+                    # Combined bad pixel mask
+                    bad_mask = mask1 | mask2 | extreme_mask1 | extreme_mask2
+                    
+                    # Clean the maps: set bad pixels to zero
+                    h1_clean = h1.copy()
+                    h2_clean = h2.copy()
+                    h1_clean[bad_mask] = 0.0
+                    h2_clean[bad_mask] = 0.0
+                    
+                    # Handle covariances: check if they contain bad values and clean them
+                    cov_bad_mask1 = np.abs(cov1 - bad_data) < bad_threshold
+                    cov_bad_mask2 = np.abs(cov2 - bad_data) < bad_threshold
+                    
+                    # Also add pixels that are bad in maps to covariance bad mask
+                    cov_bad_mask1 = cov_bad_mask1 | bad_mask
+                    cov_bad_mask2 = cov_bad_mask2 | bad_mask
+                    
+                    # For bad pixels in covariances, use a large variance (small weight)
+                    cov1_clean = cov1.copy()
+                    cov2_clean = cov2.copy()
+                    
+                    cov1_clean[cov_bad_mask1] = 1e20  # Large variance for bad pixels
+                    cov2_clean[cov_bad_mask2] = 1e20
+                    
+                    # Ensure all covariances are positive (take absolute value)
+                    cov1_clean = np.abs(cov1_clean)
+                    cov2_clean = np.abs(cov2_clean)
+                    
+                    # Add small regularization to avoid numerical issues
+                    cov1_clean = cov1_clean + 1e-20
+                    cov2_clean = cov2_clean + 1e-20
+                    
+                    # Calculate sigmas
+                    sigma1 = np.sqrt(cov1_clean)
+                    sigma2 = np.sqrt(cov2_clean)
+                    
+                    # Calculate weights using same formula as LFI but with numerical protection
+                    sigma1_sq = sigma1**2
+                    sigma2_sq = sigma2**2
+                    
+                    # Protect against division by zero
+                    inv_sigma1_sq = np.where(sigma1_sq > 1e-30, 1.0/sigma1_sq, 0.0)
+                    inv_sigma2_sq = np.where(sigma2_sq > 1e-30, 1.0/sigma2_sq, 0.0)
+                    
+                    w = np.sqrt((inv_sigma1_sq + inv_sigma2_sq) * (sigma1_sq + sigma2_sq))
+                    
+                    # Protect against division by zero in final calculation
+                    w = np.where(w > 1e-30, w, 1e30)  # If weight is tiny, make it huge (effectively zero contribution)
+                    
+                    # Calculate HMDM
+                    hmdm = (h1_clean - h2_clean) / w
+                    
+                    # Final masking: set all bad pixels to zero
+                    final_bad_mask = bad_mask | cov_bad_mask1 | cov_bad_mask2
+                    hmdm[final_bad_mask] = 0.0
+                    
+                    n_bad_total = np.sum(final_bad_mask[0])  # Count for I map
+                    print(f"[{exp} {band}] Masked {n_bad_total} bad pixels total")
+                    print(f"[{exp} {band}] Applied robust covariance weighting")
+                    
+                else:
+                    # LFI processing: use covariance weighting (original method)
+                    print(f"[{exp} {band}] Processing LFI band")
+                    
+                    # Read covariance fields
+                    cov1 = hp.read_map(path_half1, field=[4, 7, 9])
+                    cov2 = hp.read_map(path_half2, field=[4, 7, 9])
+                    
+                    # Calculate sigmas
+                    sigma1 = np.sqrt(cov1)
+                    sigma2 = np.sqrt(cov2)
+                    
+                    # Calculate weights using original formula
+                    w = np.sqrt((1 / sigma1**2 + 1 / sigma2**2) * (sigma1**2 + sigma2**2))
+                    hmdm = (h1 - h2) / w
 
 
 
@@ -3146,14 +3263,14 @@ def fastcc(freq, alpha=False, td=False, bd=False, detector=False, debug=False, o
 '''
 
 
-def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=1535, target_nside=512, save=False, save_path=None):
+def compute_and_plot_spectra(experiment, band, mask_path, lmax=1535, target_nside=512, save=False, save_path=None):
     """
-    Compute and plot the TT, EE, and BB spectra of a CMB map along with:
+    Compute and plot the EE and BB spectra of a CMB map along with:
+    - white noise map
     - observed data map
     - simulated map
-    - simulated map + noise
-    - noise only
     - HMDM map
+    - noise simulation map
 
     Notes
     -----
@@ -3164,16 +3281,12 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     
     Parameters
     ----------
-    map_info : dict
-        Dictionary with map information, expected to contain:
-        - 'path', 'path_simulated', 'hmdm'
-        - 'white_noise_simulation_1' / 'noise_simulation_1'
-        - 'path_white_noise_simulations' / 'path_noise_simulations'
-        - optionally 'name'
+    experiment : str
+        Name of the experiment ('QUIJOTE', 'WMAP', 'Planck')
+    band : str
+        Band identifier (e.g., '11', '13', '23', '30', etc.)
     mask_path : str
         Path to the mask FITS file
-    use_white_noise : bool
-        If True, use white noise simulation; if False, use regular noise simulation
     lmax : int
         Maximum multipole for spectrum computation
     target_nside : int
@@ -3183,6 +3296,16 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     save_path : str
         Directory where to save figures (created if it doesn't exist)
     """
+    
+    # Import data dictionary
+    from data import data
+    
+    # Get map_info from experiment and band
+    try:
+        map_info = data[experiment][band]
+    except KeyError:
+        raise ValueError(f"Invalid experiment '{experiment}' or band '{band}'. "
+                        f"Available experiments: {list(data.keys())}")
     
     # Helper function to downgrade maps to target NSIDE
     def downgrade_map(m, target_nside):
@@ -3199,10 +3322,15 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     map_sim = hp.read_map(map_info['path_simulated'], field=(0,1,2), verbose=False)
     map_hmdm = hp.read_map(map_info['hmdm'], field=(0,1,2), verbose=False)
     
-    noise_file = map_info['white_noise_simulation_1'] if use_white_noise else map_info['noise_simulation_1']
-    noise_path = (map_info['path_white_noise_simulations'] + noise_file 
-                  if use_white_noise else map_info['path_noise_simulations'] + noise_file)
-    map_noise = hp.read_map(noise_path, field=(0,1,2), verbose=False)
+    # Load white noise simulation
+    white_noise_file = map_info['white_noise_simulation_1']
+    white_noise_path = map_info['path_white_noise_simulations'] + white_noise_file
+    map_white_noise = hp.read_map(white_noise_path, field=(0,1,2), verbose=False)
+    
+    # Load noise simulation
+    noise_file = map_info['noise_simulation_1']
+    noise_path = map_info['path_noise_simulations'] + noise_file
+    map_noise_sim = hp.read_map(noise_path, field=(0,1,2), verbose=False)
     
     # Load mask
     mask = hp.read_map(mask_path, verbose=False)
@@ -3210,89 +3338,124 @@ def compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, lmax=153
     # Downgrade all maps and mask to the same NSIDE
     map_data = downgrade_map(map_data, target_nside)
     map_sim = downgrade_map(map_sim, target_nside)
-    map_noise = downgrade_map(map_noise, target_nside)
+    map_white_noise = downgrade_map(map_white_noise, target_nside)
+    map_noise_sim = downgrade_map(map_noise_sim, target_nside)
     map_hmdm = downgrade_map(map_hmdm, target_nside)
     mask = downgrade_map(mask, target_nside)
+    
+    # Convert hp.UNSEEN pixels to 0 before applying mask
+    def unseen_to_zero(m):
+        """Convert hp.UNSEEN pixels to 0."""
+        if m.ndim == 1:  # single component map
+            m[m == hp.UNSEEN] = 0.0
+        else:  # multi-component map (I, Q, U)
+            for i in range(m.shape[0]):
+                m[i][m[i] == hp.UNSEEN] = 0.0
+        return m
+    
+    map_data = unseen_to_zero(map_data)
+    map_sim = unseen_to_zero(map_sim)
+    map_white_noise = unseen_to_zero(map_white_noise)
+    map_noise_sim = unseen_to_zero(map_noise_sim)
+    map_hmdm = unseen_to_zero(map_hmdm)
     
     # Apply the mask
     map_data *= mask
     map_sim *= mask
-    map_noise *= mask
-    map_sim_plus_noise = map_sim + map_noise
+    map_white_noise *= mask
+    map_noise_sim *= mask
     map_hmdm *= mask
     
     # Compute spectra
     cl_data = hp.anafast(map_data, lmax=lmax)
     cl_sim = hp.anafast(map_sim, lmax=lmax)
-    cl_sim_noise = hp.anafast(map_sim_plus_noise, lmax=lmax)
-    cl_noise = hp.anafast(map_noise, lmax=lmax)
+    cl_white_noise = hp.anafast(map_white_noise, lmax=lmax)
+    cl_noise_sim = hp.anafast(map_noise_sim, lmax=lmax)
     cl_hmdm = hp.anafast(map_hmdm, lmax=lmax)
     
-    # Create figure
-    fig, axes = plt.subplots(3, 2, figsize=(14, 12))
-    spectra_labels = ['TT', 'EE', 'BB']
+    # Create figure - only EE and BB modes (indices 1 and 2)
+    fig, axes = plt.subplots(2, 2, figsize=(14, 8))
+    spectra_labels = ['EE', 'BB']
     ell1 = 600
     ell2 = 800
     
+    fig.suptitle(f'{experiment} {band} GHz', fontsize=14, y=0.9)
+    
     for i, ax_pair in enumerate(axes):
         ax_main, ax_zoom = ax_pair
+        # Use i+1 to skip TT spectrum (index 0) and plot EE (index 1) and BB (index 2)
+        spectrum_idx = i + 1
         
         # Main plot
-        ax_main.plot(cl_data[i], label='Data', color='C0')
-        ax_main.plot(cl_sim[i], label='Simulated', color='C1')
-        ax_main.plot(cl_sim_noise[i], label='Sim + Noise', color='C2')
-        ax_main.plot(cl_noise[i], label='Noise Only', color='C3')
-        ax_main.plot(cl_hmdm[i], label='HMDM', color='C4')
+        ax_main.plot(cl_white_noise[spectrum_idx], label='White Noise', color='C0')
+        ax_main.plot(cl_data[spectrum_idx], label='Real Map', color='C1')
+        ax_main.plot(cl_sim[spectrum_idx], label='Simulated Map', color='C2')
+        ax_main.plot(cl_hmdm[spectrum_idx], label='HMDM', color='C3')
+        ax_main.plot(cl_noise_sim[spectrum_idx], label='Noise Simulation 1', color='C4')
         ax_main.set_yscale('log')
         ax_main.set_xlabel(r'Multipole $\ell$')
         ax_main.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
         ax_main.legend(frameon=False)
-        ax_main.set_title(f'{spectra_labels[i]} Spectrum')
+        ax_main.set_xlim(0,300)
+        
+        # Set tighter y-axis range for main plot
+        main_vals = np.concatenate([cl_white_noise[spectrum_idx][:300], cl_data[spectrum_idx][:300], 
+                                   cl_sim[spectrum_idx][:300], cl_hmdm[spectrum_idx][:300], 
+                                   cl_noise_sim[spectrum_idx][:300]])
+        main_positive_vals = main_vals[main_vals > 0]
+        if len(main_positive_vals) > 0:
+            y_min_main = np.min(main_positive_vals) * 0.8
+            y_max_main = np.max(main_vals) * 1.2
+            ax_main.set_ylim(y_min_main, y_max_main)
+        
+        ax_main.set_title(f'{spectra_labels[i]}')
         
         # Zoom plot
         ell_zoom = np.arange(ell1, ell2)
-        data_zoom = cl_data[i][ell1:ell2]
-        sim_noise_zoom = cl_sim_noise[i][ell1:ell2]
-        noise_zoom = cl_noise[i][ell1:ell2]
-        hmdm_zoom = cl_hmdm[i][ell1:ell2]
+        white_noise_zoom = cl_white_noise[spectrum_idx][ell1:ell2]
+        data_zoom = cl_data[spectrum_idx][ell1:ell2]
+        sim_zoom = cl_sim[spectrum_idx][ell1:ell2]
+        hmdm_zoom = cl_hmdm[spectrum_idx][ell1:ell2]
+        noise_sim_zoom = cl_noise_sim[spectrum_idx][ell1:ell2]
         
-        ax_zoom.plot(ell_zoom, data_zoom, label='Data', color='C0')
-        ax_zoom.plot(ell_zoom, sim_noise_zoom, label='Sim + Noise', color='C2')
-        ax_zoom.plot(ell_zoom, noise_zoom, label='Noise Only', color='C3')
-        ax_zoom.plot(ell_zoom, hmdm_zoom, label='HMDM', color='C4')
+        ax_zoom.plot(ell_zoom, white_noise_zoom, label='White Noise', color='C0')
+        ax_zoom.plot(ell_zoom, data_zoom, label='Real Map', color='C1')
+        # ax_zoom.plot(ell_zoom, sim_zoom, label='Simulated Map', color='C2')
+        ax_zoom.plot(ell_zoom, hmdm_zoom, label='HMDM', color='C3')
+        ax_zoom.plot(ell_zoom, noise_sim_zoom, label='Noise Simulation 1', color='C4')
         ax_zoom.set_yscale('log')
         ax_zoom.set_xlabel(r'Multipole $\ell$')
         ax_zoom.set_ylabel(rf'$C_\ell^{{{spectra_labels[i]}}}$')
         ax_zoom.legend(frameon=False)
-        ax_zoom.set_title(f'{spectra_labels[i]} Spectrum')
+        ax_zoom.set_title(f'{spectra_labels[i]}')
         
-        # Y-axis range
-        all_vals = np.concatenate([data_zoom, sim_noise_zoom, noise_zoom])
+        # Y-axis range - more closed/tight range
+        all_vals = np.concatenate([white_noise_zoom, data_zoom, hmdm_zoom, noise_sim_zoom])
         positive_vals = all_vals[all_vals > 0]
         if len(positive_vals) > 0:
             y_min = np.min(positive_vals) * 0.5
-            y_max = np.max(all_vals) * 2.0
+            y_max = np.max(all_vals) * 2.
             ax_zoom.set_ylim(y_min, y_max)
         
         # Compute mean and ratio
         mean_data = np.mean(data_zoom)
-        mean_sim_noise = np.mean(sim_noise_zoom)
-        ratio = mean_data / mean_sim_noise if mean_sim_noise != 0 else np.nan
+        mean_sim = np.mean(sim_zoom)
+        ratio = mean_data / mean_sim if mean_sim != 0 else np.nan
         print(f"{spectra_labels[i]} zoom range (ell={ell1}-{ell2}): "
-              f"mean(Data)={mean_data:.3e}, mean(Sim+Noise)={mean_sim_noise:.3e}, "
+              f"mean(Real Map)={mean_data:.3e}, mean(Simulated Map)={mean_sim:.3e}, "
               f"ratio={ratio:.3f}")
         
         # Add ratio text
-        ax_zoom.text(0.05, 0.95, f'ratio(Data / Sim+Noise) = {ratio:.3f}',
-                     transform=ax_zoom.transAxes,
-                     fontsize=12, verticalalignment='top',
-                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
+        # ax_zoom.text(0.05, 0.95, f'ratio(Real Map / Simulated Map) = {ratio:.3f}',
+                    #  transform=ax_zoom.transAxes,
+                    #  fontsize=12, verticalalignment='top',
+                    #  bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
     
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.03, 1, 0.90])  # Leave space for main title
     
     if save and save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        map_name = map_info.get('name', 'map')  # Use 'name' key if exists
+        map_name = f"{experiment}_{band}"
         filename = os.path.join(save_path, f"spectra_{map_name}.png")
         plt.savefig(filename)
         print(f"Figure saved to {filename}")

@@ -7,13 +7,10 @@ import functions
 from data import data, masks
 from scipy.constants import c, h, k
 
-mask_select = masks['quijote_galcut']['galcut10']
-mask_name = mask_select['name']
-
 n_sim = 100
 nside = 512
 
-mask_select = masks['quijote_galcut']['galcut10']
+mask_select = masks['QUIJOTE_galcut']['galcut10']
 mask_name = mask_select['name']
 use_simulated_maps = True
 use_white_noise = True

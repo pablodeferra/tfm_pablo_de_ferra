@@ -15,7 +15,7 @@ planck_bands = ['30', '44', '70', '100', '143', '217', '353']
 
 band_list = quijote_bands + wmap_bands + planck_bands
 
-mask_select = masks['quijote_galcut']['galcut10']
+mask_select = masks['QUIJOTE_galcut']['galcut10']
 mask_name = mask_select['name']
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 path_corrected_spectra = os.path.join(out_path, f'corrected_power_spectra_{mask_name}.fits')

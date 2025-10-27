@@ -5,6 +5,7 @@ import numpy as np
 from data import data 
 import functions
 
+#%%
 '''
 # ==================================================
 # Build half maps for WMAP
@@ -14,8 +15,10 @@ import functions
 base_dir = os.path.dirname(data['WMAP']['23']['hmdm'])
 save_path = os.path.dirname(data['WMAP']['23']['hmdm'])
 
-combined_1to4 = functions.oadd_year_range(base_dir=base_dir, year_1=1, year_2=4, save=True, save_path=save_path)
+combined_1to4 = functions.coadd_year_range(base_dir=base_dir, year_1=1, year_2=4, save=True, save_path=save_path)
 combined_5to9 = functions.coadd_year_range(base_dir=base_dir, year_1=5, year_2=9, save=True, save_path=save_path)
+
+#%%
 
 '''
 # ==================================================
@@ -26,7 +29,7 @@ combined_5to9 = functions.coadd_year_range(base_dir=base_dir, year_1=5, year_2=9
 # Bands to use
 quijote_bands = ['11']
 wmap_bands = ['23', '33', '41', '61', '94']
-planck_bands = ['30', '44', '70', '100', '143', '217', '353']
+planck_bands = ['100', '143', '217', '353']
 
 bands = quijote_bands + wmap_bands + planck_bands
 

@@ -15,7 +15,7 @@ dl = 10
 n_sim = 100
 
 
-mask_select = masks['quijote_galcut']['galcut10']
+mask_select = masks['QUIJOTE_galcut']['galcut10']
 mask_name = mask_select['name']
 use_simulated_maps = True
 use_white_noise = True

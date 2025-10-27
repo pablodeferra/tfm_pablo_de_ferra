@@ -17,12 +17,12 @@ save_base = '/home/pablo/Desktop/master/tfm/figures/noise_spectra'
 experiments = {
     # 'QUIJOTE': ['11'],
     # 'WMAP': ['23'],
-    'Planck': ['217']
+    'Planck': ['100', '143', '217', '353']
 }
 
-map_info = data['Planck']['353']
+map_info = data['Planck']['100']
 
-# functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, save=False, save_path=save_base)
+functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, save=False, save_path=save_base)
 
 # for experiment, map_names in experiments.items():
 #     save_path = os.path.join(save_base, experiment)
@@ -30,7 +30,7 @@ map_info = data['Planck']['353']
 #         map_info = data[experiment][map_name]
 #         map_info['name'] = map_name  # add 'name' key for saving
 #         print(f"Processing {experiment} {map_name}...")
-#         functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, save=False, save_path=save_path)
+#         functions.compute_and_plot_spectra(map_info, mask_path, use_white_noise=True, save=True, save_path=save_path)
         
 # functions.plot_maps_mollview(map_info, component='I', use_white_noise=True, save=False)
 

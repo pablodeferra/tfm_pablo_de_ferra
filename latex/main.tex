@@ -23,22 +23,29 @@
     right=2.5cm
 }
 
-\title{}
-\author{Pablo de Ferra}
-\date{\today}
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
 
 \begin{document}
 
-\section*{Mask}
+\section{Mask}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{masks/mask_quijote_galcut10.pdf}
-    \caption{Mask used for the analysis.}
+    \includegraphics[width=\linewidth]{masks/mask_lowdec_satband_galcut10_10mk_apodC2_5.pdf}
+    \caption{Analysis mask combining the QUIJOTE low-declination survey mask with a 10 mK intensity threshold applied to the QUIJOTE 11 GHz map. The mask excludes regions with high foreground contamination and point sources to ensure reliable polarimetric analysis of diffuse Galactic emission.}
     \label{fig:mask}
 \end{figure}
 
-\section*{MCMC Fitting}
+\section{Data}
+
+Our analysis employs two complementary datasets: simulated sky maps generated using the \texttt{Python} Sky Model (\texttt{PySM}) library, which incorporates all major Galactic foreground components; and observational data from the QUIJOTE, WMAP, and Planck experiments. All simulated maps are convolved with the appropriate beam window functions for each respective experiment to ensure realistic instrumental effects.
+
+\section{Error Estimation}
+
+Power spectrum uncertainties are estimated through Monte Carlo simulations for both datasets. We compute the standard deviation from 100 realizations each of sky+noise and pure noise maps. The noise characteristics vary by experiment: QUIJOTE and Planck employ the official noise simulations provided by their respective collaborations, incorporating both white noise and correlated $1/f$ noise components. For WMAP, we model the noise as purely white, following standard practice for this dataset.
+
+\section{MCMC Fitting}
 
 The total angular power spectrum between frequencies $\nu_i$ and $\nu_j$ is modeled as the sum of synchrotron, dust, and synchrotron--dust cross-correlation components, 
 
@@ -70,123 +77,80 @@ $\alpha_s$ and $\alpha_d$ are the multipole spectral indices, $\beta_s$ and $\be
 
 \paragraph{}
 
-We perform a Markov Chain Monte Carlo (MCMC) fitting procedure to model the total angular power spectrum across multiple frequency bands, using the synchrotron, dust, and synchrotron--dust cross-correlation model described above. Specifically, we fit simulated sky maps from the following frequency bands: QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz in the multipole range of $30 < \ell < 200$. These maps are generated using the \texttt{Python} library \texttt{PySM}, including all the radiation components of the sky. These maps have been smoothed using the beam window functions provided by each experiment. The resulting posterior distributions are visualized in the corner plots: Figure~\ref{fig:corner_sd_ee} for the EE mode and Figure~\ref{fig:corner_sd_bb} for the BB mode, showing the constraints on the synchrotron and dust parameters and their correlations.
+We perform a Markov Chain Monte Carlo (MCMC) fitting procedure to model the total angular power spectrum across multiple frequency bands, using the synchrotron, dust, and synchrotron--dust cross-correlation model described above. Specifically, we fit simulated sky maps from the following frequency bands: QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz in the multipole range of $30 < \ell < 200$. 
 
-\paragraph{}
+\section{Results}
 
-The most interesting thing to see is that we are obtaining an $\alpha_s$ of -2.385 for the EE- and -2.126 for the BB-mode instead of the expected value of -3 for the synchrotron emission. Also, in the EE-mode, we are obtaining a $\beta_d$ of 1.40 in contrast of the expected 1.54, characteristic of the polarized dust emission. 
+\subsection{Simulated data}
 
-\paragraph{}
+The MCMC analysis of the PySM simulated maps yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_sim} (EE mode) and Figure~\ref{fig:corner_sd_bb_sim} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components in the simulated data, providing a validation of our fitting methodology against known input parameters.
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE.pdf}
-    \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the EE mode data.}
-    \label{fig:corner_sd_ee}
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE_sim.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
+    \label{fig:corner_sd_ee_sim}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB.pdf}
-    \caption{Corner plot of the posterior distributions for the synchrotron and dust model parameters, accounting for correlations, obtained from the BB mode data.}
-    \label{fig:corner_sd_bb}
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB_sim.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
+    \label{fig:corner_sd_bb_sim}
 \end{figure}
 
-
-In order to study the origin of this value of $\alpha_s$, we considered various options. First, we tested the possibility of a problem in the new model or in the new MCMC fitting program. We tested to run just a synchrotron model (excluding any dust or correlation from the model previously explained) using the 11, 23 and 30 GHz (auto- and cross-) data for the fit. The results are presented in Figure \ref{fig:corner_synch}, where we can see that we are obtaining very similar values of $\alpha_s$, being -2.478 for the EE- and -2.460 for the BB-mode. So in this way we can see that this $\alpha_s$ value is not a consequence of any flattening caused by the dust data. Furthermore, we ran this MCMC fitting using the data obtained last year using this same mask, in the wide survey analysis of the polarized synchrotron emission using the 11 GHz band from QUIJOTE, 23 GHz from WMAP and 30 GHz from Planck- We obtained the same results as we did in that previous study, so we can conclude that this $\alpha_s$ value does not appear as a consequence of the model or the program. 
-
-\paragraph{}
-
-Second, we added a constant term for each band of this synchrotron-only fitting as we did in the wide survey study. The results obtained in this case are compatible with those presented in Figure \ref{fig:corner_synch} for all polarization modes. Additionally, all constant terms obtained are compatible with 0 at a $2\sigma$ level. 
-
-\paragraph{}
 
 
 \begin{figure}[h]
     \centering
-    \begin{minipage}[b]{0.48\linewidth}
+    \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_EE.pdf}
+        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_11_23_23_30_30_quijote_galcut10_10mk_sim.pdf}
     \end{minipage}
     \hfill
-    \begin{minipage}[b]{0.48\linewidth}
+    \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_BB.pdf}
+        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_23_11_30_23_30_quijote_galcut10_10mk_sim.pdf}
     \end{minipage}
-    \caption{Corner plots of the posterior distributions for the synchrotron-only model parameters, obtained from the EE mode data (left) and BB mode data (right).}
-    \label{fig:corner_synch}
+    \caption{Comparison between theoretical and recovered angular power spectra for simulated data at 11, 23, and 30 GHz. Left panel shows auto-power spectra for each frequency band, while the right panel displays cross-power spectra between frequency pairs. Theoretical spectra from the input model are shown as solid lines, and recovered spectra are displayed as circles.}
+    \label{fig:spectra_sim}
 \end{figure}
 
-% \begin{figure}[h]
-%     \centering
-%     \begin{minipage}[b]{0.48\linewidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_EE_WS.pdf}
-%     \end{minipage}
-%     \hfill
-%     \begin{minipage}[b]{0.48\linewidth}
-%         \centering
-%         \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_BB_WS.pdf}
-%     \end{minipage}
-%     \caption{Corner plots of the posterior distributions for the synchrotron-only model parameters using the data obtained for the wide survey study (real data), obtained from the EE mode data (left) and BB mode data (right).}
-%     \label{fig:corner_ws}
-% \end{figure}
 
 
-As the fitting does not seem to be the problem, we compared the spectra to fit with that obtained in the wide survey study previously mentioned. In Figure \ref{fig:auto_cross_sim_ws} we compare the auto- and cross-spectra obtained in both cases. We can see that these spectra seem to be similar but there is a tendency of the simulated spectra to be greater at smaller angular scales. This is the most likely reason that could be leading to this difference in $\alpha_s$. 
+\subsection{Observational data}
 
-\paragraph{}
+The MCMC analysis of the real sky maps yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_full} (EE mode) and Figure~\ref{fig:corner_sd_bb_full} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components in the simulated data, providing a validation of our fitting methodology against known input parameters.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE_full.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data. The plot displays parameter constraints and correlations obtained from real sky maps.}
+    \label{fig:corner_sd_ee_full}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB_full.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data. The plot displays parameter constraints and correlations obtained from real sky maps.}
+    \label{fig:corner_sd_bb_full}
+\end{figure}
+
 
 
 \begin{figure}[h]
     \centering
-    \begin{minipage}{\linewidth}
+    \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf}
+        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_11_23_23_30_30_quijote_galcut10_10mk.pdf}
     \end{minipage}
-
-    \vspace{0.5em} 
-
-    \begin{minipage}{\linewidth}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf}
+        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_23_11_30_23_30_quijote_galcut10_10mk.pdf}
     \end{minipage}
-
-    \caption{Comparison between the spectra obtained in this work from simulated data (squares labeled as Sim) and those from the wide survey analysis (circles labeled as WS). Auto-spectra are presented in the top row for the EE and BB modes, while the cross-spectra are presented in the bottom row with no errors in all cases for simplicity.}
-    \label{fig:auto_cross_sim_ws}
+    \caption{Comparison between theoretical and recovered angular power spectra for observational data at 11, 23, and 30 GHz. Left panel shows auto-power spectra for each frequency band, while the right panel displays cross-power spectra between frequency pairs. Theoretical spectra from the input model are shown as solid lines, and recovered spectra are displayed as circles.}
+    \label{fig:spectra_full}
 \end{figure}
-
-We have to find the origin of this flattening of the spectra. For this purpose, we ran the code again using the same data as we used for the wide survey analysis. This is: the real sky data in the 11, 23 and 30 GHz bands and the realistic noise simulations. A comparison between the spectra obtained using this new program and that from the wide survey study is presented in Figure \ref{fig:auto_cross_ws_new}. As one can see, the spectra are identical, so we can conclude that the computational and correction processes are no responsible of the $\alpha_s$ flattening. Also, the MCMC fitting has been carried out using both data, resulting in identical parameters for the synchrotron model, 
-
-\paragraph{}
-
-\begin{figure}[h]
-    \centering
-    \begin{minipage}{\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/autos_11_23_30_WS_new.pdf}
-    \end{minipage}
-
-    \vspace{0.5em} 
-
-    \begin{minipage}{\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{1-methodology_tests/spectra/cross_11_23_30_WS_new.pdf}
-    \end{minipage}
-
-    \caption{Comparison between the spectra obtained in the wide survey analysis (circles labeled as WS) and that obtaining with the new code using the same data (squares). Auto-spectra are presented in the top row for the EE and BB modes, while the cross-spectra are presented in the bottom row with no errors in all cases for simplicity.}
-    \label{fig:auto_cross_ws_new}
-\end{figure}
-
-To conclude this section, the only remaining variables that can be responsible for the stronger spectra behavior observed in Figure \ref{fig:auto_cross_sim_ws} have to be the simulated maps. Figure \ref{fig:spectra_noise_sim_new} compares: the uncorrected spectra $C_{\ell}$ of the simulated sky maps, and that of the real sky maps; the noise spectra $N_{\ell}$ of the white noise, and the realistic noise realizations. As one can see, there are no important differences between simulated and real sky spectra. The most interesting thing to note is that the simulated maps spectra seem to be equal to the real maps or even higher in the case of WMAP at $\ell < 100$. This is interesting as the noise added to the simulated maps was white noise. Therefore it does not strongly affect this range, and one should expect to observe stronger spectra for the real map as in this case we have the signal of the sky + the $1/f$ noise component. May this be the cause of the flat spectra? Could it be resolved by accounting a $1/f$ noise component also for the simulated maps analysis?
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/spectra/spectra_noise_sim_new.pdf}
-    \caption{Uncorrected spectra of: simulated sky maps (squares) and real maps (triangles). Noise spectra obtained using: white (lines) and realistic (dashed lines) noise realizations for each experiment and band.}
-    \label{fig:spectra_noise_sim_new}
-\end{figure}
-
-
 
 \end{document}

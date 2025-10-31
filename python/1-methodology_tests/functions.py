@@ -1075,9 +1075,91 @@ def cross_spectrum(mask, map_1, map_2, b, workspaces, purify_e=True, purify_b=Tr
     }
 
 
-def compute_hmdm_power_spectra(data, band_list, mask, b, workspaces=None, lmax=None):
+def compute_hmdm_power_spectra(data, band_list, mask, b, workspaces=None, lmax=None, use_noise=False):
     """
-    Compute auto- and cross-power spectra for HMDM maps.
+    Compute auto- and cross-power spectra for HMDM maps or simulated noise maps.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing experiment and band information.
+    band_list : list of str
+        Ordered list of bands to compute spectra for.
+    mask : array
+        Healpy mask (0=masked, 1=unmasked) to apply.
+    b : nmt.NmtBin
+        NaMaster binning object.
+    workspaces : dict
+        Precomputed NaMaster workspaces: {'w00','w02','w22'}.
+    lmax : int or None
+        Maximum multipole for lmax_sht parameter.
+    use_noise : bool
+        If True, use simulated noise maps (realization 1) instead of real HMDM maps.
+
+    Returns
+    -------
+    spectra_matrix : ndarray
+        N_band x N_band matrix of dictionaries containing the spectra for each band pair.
+        Each dictionary has keys: ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB'].
+    """
+    N_band = len(band_list)
+    spectra_matrix = np.empty((N_band, N_band), dtype=object)
+
+    for i, band_i in enumerate(band_list):
+        # Identify experiment
+        exp_i = next(exp for exp, bands in data.items() if band_i in bands)
+        
+        if use_noise:
+            # Load simulated noise map (realization 1) instead of HMDM
+            map_i = load_map(data, exp_i, band_i, use_simulated_maps=True, 
+                           use_white_noise=False, noise_realization=1, only_noise=True)
+        else:
+            # Load HMDM map i
+            hmdm_path_i = data[exp_i][band_i]['hmdm']
+            map_i = hp.read_map(hmdm_path_i, field=[0, 1, 2])
+            map_i = np.where(map_i == hp.UNSEEN, 0, map_i)
+            
+            # If Planck, convert to mK and downgrade to nside=512
+            if exp_i == 'Planck':
+                map_i *= 1e3
+                nside_in = hp.get_nside(map_i[0])
+                if nside_in != 512:
+                    map_i = np.array([hp.ud_grade(m, nside_out=512) for m in map_i])
+
+        for j, band_j in enumerate(band_list):
+            if j < i:
+                spectra_matrix[i, j] = spectra_matrix[j, i]  # Use symmetry
+                continue
+
+            exp_j = next(exp for exp, bands in data.items() if band_j in bands)
+            
+            if use_noise:
+                # Load simulated noise map (realization 1) instead of HMDM
+                map_j = load_map(data, exp_j, band_j, use_simulated_maps=True, 
+                               use_white_noise=False, noise_realization=1, only_noise=True)
+            else:
+                # Load HMDM map j
+                hmdm_path_j = data[exp_j][band_j]['hmdm']
+                map_j = hp.read_map(hmdm_path_j, field=[0, 1, 2])
+                map_j = np.where(map_j == hp.UNSEEN, 0, map_j)
+                
+                # If Planck, convert to mK and downgrade to nside=512
+                if exp_j == 'Planck':
+                    map_j *= 1e3
+                    nside_in = hp.get_nside(map_j[0])
+                    if nside_in != 512:
+                        map_j = np.array([hp.ud_grade(m, nside_out=512) for m in map_j])
+
+            # Compute cross-spectrum
+            cl = cross_spectrum(mask, map_i, map_j, b, workspaces, purify_e=True, purify_b=True, lmax=lmax)
+            spectra_matrix[i, j] = cl
+
+    return spectra_matrix
+
+
+def compute_pure_theoretical_spectra(data, band_list, mask, b, workspaces=None, lmax=None):
+    """
+    Compute auto- and cross-power spectra for pure simulated maps (no noise added).
 
     Parameters
     ----------
@@ -1106,17 +1188,8 @@ def compute_hmdm_power_spectra(data, band_list, mask, b, workspaces=None, lmax=N
     for i, band_i in enumerate(band_list):
         # Identify experiment
         exp_i = next(exp for exp, bands in data.items() if band_i in bands)
-        # Load HMDM map i
-        hmdm_path_i = data[exp_i][band_i]['hmdm']
-        hmdm_map_i = hp.read_map(hmdm_path_i, field=[0, 1, 2])
-        hmdm_map_i = np.where(hmdm_map_i == hp.UNSEEN, 0, hmdm_map_i)
-        
-        # If Planck, convert to mK and downgrade to nside=512
-        if exp_i == 'Planck':
-            hmdm_map_i *= 1e3
-            nside_in = hp.get_nside(hmdm_map_i[0])
-            if nside_in != 512:
-                hmdm_map_i = np.array([hp.ud_grade(m, nside_out=512) for m in hmdm_map_i])
+        # Load pure simulated map i (no noise)
+        sky_map_i = load_pure_simulated_map(data, exp_i, band_i)
 
         for j, band_j in enumerate(band_list):
             if j < i:
@@ -1124,20 +1197,11 @@ def compute_hmdm_power_spectra(data, band_list, mask, b, workspaces=None, lmax=N
                 continue
 
             exp_j = next(exp for exp, bands in data.items() if band_j in bands)
-            # Load HMDM map j
-            hmdm_path_j = data[exp_j][band_j]['hmdm']
-            hmdm_map_j = hp.read_map(hmdm_path_j, field=[0, 1, 2])
-            hmdm_map_j = np.where(hmdm_map_j == hp.UNSEEN, 0, hmdm_map_j)
-            
-            # If Planck, convert to mK and downgrade to nside=512
-            if exp_j == 'Planck':
-                hmdm_map_j *= 1e3
-                nside_in = hp.get_nside(hmdm_map_j[0])
-                if nside_in != 512:
-                    hmdm_map_j = np.array([hp.ud_grade(m, nside_out=512) for m in hmdm_map_j])
+            # Load pure simulated map j (no noise)
+            sky_map_j = load_pure_simulated_map(data, exp_j, band_j)
 
             # Compute cross-spectrum
-            cl = cross_spectrum(mask, hmdm_map_i, hmdm_map_j, b, workspaces, purify_e=True, purify_b=True, lmax=lmax)
+            cl = cross_spectrum(mask, sky_map_i, sky_map_j, b, workspaces, purify_e=True, purify_b=True, lmax=lmax)
             spectra_matrix[i, j] = cl
 
     return spectra_matrix
@@ -1155,6 +1219,9 @@ def compute_all_power_spectra(
     """
     Compute auto- and cross-power spectra for a list of bands using precomputed NaMaster workspaces.
     Uses load_map() to handle sky + noise map loading.
+    
+    IMPORTANT: When use_simulated_maps=True and use_white_noise=False, this function
+    loads simulated sky maps + noise simulation (NOT HMDM). HMDM is NEVER added.
 
     Parameters
     ----------
@@ -1210,9 +1277,44 @@ def compute_all_power_spectra(
     return spectra_matrix
 
 
+def load_pure_simulated_map(data, exp, band):
+    """
+    Load a pure simulated map (no noise added) for a given experiment and band.
+
+    Parameters
+    ----------
+    data : dict
+        Experiment and band info
+    exp : str
+        Experiment name
+    band : str
+        Band name
+
+    Returns
+    -------
+    np.ndarray
+        Pure simulated sky map (3, npix) with no noise
+    """
+    sky_path = data[exp][band]['path_simulated']
+    sky_map = hp.read_map(sky_path, field=[0, 1, 2])
+    sky_map = np.where(sky_map == hp.UNSEEN, 0, sky_map)
+    
+    # Convert Planck maps from K to mK and downgrade if needed
+    if exp == 'Planck':
+        sky_map *= 1e3
+        nside_in = hp.get_nside(sky_map[0])
+        if nside_in != 512:
+            sky_map = np.array([hp.ud_grade(m, nside_out=512) for m in sky_map])
+    
+    return sky_map
+
+
 def load_map(data, exp, band, use_simulated_maps, use_white_noise, noise_realization, only_noise):
     """
     Load a sky+noise map for a given experiment and band.
+    
+    IMPORTANT: This function NEVER adds HMDM. When use_simulated_maps=True,
+    it loads simulated sky + noise simulations only.
 
     Parameters
     ----------
@@ -1894,7 +1996,7 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
             # Noise/HMDM subtraction (only for auto-spectra)
             if is_cross_spectrum:
                 # For cross-spectra: no noise subtraction, use raw spectrum
-                Cl = np.abs(Cl_raw)
+                Cl = Cl_raw
             else:
                 # For auto-spectra: subtract noise as before
                 if use_white_noise:
@@ -1904,7 +2006,7 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
                     # Subtract HMDM spectra (same format as regular spectra from save_spectra_to_fits)
                     Nl = np.array(hmdm_spectra[key][cl_key])
                 
-                Cl = np.abs(Cl_raw - Nl)
+                Cl = Cl_raw - Nl
 
             # Safe deconvolution
             safe_phys = np.array(phys_factor, dtype=float)
@@ -1966,6 +2068,171 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         print(f"[OK] Saved corrected spectra with errors to {out_file}")
 
     return corr_spectra, out_file
+
+
+def correct_theoretical_spectra(path_theoretical_spectra, band_list, data, nside,
+                               correct_beam=True, correct_unit=True, correct_pixel=True,
+                               save=False, path_out_file=None):
+    """
+    Apply beam, pixel window, and unit corrections to theoretical spectra
+    (no noise subtraction since these are pure theoretical spectra).
+
+    Parameters
+    ----------
+    path_theoretical_spectra : str
+        Path to input FITS file containing raw theoretical spectra.
+    band_list : list of str
+        List of band names or pairs (e.g., ['30_44', '44_70']).
+    data : dict
+        Metadata dictionary with beam file paths and band frequencies.
+    nside : int
+        HEALPix NSIDE resolution of the input maps.
+    correct_beam : bool, optional
+        If True, deconvolve beam window functions.
+    correct_unit : bool, optional
+        If True, convert from K_CMB to K_RJ units.
+    correct_pixel : bool, optional
+        If True, deconvolve the HEALPix pixel window function.
+    save : bool, optional
+        If True, save the corrected spectra to a FITS file.
+    path_out_file : str, optional
+        Output FITS file path. Defaults to "corrected_theoretical_cls.fits" if not provided.
+
+    Returns
+    -------
+    dict
+        Dictionary with corrected theoretical power spectra.
+    """
+    if save and path_out_file is None:
+        path_out_file = "corrected_theoretical_cls.fits"
+
+    # Load theoretical spectra
+    spectra = read_spectra_from_fits(path_theoretical_spectra, band_list)
+
+    # Effective multipoles from first entry
+    first_entry = next(iter(spectra.values()))
+    ell_eff = np.array(first_entry['ell_eff'])
+
+    # Pixel window function
+    if correct_pixel:
+        wpix = hp.pixwin(nside)
+        wp_interp = np.interp(ell_eff, np.arange(len(wpix)), wpix)
+    else:
+        wp_interp = np.ones_like(ell_eff)
+
+    # Precompute correction factors for each band
+    all_bands = set()
+    for key in spectra.keys():
+        if "_" in key:
+            band1, band2 = key.split('_', 1)
+            all_bands.update([band1, band2])
+
+    beam_dict, unit_dict, wp_dict = {}, {}, {}
+    for band in all_bands:
+        for exp in data:
+            if band in data[exp]:
+                # Beam correction
+                if correct_beam:
+                    beam_dict[band] = get_beam_for_band(band, data, ell_eff)
+                else:
+                    beam_dict[band] = {"T": np.ones_like(ell_eff),
+                                       "E": np.ones_like(ell_eff),
+                                       "B": np.ones_like(ell_eff)}
+
+                # Clip small negative beam values
+                for comp in ('T', 'E', 'B'):
+                    arr = np.asarray(beam_dict[band][comp], dtype=float)
+                    neg_count = int(np.sum(arr < 0))
+                    if neg_count > 0:
+                        small_neg_mask = (arr < 0) & (arr > -1e-3)
+                        if np.sum(~small_neg_mask) > 0:
+                            print(f"[WARN] beam {band} {comp} has {neg_count} negative values, including >1e-3; check input")
+                        arr = np.clip(arr, 0.0, None)
+                        beam_dict[band][comp] = arr
+
+                # Frequency in GHz
+                freq = data[exp][band].get('freq')
+                try:
+                    nuGHz = freq.to('GHz').value
+                except Exception:
+                    nuGHz = float(freq)
+
+                # Unit conversion factor (K_CMB → K_RJ)
+                unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
+                wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
+                break
+
+    # Apply corrections (no noise subtraction for theoretical spectra)
+    corr_spectra = {}
+    for key, spec in spectra.items():
+        if "_" not in key:
+            continue
+        band1, band2 = key.split('_', 1)
+        corr_spectra[key] = {}
+
+        for cl_key in ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
+            if cl_key not in spec:
+                continue
+                
+            # Beam factor
+            comp_map = {'TT':('T','T'),'EE':('E','E'),'BB':('B','B'),'TE':('T','E'),'TB':('T','B'),'EB':('E','B')}
+            comp1, comp2 = comp_map.get(cl_key, ('T','T'))
+            beam_factor = beam_dict[band1][comp1] * beam_dict[band2][comp2]
+
+            # Physical deconvolution factor and unit factor
+            phys_factor = beam_factor * wp_dict[band1] * wp_dict[band2]
+            unit_factor = unit_dict[band1] * unit_dict[band2]
+
+            # Get raw theoretical spectrum (no noise to subtract)
+            Cl = np.array(spec[cl_key])
+
+            # Safe deconvolution
+            safe_phys = np.array(phys_factor, dtype=float)
+            safe_phys[safe_phys == 0] = np.nan
+            safe_phys[safe_phys < 0] = np.nan
+
+            # Deconvolve and apply unit conversion
+            Cl_deconv = Cl / safe_phys
+            spectrum_corr = Cl_deconv * unit_factor
+
+            # Store corrected spectrum (no error bars for theoretical spectra)
+            corr_spectra[key][cl_key] = spectrum_corr
+
+        # Copy multipole info
+        corr_spectra[key]['ell1'] = np.array(spec['ell1'])
+        corr_spectra[key]['ell2'] = np.array(spec['ell2'])
+        corr_spectra[key]['ell_eff'] = np.array(spec['ell_eff'])
+
+    # Save to FITS file if requested
+    if save:
+        hdu_list = fits.HDUList([fits.PrimaryHDU()])
+
+        for key, spec_dict in sorted(corr_spectra.items()):
+            band_i, band_j = key.split('_', 1)
+            cols = []
+            
+            # Add multipole columns
+            for cl_key in ['ell1', 'ell2', 'ell_eff']:
+                cols.append(fits.Column(name=cl_key, format='D', array=spec_dict[cl_key]))
+            
+            # Add spectrum columns
+            for cl_key in ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
+                if cl_key in spec_dict:
+                    cols.append(fits.Column(name=cl_key, format='D', array=spec_dict[cl_key]))
+
+            hdu = fits.BinTableHDU.from_columns(cols)
+            hdu.header['BAND_I'] = band_i
+            hdu.header['BAND_J'] = band_j
+            hdu.header['COMMENT'] = (
+                "Corrected theoretical spectra: beam/unit/pixel corrections applied (no noise subtraction)"
+            )
+            hdu.name = key
+            hdu_list.append(hdu)
+
+        hdu_list.writeto(path_out_file, overwrite=True)
+        print(f"[OK] Saved corrected theoretical spectra to {path_out_file}")
+
+    return corr_spectra
 
 
 '''
@@ -3679,6 +3946,137 @@ def plot_cls_auto_bands(spectra_dict, bands, save=False, save_path=None):
         os.makedirs(save_path, exist_ok=True)
         filename = os.path.join(save_path, "cls_autos.png")
         plt.savefig(filename, dpi=150)
+        print(f"Figure saved to {filename}")
+    
+    plt.show()
+
+
+def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_dict, band_pairs, mask_name, save=False, save_path=None, plot_dl=False):
+    """
+    Plot multiple corrected spectra with error bars alongside the theoretical spectra 
+    from pre-computed theoretical spectra files. All spectra are plotted on the same figure.
+
+    Parameters
+    ----------
+    corrected_spectra_dict : dict
+        Dictionary from read_corrected_cls containing the corrected spectra.
+    theoretical_spectra_dict : dict
+        Dictionary from read_spectra_from_fits containing the theoretical spectra.
+    band_pairs : list of str or str
+        List of band pairs to plot (e.g., ['11_11', '11_30']) or single band pair.
+    mask_name : str
+        Name of the mask used (for the title).
+    save : bool, default False
+        Whether to save the plot to a file.
+    save_path : str, optional
+        Directory where the plot will be saved.
+    plot_dl : bool, default False
+        If True, plot D_l = l(l+1)C_l/(2π) instead of C_l.
+    """
+    # Handle single band_pair input for backward compatibility
+    if isinstance(band_pairs, str):
+        band_pairs = [band_pairs]
+    
+    # Define color scheme starting with requested colors
+    colors = ['steelblue', 'k', 'goldenrod', 'crimson', 'forestgreen', 
+              'darkorange', 'mediumorchid', 'brown', 'pink', 'gray']
+    
+    # Validate all band pairs exist
+    for band_pair in band_pairs:
+        if band_pair not in corrected_spectra_dict:
+            raise ValueError(f"Band pair '{band_pair}' not found in corrected_spectra_dict")
+        if band_pair not in theoretical_spectra_dict:
+            raise ValueError(f"Band pair '{band_pair}' not found in theoretical_spectra_dict")
+    
+    # Create plot - EE and BB modes only, vertical layout
+    modes_to_plot = ['EE', 'BB']
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+    
+    # Keep track of all values for y-limits
+    all_values_per_mode = {mode: [] for mode in modes_to_plot}
+    
+    # Plot each band pair with its own color
+    for band_idx, band_pair in enumerate(band_pairs):
+        color = colors[band_idx % len(colors)]  # Cycle through colors if more bands than colors
+        
+        # Get corrected and theoretical spectrum data
+        corr_spec = corrected_spectra_dict[band_pair]
+        theo_spec = theoretical_spectra_dict[band_pair]
+        ell_eff = corr_spec['ell_eff']
+        
+        for i, mode in enumerate(modes_to_plot):
+            if mode in corr_spec and mode in theo_spec:
+                # Filter data to plot only ell range [0, 200]
+                ell_mask = (ell_eff >= 0) & (ell_eff <= 200)
+                ell_plot = ell_eff[ell_mask]
+                
+                # Get raw spectrum data and apply mask
+                spectrum_raw = corr_spec[mode]['SPECTRUM'][ell_mask]
+                error_raw = corr_spec[mode]['ERROR'][ell_mask]
+                theo_spectrum_raw = theo_spec[mode][ell_mask]
+                
+                # Apply D_l transformation if requested
+                if plot_dl:
+                    # D_l = l(l+1)/(2π) * C_l
+                    dl_factor = ell_plot * (ell_plot + 1) / (2 * np.pi)
+                    spectrum = spectrum_raw * dl_factor
+                    error = error_raw * dl_factor
+                    theo_spectrum = theo_spectrum_raw * dl_factor
+                    legend_symbol_corr = rf'$D_{{\ell}}^{{{mode}}}$'
+                    legend_symbol_theo = rf'$D_{{\ell,\mathrm{{theo}}}}^{{{mode}}}$'
+                else:
+                    spectrum = spectrum_raw
+                    error = error_raw
+                    theo_spectrum = theo_spectrum_raw
+                    legend_symbol_corr = rf'$C_{{\ell}}^{{{mode}}}$'
+                    legend_symbol_theo = rf'$C_{{\ell,\mathrm{{theo}}}}^{{{mode}}}$'
+                
+                # Corrected spectrum with error bars (points) - only plot filtered data
+                axes[i].errorbar(
+                    ell_plot, spectrum, yerr=error, fmt='o', color=color,
+                    markersize=4, capsize=2, alpha=0.8,
+                    label=rf'{legend_symbol_corr} {band_pair.replace("_", "x")}'
+                )
+                
+                # Theoretical spectrum (line) - only plot filtered data
+                axes[i].plot(
+                    ell_plot, theo_spectrum, color=color, linewidth=2, alpha=0.9,
+                    label=rf'{legend_symbol_theo} {band_pair.replace("_", "x")}'
+                )
+                
+                # Collect values for y-limits (only from plotted data)
+                all_values_per_mode[mode].extend(spectrum[np.isfinite(spectrum) & (spectrum > 0)])
+                all_values_per_mode[mode].extend(theo_spectrum[np.isfinite(theo_spectrum) & (theo_spectrum > 0)])
+    
+    # Set labels, limits and legend for each subplot
+    for i, mode in enumerate(modes_to_plot):
+        # Set appropriate y-label based on plot_dl option
+        if plot_dl:
+            axes[i].set_ylabel(rf"$D_\ell^{{{mode}}} \; [\mathrm{{mK}}^2]$")
+        else:
+            axes[i].set_ylabel(rf"$C_\ell^{{{mode}}} \; [\mathrm{{mK}}^2]$")
+        axes[i].legend(frameon=False, fontsize=9)
+        axes[i].set_yscale('log')
+        axes[i].set_xlim(0, 200)  # Explicit limit even though we only plot up to 200
+        
+        # Set reasonable y-limits based on all plotted data
+        if all_values_per_mode[mode]:
+            ymin = np.min(all_values_per_mode[mode])
+            ymax = np.max(all_values_per_mode[mode])
+            axes[i].set_ylim(ymin * 0.5, ymax * 2)
+    
+    axes[-1].set_xlabel(r"$\ell$")
+    plt.tight_layout()
+    
+    if save:
+        if save_path is None:
+            raise ValueError("save_path must be provided if save=True")
+        os.makedirs(save_path, exist_ok=True)
+        # Create filename based on band pairs and plot type
+        bands_str = "_".join(band_pairs)
+        plot_type = "Dl" if plot_dl else "Cl"
+        filename = os.path.join(save_path, f"corrected_vs_theoretical_{plot_type}_{bands_str}_{mask_name}.pdf")
+        plt.savefig(filename)
         print(f"Figure saved to {filename}")
     
     plt.show()

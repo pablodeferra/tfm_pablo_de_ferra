@@ -561,22 +561,22 @@ masks = {
     'QUIJOTE_galcut': {
         'galcut5': {
             'name': 'quijote_galcut5',
-            'fsky': 0.38,
-            'path': path_masks + 'quijote_galcut/mask_galcut5_dec_6_70_apodC2_5.fits'
+            'fsky': 0.3319,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut5_0mk_apodC2_5.fits'
         },
         'galcut10': {
             'name': 'quijote_galcut10',
-            'fsky': 0.34,
-            'path': path_masks + 'quijote_galcut/mask_galcut10_dec_6_70_apodC2_5.fits'
+            'fsky': 0.2968,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut10_0mk_apodC2_5.fits'
         },
         'galcut20': {
             'name': 'quijote_galcut20',
-            'fsky': 0.27,
-            'path': path_masks + 'quijote_galcut/mask_galcut20_dec_6_70_apodC2_5.fits'
+            'fsky': 0.2332,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut20_0mk_apodC2_5.fits'
         },
         'galcut10_10mk': {
             'name': 'quijote_galcut10_10mk',
-            'fsky': 0.338,
+            'fsky': 0.2940,
             'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut10_10mk_apodC2_5.fits'
         },
     },
@@ -595,30 +595,30 @@ masks = {
     },
 
     'specific_regions': {
-        '140_0_r30': {
-            'name': 'quijote_140_0_r30',
-            'fsky': 0.,
-            'path': path_masks + 'specific_regions/'
+        'fan': {
+            'name': 'fan',
+            'fsky': 0.0315,
+            'path': path_masks + 'specific_regions/mask_lowdec_satband_galcut0_0mk_fan_apodC2_5.fits'
         },
-        '65_0_r30': {
-            'name': 'quijote_65_0_r30',
-            'fsky': 0.,
-            'path': path_masks + 'specific_regions/'
+        'cygnus': {
+            'name': 'cygnus',
+            'fsky': 0.0272,
+            'path': path_masks + 'specific_regions/mask_lowdec_satband_galcut0_0mk_cygnus_apodC2_5.fits'
         },
-        '37_40_r35': {
-            'name': 'quijote_37_40_r35',
-            'fsky': 0.,
-            'path': path_masks + 'specific_regions/'
+        'nps': {
+            'name': 'nps',
+            'fsky': 0.0250,
+            'path': path_masks + 'specific_regions/mask_lowdec_satband_galcut0_0mk_nps_apodC2_5.fits'
         },
-        '117_50_r40': {
-            'name': 'quijote_117_50_r40',
-            'fsky': 0.,
-            'path': path_masks + 'specific_regions/'
+        'north': {
+            'name': 'north',
+            'fsky': 0.1730,
+            'path': path_masks + 'specific_regions/mask_lowdec_satband_galcut0_0mk_north_apodC2_5.fits'
         },
-        '150_45_r45': {
-            'name': 'quijote_150_45_r30',
-            'fsky': 0.,
-            'path': path_masks + 'specific_regions/'
+        'south': {
+            'name': 'south',
+            'fsky': 0.0876,
+            'path': path_masks + 'specific_regions/mask_lowdec_satband_galcut0_0mk_south_apodC2_5.fits'
         },
     },
     

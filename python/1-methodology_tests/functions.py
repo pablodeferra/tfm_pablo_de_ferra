@@ -2698,6 +2698,88 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
     chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
     return -0.5 * chi2
 
+
+def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all, 
+                         fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
+    """
+    Compute the reduced chi-squared for the model given data.
+
+    Parameters
+    ----------
+    theta_full : array
+        Full parameter vector.
+    datasets : list of dict
+        Prepared datasets.
+    ell : array
+        Multipoles.
+    y_all : array
+        Observed spectra concatenated.
+    yerr_all : array
+        Errors associated with y_all.
+    fit_c_terms : bool
+        Whether to fit constant c terms.
+    fit_components : tuple
+        Components to include ('sync','dust','cross').
+
+    Returns
+    -------
+    chi2_reduced : float
+        Reduced chi-squared value (chi2 / degrees of freedom).
+    """
+    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    N = len(unique_freqs)
+
+    A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
+    c_sync = np.zeros(N)
+    c_dust = np.zeros(N)
+    offset = 7
+    if fit_c_terms:
+        c_sync = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust = np.asarray(theta_full[offset:offset+N]); offset += N
+
+    y_model = np.zeros_like(y_all)
+
+    if 'sync' in fit_components:
+        y_model += model_synchrotron([A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else
+                                     [A_s, alpha_s, beta_s],
+                                     datasets, ell, fit_c_terms=fit_c_terms)
+
+    if 'dust' in fit_components:
+        y_model += model_dust([A_d, alpha_d, beta_d, *c_dust] if fit_c_terms else
+                              [A_d, alpha_d, beta_d],
+                              datasets, ell, fit_c_terms=fit_c_terms)
+
+    if 'cross' in fit_components:
+        y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
+                               datasets, ell)
+
+    chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
+    
+    # Calculate degrees of freedom: number of data points - number of free parameters
+    n_data = len(y_all)
+    n_params = 0
+    
+    # Count free parameters
+    if 'sync' in fit_components:
+        n_params += 3  # A_s, alpha_s, beta_s
+        if fit_c_terms:
+            n_params += N  # c_sync terms
+    
+    if 'dust' in fit_components:
+        n_params += 3  # A_d, alpha_d, beta_d
+        if fit_c_terms:
+            n_params += N  # c_dust terms
+    
+    if 'cross' in fit_components:
+        n_params += 1  # rho
+    
+    dof = n_data - n_params
+    
+    if dof <= 0:
+        return np.inf  # Invalid case
+    
+    return chi2 / dof
+
 def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
     """
     Apply priors on parameters.
@@ -2812,6 +2894,8 @@ def run_mcmc(
         Chain containing only free parameters.
     param_map : list
         List of (name, is_free) tuples describing each parameter.
+    chi2_reduced : float
+        Reduced chi-squared value at the best-fit parameters.
     """
 
     datasets = fit_data['datasets']
@@ -2916,10 +3000,30 @@ def run_mcmc(
     for i in fixed_cols:
         samples_full[:, i] = fixed_values[param_map[i][0]]
 
+    # -------------------------------
+    # Compute reduced chi-squared at best fit
+    # -------------------------------
+    # Find best-fit parameters (maximum likelihood)
+    best_idx = np.argmax(sampler.get_log_prob(discard=discard, flat=True))
+    best_params_free = samples_free[best_idx]
+    
+    # Reconstruct full parameter vector
+    best_params_full = np.zeros(n_full)
+    best_params_full[free_cols] = best_params_free
+    for i in fixed_cols:
+        best_params_full[i] = fixed_values[param_map[i][0]]
+    
+    # Calculate reduced chi-squared
+    chi2_reduced = compute_chi2_reduced(
+        best_params_full, datasets, ell, y_all, yerr_all, 
+        fit_c_terms=fit_c_terms, fit_components=fit_components
+    )
+
     if verbose:
         print(f"[run_mcmc] MCMC completed. {samples_free.shape[0]} usable samples after burn-in.")
+        print(f"[run_mcmc] Reduced chi-squared at best fit: {chi2_reduced:.4f}")
 
-    return sampler, samples_full, samples_free, param_map
+    return sampler, samples_full, samples_free, param_map, chi2_reduced
 
 
 

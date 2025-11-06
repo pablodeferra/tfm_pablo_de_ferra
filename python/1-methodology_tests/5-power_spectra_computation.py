@@ -35,8 +35,8 @@ band_list = quijote_bands + wmap_bands + planck_bands
 mask = hp.read_map(mask_select['path'])
 
 #Create binning scheme
-ell_1 = [30, 50, 70, 90, 110, 130]
-ell_2 = [49, 69, 89, 109, 129, 149]
+ell_1 = [30, 50, 70, 90,  110, 130, 150, 170]
+ell_2 = [49, 69, 89, 109, 129, 149, 169, 189]
 
 binning_params = {
     'type': 'linear',  # or 'edges'
@@ -53,27 +53,27 @@ b = functions.create_binning(binning_params)
 # 2. Precompute workspaces
 workspaces = functions.prepare_workspaces(mask, b, nside, lmax=lmax, purify_e=True, purify_b=True)
 
-# # 3. Compute all spectra
-# spectra_matrix = functions.compute_all_power_spectra(
-#     data, band_list, mask, b,
-#     use_simulated_maps=use_simulated_maps,
-#     use_white_noise=use_white_noise,
-#     noise_realization=1,
-#     only_noise=False,
-#     workspaces=workspaces,
-#     lmax=lmax
-# )
+# 3. Compute all spectra
+spectra_matrix = functions.compute_all_power_spectra(
+    data, band_list, mask, b,
+    use_simulated_maps=use_simulated_maps,
+    use_white_noise=use_white_noise,
+    noise_realization=1,
+    only_noise=False,
+    workspaces=workspaces,
+    lmax=lmax
+)
 
-# # 4. Save spectra matrix into a FITS file
-# functions.save_spectra_to_fits(spectra_matrix, band_list, out_file=path_spectra)
+# 4. Save spectra matrix into a FITS file
+functions.save_spectra_to_fits(spectra_matrix, band_list, out_file=path_spectra)
 
-# # 4. Compute HMDM spectra
-# hmdm_spectra_matrix = functions.compute_hmdm_power_spectra(
-#     data, band_list, mask, b, workspaces=workspaces, lmax=lmax
-# )
+# 4. Compute HMDM spectra
+hmdm_spectra_matrix = functions.compute_hmdm_power_spectra(
+    data, band_list, mask, b, workspaces=workspaces, lmax=lmax
+)
 
-# # 6. Save spectra matrix into a FITS file
-# functions.save_spectra_to_fits(hmdm_spectra_matrix, band_list, out_file=path_hmdm_spectra)
+# 6. Save spectra matrix into a FITS file
+functions.save_spectra_to_fits(hmdm_spectra_matrix, band_list, out_file=path_hmdm_spectra)
 
 # 7. Read spectra matrix from FITS
 spectra_dict = functions.read_spectra_from_fits(path_spectra, band_list)

@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[12pt,a4paper,twocolumn]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -12,15 +12,19 @@
 \usepackage{graphicx}
 \graphicspath{{/home/pablo/Desktop/master/tfm/figures/}}
 \usepackage{amsmath}
+\usepackage{natbib}
+
+\newcommand{\aap}{A\&A}
 
 \usepackage{float}
 \usepackage{caption}
+\usepackage{cuted}
 
 \geometry{
-    top=2.5cm,
-    bottom=2.5cm,
-    left=2.5cm,
-    right=2.5cm
+    top=1.5cm,
+    bottom=1.5cm,
+    left=1.5cm,
+    right=1.5cm
 }
 
 \usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
@@ -28,129 +32,13 @@
 
 \begin{document}
 
-\section{Mask}
+\input{sections/1_mask.tex}
+\input{sections/2_data.tex}
+\input{sections/3_error_estimation.tex}
+\input{sections/4_mcmc.tex}
+\input{sections/5_results.tex}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{masks/mask_lowdec_satband_galcut10_10mk_apodC2_5.pdf}
-    \caption{Analysis mask combining the QUIJOTE low-declination survey mask with a 10 mK intensity threshold applied to the QUIJOTE 11 GHz map. The mask excludes regions with high foreground contamination and point sources to ensure reliable polarimetric analysis of diffuse Galactic emission.}
-    \label{fig:mask}
-\end{figure}
-
-\section{Data}
-
-Our analysis employs two complementary datasets: simulated sky maps generated using the \texttt{Python} Sky Model (\texttt{PySM}) library, which incorporates all major Galactic foreground components; and observational data from the QUIJOTE, WMAP, and Planck experiments. All simulated maps are convolved with the appropriate beam window functions for each respective experiment to ensure realistic instrumental effects.
-
-\section{Error Estimation}
-
-Power spectrum uncertainties are estimated through Monte Carlo simulations for both datasets. We compute the standard deviation from 100 realizations each of sky+noise and pure noise maps. The noise characteristics vary by experiment: QUIJOTE and Planck employ the official noise simulations provided by their respective collaborations, incorporating both white noise and correlated $1/f$ noise components. For WMAP, we model the noise as purely white, following standard practice for this dataset.
-
-\section{MCMC Fitting}
-
-The total angular power spectrum between frequencies $\nu_i$ and $\nu_j$ is modeled as the sum of synchrotron, dust, and synchrotron--dust cross-correlation components, 
-
-\begin{equation}
-C_\ell(\nu_i, \nu_j) = C_\ell^{\rm sync}(\nu_i, \nu_j) + C_\ell^{\rm dust}(\nu_i, \nu_j) + C_\ell^{\rm sd}(\nu_i, \nu_j),
-\end{equation}
-where the synchrotron term is
-\begin{equation}
-C_\ell^{\rm sync}(\nu_i, \nu_j) = A_s \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_s} 
-\left(\frac{\nu_i}{\nu_{\rm ref}}\right)^{\beta_s} \left(\frac{\nu_j}{\nu_{\rm ref}}\right)^{\beta_s},
-\end{equation}
-the dust term is
-\begin{equation}
-C_\ell^{\rm dust}(\nu_i, \nu_j) = A_d \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_d} 
-S(\nu_i, \nu_0, \beta_d, T_d) \, S(\nu_j, \nu_0, \beta_d, T_d),
-\end{equation}
-with the modified blackbody scaling
-\begin{equation}
-S(f, \nu_0, \beta_d, T_d) = \frac{B_\nu(f, T_d)}{B_\nu(\nu_0, T_d)} \left(\frac{\nu}{\nu_0}\right)^{\beta_d},
-\end{equation}
-and the cross-correlation term is
-\begin{equation}
-C_\ell^{\rm sd}(\nu_i, \nu_j) = \rho \sqrt{A_s A_d} \left[ S_s(\nu_i) S_d(\nu_j) + S_s(\nu_j) S_d(\nu_i) \right] 
-\left(\frac{\ell}{\ell_{\rm ref}}\right)^{(\alpha_s + \alpha_d)/2},
-\end{equation}
-where $S_s(f) = (\nu / \nu_{\rm ref})^{\beta_s}$ and $S_d(\nu) = S(\nu, \nu_0, \beta_d, T_d)$ denote the synchrotron and dust frequency scalings, respectively. 
-Here, $A_s$ and $A_d$ are the amplitudes of the synchrotron and dust components at the reference multipole $\ell_{\rm ref}$ (taken as 80) and frequencies $\nu_{\rm ref}$ (11.1 GHz) and $\nu_0$ (353.0 GHz), 
-$\alpha_s$ and $\alpha_d$ are the multipole spectral indices, $\beta_s$ and $\beta_d$ the frequency spectral indices and $T_d$ the dust temperature.
-
-\paragraph{}
-
-We perform a Markov Chain Monte Carlo (MCMC) fitting procedure to model the total angular power spectrum across multiple frequency bands, using the synchrotron, dust, and synchrotron--dust cross-correlation model described above. Specifically, we fit simulated sky maps from the following frequency bands: QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz in the multipole range of $30 < \ell < 200$. 
-
-\section{Results}
-
-\subsection{Simulated data}
-
-The MCMC analysis of the PySM simulated maps yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_sim} (EE mode) and Figure~\ref{fig:corner_sd_bb_sim} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components in the simulated data, providing a validation of our fitting methodology against known input parameters.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE_sim.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
-    \label{fig:corner_sd_ee_sim}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB_sim.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
-    \label{fig:corner_sd_bb_sim}
-\end{figure}
-
-
-
-\begin{figure}[h]
-    \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_11_23_23_30_30_quijote_galcut10_10mk_sim.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_23_11_30_23_30_quijote_galcut10_10mk_sim.pdf}
-    \end{minipage}
-    \caption{Comparison between theoretical and recovered angular power spectra for simulated data at 11, 23, and 30 GHz. Left panel shows auto-power spectra for each frequency band, while the right panel displays cross-power spectra between frequency pairs. Theoretical spectra from the input model are shown as solid lines, and recovered spectra are displayed as circles.}
-    \label{fig:spectra_sim}
-\end{figure}
-
-
-
-\subsection{Observational data}
-
-The MCMC analysis of the real sky maps yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_full} (EE mode) and Figure~\ref{fig:corner_sd_bb_full} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components in the simulated data, providing a validation of our fitting methodology against known input parameters.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_EE_full.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data. The plot displays parameter constraints and correlations obtained from real sky maps.}
-    \label{fig:corner_sd_ee_full}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=\linewidth]{1-methodology_tests/corner/corner_sync_dust_cross_BB_full.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data. The plot displays parameter constraints and correlations obtained from real sky maps.}
-    \label{fig:corner_sd_bb_full}
-\end{figure}
-
-
-
-\begin{figure}[h]
-    \centering
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_11_23_23_30_30_quijote_galcut10_10mk.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{corrected_vs_theoretical/corrected_vs_theoretical_Cl_11_23_11_30_23_30_quijote_galcut10_10mk.pdf}
-    \end{minipage}
-    \caption{Comparison between theoretical and recovered angular power spectra for observational data at 11, 23, and 30 GHz. Left panel shows auto-power spectra for each frequency band, while the right panel displays cross-power spectra between frequency pairs. Theoretical spectra from the input model are shown as solid lines, and recovered spectra are displayed as circles.}
-    \label{fig:spectra_full}
-\end{figure}
+\bibliographystyle{apalike}
+\bibliography{references}
 
 \end{document}

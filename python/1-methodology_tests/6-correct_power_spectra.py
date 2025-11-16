@@ -29,6 +29,9 @@ planck_bands = ['30', '44', '70', '100', '143', '217', '353']
 
 band_list = quijote_bands + wmap_bands + planck_bands
 
+# Path to Planck CMB spectrum (best-fit cosmology)
+cmb_spectrum_file = '/home/pablo/Desktop/master/tfm/spectra/COM_PowerSpect_CMB-base-plikHM-TTTEEE-lowl-lowE-lensing-minimum-theory_R3.01.txt'
+
 corr_spectra, out_file = functions.correct_power_spectra(
     path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
     band_list, data, nside, 
@@ -38,5 +41,7 @@ corr_spectra, out_file = functions.correct_power_spectra(
     save=True, 
     path_out_file=path_corrected_spectra,
     use_white_noise=use_white_noise, 
-    path_hmdm_spectra=path_hmdm_spectra
+    path_hmdm_spectra=path_hmdm_spectra,
+    subtract_cmb=True,                    # Subtract Planck CMB spectrum
+    cmb_spectrum_path=cmb_spectrum_file   # Path to real Planck spectrum
 )

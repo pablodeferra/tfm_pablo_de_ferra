@@ -23,15 +23,16 @@ mask = hp.read_map(mask_select['path'])
 
 # Output paths
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
-path_theoretical_spectra = os.path.join(out_path, f'theoretical_power_spectra_{mask_name}.fits')
-path_corrected_theoretical_spectra = os.path.join(out_path, f'corrected_theoretical_power_spectra_{mask_name}.fits')
+path_theoretical_spectra = os.path.join(out_path, f'theoretical_power_spectra_{mask_name}_dl20.fits')
+path_corrected_theoretical_spectra = os.path.join(out_path, f'corrected_theoretical_power_spectra_{mask_name}_dl20.fits')
 
 # Create binning scheme (same as in main analysis)
-ell_1 = [30, 50, 70, 90, 110, 130]
-ell_2 = [49, 69, 89, 109, 129, 149]
+ell_1 = [30, 50, 70, 90,  110, 130, 150, 170]
+ell_2 = [49, 69, 89, 109, 129, 149, 169, 189]
+
 
 binning_params = {
-    'type': 'linear',  # or 'edges'
+    'type': 'edges',  # 'linear' or 'edges'
     'lmax': lmax,
     'dl': dl,
     # For edges (if needed)

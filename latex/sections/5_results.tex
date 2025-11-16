@@ -1,0 +1,75 @@
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Simulated data}
+\label{sec:sim_data}
+
+We compute the angular power spectra from the PySM simulated maps with bin width $\Delta\ell = 10$. The MCMC fitting of these spectra yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_sim} (EE mode) and Figure~\ref{fig:corner_sd_bb_sim} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components.
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_sim.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
+    \label{fig:corner_sd_ee_sim}
+\end{figure*}
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_sim.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data. The plot displays parameter constraints and correlations obtained from PySM-generated sky maps.}
+    \label{fig:corner_sd_bb_sim}
+\end{figure*}
+
+\subsection{Observational data}
+\label{sec:obs_data}
+
+We perform three complementary analyses of the observational data to assess the robustness of our results and explore the scale dependence of the foreground components.
+
+\paragraph{Power-law fitting with $\Delta\ell = 10$}
+We compute the angular power spectra from the real sky maps with bin width $\Delta\ell = 10$. The MCMC fitting of these spectra yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_full} (EE mode) and Figure~\ref{fig:corner_sd_bb_full} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components derived from the observational data using the power-law model described in Section \ref{sec:mcmc}. 
+
+\paragraph{Power-law fitting with $\Delta\ell = 20$}
+To test the stability of our results with respect to binning choices, we repeat the analysis using a larger bin width of $\Delta\ell = 20$. The resulting posterior distributions are shown in Figure~\ref{fig:corner_sd_ee_full_dl20} (EE mode) and Figure~\ref{fig:corner_sd_bb_full_dl20} (BB mode). This wider binning reduces noise at the expense of spectral resolution and provides an independent check on the power-law model parameters.
+
+\paragraph{Bin-to-bin analysis}
+Finally, we perform a bin-to-bin analysis using bin width $\Delta\ell = 20$, where each $\ell$ bin is fitted independently, without assuming a power-law form for the multipole dependence. In this approach, only the synchrotron and dust amplitudes ($A_s$, $A_d$), the frequency spectral indices ($\beta_s$, $\beta_d$), and the correlation coefficient ($\rho$) are fitted in each bin, while the multipole spectral index parameters $\alpha_s$ and $\alpha_d$ are not constrained. The results of this analysis are presented in Table~\ref{tab:bin_to_bin_results} and visualized in Figure~\ref{fig:bin-to-bin}, which shows the fitted EE and BB parameter values with their uncertainties for each multipole bin, along with the reduced $\chi^2$ values obtained for each bin. This approach allows us to identify potential deviations from the power-law assumption and assess the scale-dependent behavior of the foreground components.
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_full.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational EE mode data with bin width $\Delta\ell = 10$. The plot displays parameter constraints and correlations obtained from power-law model fitting to the real sky maps.}
+    \label{fig:corner_sd_ee_full}
+\end{figure*}
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_full.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational BB mode data with bin width $\Delta\ell = 10$. The plot displays parameter constraints and correlations obtained from power-law model fitting to the real sky maps.}
+    \label{fig:corner_sd_bb_full}
+\end{figure*}
+
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_full_dl20.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational EE mode data with bin width $\Delta\ell = 20$. The plot displays parameter constraints and correlations obtained from power-law model fitting to the real sky maps with wider binning.}
+    \label{fig:corner_sd_ee_full_dl20}
+\end{figure*}
+
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_full_dl20.pdf}
+    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational BB mode data with bin width $\Delta\ell = 20$. The plot displays parameter constraints and correlations obtained from power-law model fitting to the real sky maps with wider binning.}
+    \label{fig:corner_sd_bb_full_dl20}
+\end{figure*}
+
+\input{/home/pablo/Desktop/master/tfm/tables/bin_to_bin_results.tex}
+
+\begin{figure*}[h]
+    \centering
+    \includegraphics[width=\linewidth]{bin_to_bin_evolution.pdf}
+    \caption{Bin-to-bin analysis results showing the evolution of fitted synchrotron and dust parameters as a function of multipole $\ell$ for both EE (top) and BB (bottom) modes. Each point represents an independent fit to a single multipole bin, with error bars indicating the $1\sigma$ uncertainties. The reduced $\chi^2$ values for each bin are shown in the bottom panels, indicating the goodness of fit for the bin-to-bin analysis.}
+    \label{fig:bin-to-bin}
+\end{figure*}

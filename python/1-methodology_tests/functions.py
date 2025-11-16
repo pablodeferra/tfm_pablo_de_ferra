@@ -20,6 +20,29 @@ from scipy.stats import gaussian_kde
 
 from data import data
 
+# ------------------------------------------------------------------
+# Optional Gaussian priors (global, lightweight mechanism)
+# Usage:
+#   set_gaussian_priors({'beta_s': (-3.1, 0.2)})
+# The lnprior() and bin-to-bin priors will add a Gaussian term for any
+# parameter present in this dict, on top of the existing top-hat bounds.
+# ------------------------------------------------------------------
+_GAUSSIAN_PRIORS = {}
+
+def set_gaussian_priors(priors_dict):
+    """
+    Set optional Gaussian priors for parameters.
+
+    Parameters
+    ----------
+    priors_dict : dict
+        Mapping from parameter name to (mu, sigma). For example:
+        {'beta_s': (-3.1, 0.2), 'beta_d': (1.6, 0.2)}
+    """
+    global _GAUSSIAN_PRIORS
+    # Defensive copy to avoid accidental external mutation
+    _GAUSSIAN_PRIORS = dict(priors_dict or {})
+
 '''
 # ====================================
 # 1
@@ -1838,11 +1861,93 @@ def cmb_unit_conversion(nuGHz, option='KCMB2KRJ', help=False):
 
 
 # ---------------------------------------------------------------------
+def load_cmb_spectrum_from_file(filepath, ell_values, planck_format=True):
+    """
+    Load CMB spectrum from a file and interpolate to requested multipoles.
+    
+    Parameters
+    ----------
+    filepath : str
+        Path to file containing CMB spectrum.
+        - Planck format: columns [L, TT, TE, EE, BB, PP] with D_l in μK²
+        - CAMB format: columns [ell, TT, EE, BB, TE] with C_l in K²
+    ell_values : array-like
+        Multipole values at which to interpolate.
+    planck_format : bool, optional
+        If True (default), assumes Planck Legacy Archive format:
+          - Columns: L, TT, TE, EE, BB, PP
+          - Values are D_l = l(l+1)/(2π) x C_l in μK²
+        If False, assumes CAMB format:
+          - Columns: ell, TT, EE, BB, TE
+          - Values are C_l in K²
+        
+    Returns
+    -------
+    dict
+        Dictionary with keys 'TT', 'EE', 'BB', 'TE', 'TB', 'EB' 
+        containing C_l values in K² at ell_values.
+    """
+    # Load spectrum file
+    data = np.loadtxt(filepath)
+    ell_file = data[:, 0].astype(int)
+    
+    ell_values = np.asarray(ell_values)
+    spectra = {}
+    
+    if planck_format:
+        # Planck format: L, TT, TE, EE, BB, PP
+        # D_l in μK²
+        col_map = {'TT': 1, 'TE': 2, 'EE': 3, 'BB': 4}
+        
+        for spec_type, col_idx in col_map.items():
+            if data.shape[1] > col_idx:
+                # Get D_l in μK²
+                Dl_muK2 = data[:, col_idx]
+                
+                # Convert D_l to C_l: C_l = D_l / [l(l+1)/(2π)]
+                # Avoid division by zero for l < 2
+                Cl_muK2 = np.zeros_like(Dl_muK2)
+                mask = ell_file >= 2
+                Cl_muK2[mask] = Dl_muK2[mask] * (2 * np.pi) / (ell_file[mask] * (ell_file[mask] + 1))
+                
+                # Convert from μK² to K²
+                Cl_K2 = Cl_muK2 * 1e-12
+                
+                # Interpolate to requested ell values
+                spectra[spec_type] = np.interp(ell_values, ell_file, Cl_K2, left=0, right=0)
+            else:
+                spectra[spec_type] = np.zeros_like(ell_values)
+        
+        # TB and EB are zero in standard ΛCDM
+        spectra['TB'] = np.zeros_like(ell_values)
+        spectra['EB'] = np.zeros_like(ell_values)
+        
+    else:
+        # CAMB format: ell, TT, EE, BB, TE
+        # C_l already in K²
+        col_map = {'TT': 1, 'EE': 2, 'BB': 3, 'TE': 4}
+        
+        for spec_type, col_idx in col_map.items():
+            if data.shape[1] > col_idx:
+                Cl_K2 = data[:, col_idx]
+                spectra[spec_type] = np.interp(ell_values, ell_file, Cl_K2, left=0, right=0)
+            else:
+                spectra[spec_type] = np.zeros_like(ell_values)
+        
+        # TB and EB are zero
+        spectra['TB'] = np.zeros_like(ell_values)
+        spectra['EB'] = np.zeros_like(ell_values)
+    
+    return spectra
+
+
+# ---------------------------------------------------------------------
 def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
                           band_list, data, nside,
-                          correct_beam=True, correct_unit=True, correct_pixel=True,
+                          correct_beam=True, correct_pixel=True,
                           save=False, path_out_file=None, use_white_noise=False, 
-                          path_hmdm_spectra=None):
+                          path_hmdm_spectra=None, subtract_cmb=False, cmb_spectrum_path=None,
+                          correct_unit=True):
     """
     Correct power spectra by removing noise bias and applying beam, pixel,
     and unit corrections. Optionally saves corrected spectra to a FITS file.
@@ -1862,19 +1967,27 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
     nside : int
         HEALPix NSIDE resolution of the input maps.
     correct_beam : bool, optional
-        If True, deconvolve beam window functions.
-    correct_unit : bool, optional
-        If True, convert from K_CMB to K_RJ units.
+        If True, deconvolve beam window functions. Default: True.
     correct_pixel : bool, optional
-        If True, deconvolve the HEALPix pixel window function.
+        If True, deconvolve the HEALPix pixel window function. Default: True.
     save : bool, optional
-        If True, save the corrected spectra to a FITS file.
+        If True, save the corrected spectra to a FITS file. Default: False.
     path_out_file : str, optional
         Output FITS file path. Defaults to "corrected_cls.fits" if not provided.
     use_white_noise : bool, optional
         If True, subtract white noise simulation mean; if False, subtract HMDM spectra.
     path_hmdm_spectra : str, optional
         Path to FITS file containing HMDM spectra. Required when use_white_noise=False.
+    subtract_cmb : bool, optional
+        If True, subtract the CMB spectrum from Planck best-fit cosmology. Default: False.
+        When True, cmb_spectrum_path must be provided.
+    cmb_spectrum_path : str, optional
+        Path to file containing CMB spectrum. REQUIRED when subtract_cmb=True.
+        Download from: http://pla.esac.esa.int/
+        Recommended file: COM_PowerSpect_CMB-base-plikHM-TTTEEE-lowl-lowE-lensing-minimum-theory_R3.01.txt
+    correct_unit : bool, optional
+        If True, convert from K_CMB to K_RJ units (Planck 2018 convention). Default: True.
+        Set to False only if you want to keep spectra in K_CMB units.
 
     Returns
     -------
@@ -1882,6 +1995,7 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         (corr_spectra, out_file)
         corr_spectra : dict
             Dictionary with corrected power spectra and errors.
+            Units: K²_RJ if correct_unit=True, mK²_CMB if correct_unit=False.
         out_file : str or None
             Path to the output FITS file if saved, otherwise None.
     """
@@ -1955,8 +2069,26 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
 
                 # Unit conversion factor (K_CMB → K_RJ)
                 unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
+                    
                 wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
                 break
+
+    # Load CMB spectrum if subtraction is requested
+    cmb_spectra = {}
+    if subtract_cmb:
+        if cmb_spectrum_path is None:
+            raise ValueError(
+                "cmb_spectrum_path must be provided when subtract_cmb=True. "
+                "Download the Planck CMB spectrum from: http://pla.esac.esa.int/ "
+                "(e.g., COM_PowerSpect_CMB-base-plikHM-TTTEEE-lowl-lowE-lensing-minimum-theory_R3.01.txt)"
+            )
+        
+        # Load from file
+        print(f"[INFO] Loading CMB spectrum from {cmb_spectrum_path}")
+        # Auto-detect Planck format (has .txt extension from PLA)
+        is_planck_format = 'COM_PowerSpect' in cmb_spectrum_path or 'planck' in cmb_spectrum_path.lower()
+        cmb_spectra = load_cmb_spectrum_from_file(cmb_spectrum_path, ell_eff, planck_format=is_planck_format)
+        print(f"[INFO] Loaded CMB spectrum with format: {'Planck PLA' if is_planck_format else 'CAMB'}")
 
     # Apply corrections and noise subtraction
     corr_spectra = {}
@@ -1993,12 +2125,12 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
             # Check if this is a cross-spectrum (band1 != band2)
             is_cross_spectrum = (band1 != band2)
             
-            # Noise/HMDM subtraction (only for auto-spectra)
+            # Step 1: Noise/HMDM subtraction (only for auto-spectra)
             if is_cross_spectrum:
                 # For cross-spectra: no noise subtraction, use raw spectrum
                 Cl = Cl_raw
             else:
-                # For auto-spectra: subtract noise as before
+                # For auto-spectra: subtract noise
                 if use_white_noise:
                     # Subtract white noise simulation mean
                     Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
@@ -2006,16 +2138,32 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
                     # Subtract HMDM spectra (same format as regular spectra from save_spectra_to_fits)
                     Nl = np.array(hmdm_spectra[key][cl_key])
                 
-                Cl = Cl_raw - Nl
+                Cl = Cl_raw - Nl  # mK²_CMB, convolved with beams/pixel
 
-            # Safe deconvolution
+            # Step 2: Subtract CMB contribution (before deconvolution)
+            # CMB must be convolved with beams/pixel to match the observed spectrum
+            if subtract_cmb and cl_key in cmb_spectra:
+                # Get CMB spectrum in K_CMB²
+                Cl_cmb_kcmb = cmb_spectra[cl_key]
+                
+                # Convert to mK_CMB² and convolve with beams/pixel to match observed spectrum
+                Cl_cmb_mkcmb = Cl_cmb_kcmb * 1e6  # K² -> mK²
+                Cl_cmb_conv = Cl_cmb_mkcmb * phys_factor  # Convolve with beams/pixel
+                
+                # Subtract CMB (both are now in mK_CMB² and convolved)
+                Cl = Cl - Cl_cmb_conv
+                
+                
+            # Step 3: Deconvolve beams and pixel window
             safe_phys = np.array(phys_factor, dtype=float)
             safe_phys[safe_phys == 0] = np.nan
             safe_phys[safe_phys < 0] = np.nan
-
-            # Deconvolve and apply unit conversion
-            Cl_deconv = Cl / safe_phys
-            spectrum_corr = Cl_deconv * unit_factor
+            
+            Cl_deconv = Cl / safe_phys  # mK²_CMB, deconvolved
+            
+            # Step 4: Apply unit conversion (K_CMB → K_RJ)
+            spectrum_corr = Cl_deconv * unit_factor  # K²_RJ or mK²_CMB depending on correct_unit
+            unit_correction = unit_factor
 
             # Propagate errors
             if is_cross_spectrum:
@@ -2027,7 +2175,7 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
                     np.array(avg_std_skyplusnoise[key][cl_key]['STD'])**2 +
                     np.array(avg_std_noise[key][cl_key]['STD'])**2
                 )
-            errbar = (err_num / safe_phys) * unit_factor
+            errbar = (err_num / safe_phys) * unit_correction
             errbar = np.abs(errbar)
 
             corr_spectra[key][cl_key] = {'SPECTRUM': spectrum_corr, 'ERROR': errbar}
@@ -2071,8 +2219,8 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
 
 
 def correct_theoretical_spectra(path_theoretical_spectra, band_list, data, nside,
-                               correct_beam=True, correct_unit=True, correct_pixel=True,
-                               save=False, path_out_file=None):
+                               correct_beam=True, correct_pixel=True,
+                               save=False, path_out_file=None, correct_unit=True):
     """
     Apply beam, pixel window, and unit corrections to theoretical spectra
     (no noise subtraction since these are pure theoretical spectra).
@@ -2088,20 +2236,21 @@ def correct_theoretical_spectra(path_theoretical_spectra, band_list, data, nside
     nside : int
         HEALPix NSIDE resolution of the input maps.
     correct_beam : bool, optional
-        If True, deconvolve beam window functions.
-    correct_unit : bool, optional
-        If True, convert from K_CMB to K_RJ units.
+        If True, deconvolve beam window functions. Default: True.
     correct_pixel : bool, optional
-        If True, deconvolve the HEALPix pixel window function.
+        If True, deconvolve the HEALPix pixel window function. Default: True.
     save : bool, optional
-        If True, save the corrected spectra to a FITS file.
+        If True, save the corrected spectra to a FITS file. Default: False.
     path_out_file : str, optional
         Output FITS file path. Defaults to "corrected_theoretical_cls.fits" if not provided.
+    correct_unit : bool, optional
+        If True, convert from K_CMB to K_RJ units. Default: True.
 
     Returns
     -------
     dict
         Dictionary with corrected theoretical power spectra.
+        Units: K²_RJ if correct_unit=True, mK²_CMB if correct_unit=False.
     """
     if save and path_out_file is None:
         path_out_file = "corrected_theoretical_cls.fits"
@@ -2159,6 +2308,7 @@ def correct_theoretical_spectra(path_theoretical_spectra, band_list, data, nside
 
                 # Unit conversion factor (K_CMB → K_RJ)
                 unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
+                    
                 wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
                 break
 
@@ -2469,7 +2619,7 @@ def mbb_scaling_KRJ(nu_GHz, nu0_GHz=353.0, beta=1.59, T_d=19.6):
     Returns
     -------
     scale : float or array
-        Scaling factor for dust emission.
+        Scaling factor for dust emission in K_RJ units.
     """
     nu_GHz = np.asarray(nu_GHz, dtype=float)
     power = (nu_GHz / nu0_GHz) ** beta
@@ -2533,7 +2683,7 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
 def model_dust(theta, datasets, ell, fit_c_terms=False,
                freq_ref=353.0, T_d=19.6, ell_ref=80.0):
     """
-    Dust angular power spectrum model with modified blackbody scaling.
+    Dust angular power spectrum model with modified blackbody scaling in K_RJ units.
 
     Parameters
     ----------
@@ -2568,7 +2718,7 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
             raise ValueError("theta length mismatch for dust c_terms")
         c_terms = np.asarray(theta[3:3+N])
 
-    # Precompute per-frequency dust scaling
+    # Precompute per-frequency dust scaling (K_RJ units)
     freqs_all = np.array(unique_freqs)
     S = mbb_scaling_KRJ(freqs_all, nu0_GHz=freq_ref, beta=beta_d, T_d=T_d)
 
@@ -2617,6 +2767,7 @@ def model_cross(theta, datasets, ell,
     freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
 
     freqs_all = np.array(unique_freqs)
+    # Use K_RJ units for dust (Planck convention)
     Sd = mbb_scaling_KRJ(freqs_all, nu0_GHz=ref_dust, beta=beta_d, T_d=T_d)
 
     model_list = []
@@ -2815,7 +2966,42 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
             if not (np.all(np.isfinite(c_dust)) and np.all(np.abs(c_dust) <= 1e6)):
                 return -np.inf
 
-    return 0.0
+    # Add optional Gaussian priors
+    lp = 0.0
+    try:
+        if 'beta_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_s']
+            if sig > 0:
+                lp += -0.5 * ((beta_s - mu)/sig)**2
+        if 'beta_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_d']
+            if sig > 0:
+                lp += -0.5 * ((beta_d - mu)/sig)**2
+        if 'rho' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['rho']
+            if sig > 0:
+                lp += -0.5 * ((rho - mu)/sig)**2
+        if 'alpha_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['alpha_s']
+            if sig > 0:
+                lp += -0.5 * ((alpha_s - mu)/sig)**2
+        if 'alpha_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['alpha_d']
+            if sig > 0:
+                lp += -0.5 * ((alpha_d - mu)/sig)**2
+        if 'A_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_s']
+            if sig > 0:
+                lp += -0.5 * ((A_s - mu)/sig)**2
+        if 'A_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_d']
+            if sig > 0:
+                lp += -0.5 * ((A_d - mu)/sig)**2
+    except Exception:
+        # Fail-safe: do not crash if priors are malformed
+        pass
+
+    return lp
 
 def lnprob(theta_free, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
@@ -2863,6 +3049,7 @@ def run_mcmc(
     ninter=5000,
     discard_fraction=0.5,
     verbose=True,
+    fit_mode='power-law',
 ):
     """
     Run an MCMC fit using data prepared by `prepare_mcmc_data`.
@@ -2883,21 +3070,39 @@ def run_mcmc(
         Fraction of initial samples to discard as burn-in.
     verbose : bool
         If True, print progress information.
+    fit_mode : str, default 'power-law'
+        Fitting mode: 'power-law' or 'bin-to-bin'.
+        - 'power-law': fit global spectral indices (alpha_s, alpha_d) across all ells.
+        - 'bin-to-bin': fit amplitudes and spectral indices independently for each ell bin.
 
     Returns
     -------
-    sampler : emcee.EnsembleSampler
-        The sampler object after running MCMC.
-    samples_full : ndarray
-        Full chain including both free and fixed parameters (fixed set to 0).
-    samples_free : ndarray
-        Chain containing only free parameters.
+    sampler : emcee.EnsembleSampler or list
+        The sampler object(s) after running MCMC. For 'bin-to-bin', returns list of samplers.
+    samples_full : ndarray or list
+        Full chain including both free and fixed parameters. For 'bin-to-bin', returns list of arrays.
+    samples_free : ndarray or list
+        Chain containing only free parameters. For 'bin-to-bin', returns list of arrays.
     param_map : list
         List of (name, is_free) tuples describing each parameter.
-    chi2_reduced : float
-        Reduced chi-squared value at the best-fit parameters.
+    chi2_reduced : float or list
+        Reduced chi-squared value(s) at the best-fit parameters.
     """
 
+    if fit_mode == 'power-law':
+        return _run_mcmc_powerlaw(
+            fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose
+        )
+    elif fit_mode == 'bin-to-bin':
+        return _run_mcmc_bin_to_bin(
+            fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose
+        )
+    else:
+        raise ValueError(f"fit_mode must be 'power-law' or 'bin-to-bin', got '{fit_mode}'")
+
+
+def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose):
+    """Power-law mode: fit global spectral indices across all ells."""
     datasets = fit_data['datasets']
     ell = fit_data['ell_eff']
     y_all = fit_data['y_all']
@@ -3026,6 +3231,302 @@ def run_mcmc(
     return sampler, samples_full, samples_free, param_map, chi2_reduced
 
 
+def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose):
+    """
+    Bin-to-bin mode: fit amplitudes and spectral indices independently for each ell bin.
+    """
+    datasets = fit_data['datasets']
+    ell = fit_data['ell_eff']
+    
+    n_ell = len(ell)
+    
+    # For bin-to-bin, we fit: A_s, beta_s, A_d, beta_d, rho (no alpha_s, alpha_d)
+    param_names_base = []
+    if 'sync' in fit_components:
+        param_names_base.extend(['A_s', 'beta_s'])
+    if 'dust' in fit_components:
+        param_names_base.extend(['A_d', 'beta_d'])
+    if 'cross' in fit_components:
+        param_names_base.append('rho')
+    
+    if verbose:
+        print(f"[run_mcmc bin-to-bin] Fitting {n_ell} ell bins independently")
+        print(f"[run_mcmc bin-to-bin] Parameters per bin: {param_names_base}")
+    
+    # Determine number of cores for parallelization
+    try:
+        available_cores = len(os.sched_getaffinity(0))
+    except AttributeError:
+        available_cores = os.cpu_count() or 1
+    
+    if verbose:
+        print(f"[run_mcmc bin-to-bin] Available cores: {available_cores}")
+        print(f"[run_mcmc bin-to-bin] Using {available_cores} cores for walker parallelization")
+    
+    # Storage for results
+    samplers_list = []
+    samples_full_list = []
+    samples_free_list = []
+    chi2_reduced_list = []
+    
+    # Loop over ell bins sequentially
+    for i_ell in range(n_ell):
+        if verbose:
+            print(f"\n[run_mcmc bin-to-bin] Processing bin {i_ell+1}/{n_ell} (ell={ell[i_ell]:.1f})")
+        
+        # Extract data for this ell bin only
+        y_bin = []
+        yerr_bin = []
+        datasets_bin = []
+        
+        for d in datasets:
+            start, stop = d['slice']
+            if i_ell < (stop - start):
+                y_bin.append(d['spectrum'][i_ell])
+                yerr_bin.append(d['error'][i_ell])
+                datasets_bin.append({
+                    'pair': d['pair'],
+                    'mode': d['mode'],
+                    'freqs': d['freqs'],
+                    'slice': (len(y_bin)-1, len(y_bin))
+                })
+        
+        y_bin = np.array(y_bin)
+        yerr_bin = np.array(yerr_bin)
+        ell_bin = np.array([ell[i_ell]])
+        
+        ndim = len(param_names_base)
+        
+        # Initialize walkers
+        # Use a data-driven initialization for amplitude parameters (A_s, A_d)
+        # to avoid starting all walkers at extremely small values which can
+        # hinder mixing in low-S/N bins. Use median of y_bin as a rough estimate.
+        rng = np.random.default_rng()
+        p0_center = []
+        # rough_scale is an estimate of the data amplitude in this bin
+        try:
+            rough_scale = float(np.median(np.abs(y_bin))) if y_bin.size > 0 else 1e-6
+        except Exception:
+            rough_scale = 1e-6
+
+        for name in param_names_base:
+            if name == 'A_s':
+                # Start near the observed median but ensure a positive floor
+                p0_center.append(max(rough_scale, 1e-12))
+            elif name == 'beta_s':
+                p0_center.append(-3.0)
+            elif name == 'A_d':
+                p0_center.append(max(rough_scale, 1e-12))
+            elif name == 'beta_d':
+                p0_center.append(1.59)
+            elif name == 'rho':
+                p0_center.append(0.05)
+            else:
+                p0_center.append(0.0)
+
+        p0_center = np.array(p0_center, dtype=float)
+        # Use a relative spread but also a minimum absolute spread to ensure walkers
+        # are not identical when p0_center is near zero.
+        abs_spread = np.maximum(np.abs(p0_center) * 0.2, 1e-12)
+        p0_walkers = p0_center + abs_spread * rng.standard_normal((nwalkers, ndim))
+        
+        # Run sampler for this bin with multiprocessing Pool
+        with mp.Pool(processes=available_cores) as pool:
+            sampler = emcee.EnsembleSampler(
+                nwalkers, ndim, _lnprob_bin_to_bin,
+                args=(datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base),
+                pool=pool
+            )
+            sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
+        
+        # Post-processing for this bin
+        discard = int(ninter * discard_fraction)
+        samples_free = sampler.get_chain(discard=discard, flat=True)
+        samples_full = samples_free.copy()
+        
+        # Compute chi2 for best fit
+        best_idx = np.argmax(sampler.get_log_prob(discard=discard, flat=True))
+        best_params = samples_free[best_idx]
+        chi2_reduced = _compute_chi2_reduced_bin_to_bin(
+            best_params, datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base
+        )
+        
+        samplers_list.append(sampler)
+        samples_full_list.append(samples_full)
+        samples_free_list.append(samples_free)
+        chi2_reduced_list.append(chi2_reduced)
+        
+        if verbose:
+            print(f"[run_mcmc bin-to-bin] Bin {i_ell+1} completed. χ²_red = {chi2_reduced:.4f}")
+    
+    if verbose:
+        print(f"\n[run_mcmc bin-to-bin] All {n_ell} bins completed successfully")
+        print(f"[run_mcmc bin-to-bin] Mean χ²_red = {np.mean(chi2_reduced_list):.4f} ± {np.std(chi2_reduced_list):.4f}")
+    
+    return samplers_list, samples_full_list, samples_free_list, param_names_base, chi2_reduced_list
+
+
+def _lnprob_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+    """Log-probability for bin-to-bin fitting (single ell bin)."""
+    # Prior
+    lp = _lnprior_bin_to_bin(theta, param_names)
+    if not np.isfinite(lp):
+        return -np.inf
+    
+    # Likelihood
+    ll = _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names)
+    if not np.isfinite(ll):
+        return -np.inf
+    
+    return lp + ll
+
+
+def _lnprior_bin_to_bin(theta, param_names):
+    """Prior for bin-to-bin parameters."""
+    param_dict = {name: theta[i] for i, name in enumerate(param_names)}
+    
+    # Check bounds
+    if 'A_s' in param_dict and not (0 < param_dict['A_s'] < 1e3):
+        return -np.inf
+    if 'beta_s' in param_dict and not (-10 < param_dict['beta_s'] < 0):
+        return -np.inf
+    if 'A_d' in param_dict and not (0 < param_dict['A_d'] < 1e3):
+        return -np.inf
+    if 'beta_d' in param_dict and not (-2 < param_dict['beta_d'] < 5):
+        return -np.inf
+    if 'rho' in param_dict and not (-1 < param_dict['rho'] < 1):
+        return -np.inf
+    
+    # Optional Gaussian priors
+    lp = 0.0
+    try:
+        if 'beta_s' in param_dict and 'beta_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_s']
+            if sig > 0:
+                lp += -0.5 * ((param_dict['beta_s'] - mu)/sig)**2
+        if 'beta_d' in param_dict and 'beta_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_d']
+            if sig > 0:
+                lp += -0.5 * ((param_dict['beta_d'] - mu)/sig)**2
+        if 'rho' in param_dict and 'rho' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['rho']
+            if sig > 0:
+                lp += -0.5 * ((param_dict['rho'] - mu)/sig)**2
+    except Exception:
+        pass
+    
+    return lp
+
+
+def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+    """Likelihood for bin-to-bin fitting (single ell bin)."""
+    param_dict = {name: theta[i] for i, name in enumerate(param_names)}
+    
+    # Extract parameters (set to 0 if not fitted)
+    A_s = param_dict.get('A_s', 0.0)
+    beta_s = param_dict.get('beta_s', -3.0)
+    A_d = param_dict.get('A_d', 0.0)
+    beta_d = param_dict.get('beta_d', 1.59)
+    rho = param_dict.get('rho', 0.0)
+    
+    # Build model (no ell scaling since we fit each bin independently)
+    y_model = np.zeros_like(y_all)
+    
+    for idx, d in enumerate(datasets):
+        f1, f2 = d['freqs']
+        
+        model_val = 0.0
+        
+        if 'sync' in fit_components:
+            # Synchrotron: A_s * (f1/f_ref)^beta_s * (f2/f_ref)^beta_s
+            freq_ref_sync = 11.1
+            scale_f1 = (f1 / freq_ref_sync) ** beta_s
+            scale_f2 = (f2 / freq_ref_sync) ** beta_s
+            model_val += A_s * scale_f1 * scale_f2
+        
+        if 'dust' in fit_components:
+            # Dust: A_d * mbb_scaling
+            freq_ref_dust = 353.0
+            T_d = 19.6
+            scale_f1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            scale_f2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            model_val += A_d * scale_f1 * scale_f2
+        
+        if 'cross' in fit_components:
+            # Cross term: rho * sqrt(A_s * A_d) * (sync_scale1 * dust_scale2 + sync_scale2 * dust_scale1)
+            freq_ref_sync = 11.1
+            freq_ref_dust = 353.0
+            T_d = 19.6
+            
+            s1 = (f1 / freq_ref_sync) ** beta_s
+            s2 = (f2 / freq_ref_sync) ** beta_s
+            d1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            d2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            
+            model_val += rho * np.sqrt(A_s * A_d) * (s1 * d2 + s2 * d1)
+        
+        y_model[idx] = model_val
+    
+    # Chi-squared
+    chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
+    return -0.5 * chi2
+
+
+def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+    """Compute reduced chi-squared for bin-to-bin fit."""
+    param_dict = {name: theta[i] for i, name in enumerate(param_names)}
+    
+    # Extract parameters
+    A_s = param_dict.get('A_s', 0.0)
+    beta_s = param_dict.get('beta_s', -3.0)
+    A_d = param_dict.get('A_d', 0.0)
+    beta_d = param_dict.get('beta_d', 1.59)
+    rho = param_dict.get('rho', 0.0)
+    
+    # Build model
+    y_model = np.zeros_like(y_all)
+    
+    for idx, d in enumerate(datasets):
+        f1, f2 = d['freqs']
+        
+        model_val = 0.0
+        
+        if 'sync' in fit_components:
+            freq_ref_sync = 11.1
+            scale_f1 = (f1 / freq_ref_sync) ** beta_s
+            scale_f2 = (f2 / freq_ref_sync) ** beta_s
+            model_val += A_s * scale_f1 * scale_f2
+        
+        if 'dust' in fit_components:
+            freq_ref_dust = 353.0
+            T_d = 19.6
+            scale_f1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            scale_f2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            model_val += A_d * scale_f1 * scale_f2
+        
+        if 'cross' in fit_components:
+            freq_ref_sync = 11.1
+            freq_ref_dust = 353.0
+            T_d = 19.6
+            
+            s1 = (f1 / freq_ref_sync) ** beta_s
+            s2 = (f2 / freq_ref_sync) ** beta_s
+            d1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            d2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
+            
+            model_val += rho * np.sqrt(A_s * A_d) * (s1 * d2 + s2 * d1)
+        
+        y_model[idx] = model_val
+    
+    # Chi-squared
+    chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
+    n_data = len(y_all)
+    n_params = len(param_names)
+    dof = max(1, n_data - n_params)
+    
+    return chi2 / dof
+
+
 
 def apply_corner_scales(samples, labels, scale_map):
     """
@@ -3114,6 +3615,18 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
     labels_plot = [latex_labels.get(name, name) for name in labels_free]
 
     # -------------------------------
+    # Compute automatic ranges centered on posterior distributions
+    # -------------------------------
+    # Use 0.5th to 98th percentile to center the plot on actual data
+    ranges = []
+    for i in range(samples_plot.shape[1]):
+        q_low = np.percentile(samples_plot[:, i], 0.5)
+        q_high = np.percentile(samples_plot[:, i], 98)
+        # Add small padding
+        margin = (q_high - q_low) * 0.7
+        ranges.append((q_low - margin, q_high + margin))
+
+    # -------------------------------
     # Corner plot settings
     # -------------------------------
     corner_kwargs = dict(
@@ -3121,9 +3634,9 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
         quantiles=[0.16, 0.5, 0.84],
         show_titles=True,
         title_fmt=".3f",
-        label_kwargs={"fontsize": 13},        # ← más pequeño
+        label_kwargs={"fontsize": 13},
         title_kwargs={"fontsize": 12, "color": "k"},
-        smooth=1.3,
+        smooth=1.9,
         smooth1d=1.0,
         plot_datapoints=False,
         fill_contours=True,
@@ -3132,7 +3645,8 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
         color="steelblue",
         hist_kwargs={"color": "steelblue", "alpha": 0.35, "linewidth": 0},
         contour_kwargs={"linewidths": 1.5},
-        max_n_ticks=4,
+        max_n_ticks=3,
+        range=ranges,  # Center plots on actual posterior distributions
     )
 
     fig = corner.corner(samples_plot, **corner_kwargs)
@@ -3201,7 +3715,589 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
     return fig
 
 
-# ==========================================================
+def create_bin_to_bin_table(
+    fit_data_EE, 
+    fit_data_BB, 
+    samples_free_list_EE, 
+    samples_free_list_BB, 
+    param_names, 
+    ell1, 
+    ell2,
+    save_path=None,
+    format='latex'
+):
+    """
+    Create a publication-quality table showing bin-to-bin fit results for both EE and BB modes.
+    Table shows EE results first, then BB results with amplitude ratios (BB/EE).
+    
+    Parameters
+    ----------
+    fit_data_EE : dict
+        Output from prepare_mcmc_data for EE mode.
+    fit_data_BB : dict
+        Output from prepare_mcmc_data for BB mode.
+    samples_free_list_EE : list of ndarray
+        MCMC samples for each ell bin (EE mode).
+    samples_free_list_BB : list of ndarray
+        MCMC samples for each ell bin (BB mode).
+    param_names : list of str
+        Names of fitted parameters (e.g., ['A_s', 'beta_s', 'A_d', 'beta_d', 'rho']).
+    ell1 : array-like
+        Lower edges of ell bins.
+    ell2 : array-like
+        Upper edges of ell bins.
+    save_path : str or None
+        If provided, save the table to this path (e.g., 'table.tex' or 'table.txt').
+    format : str, default 'latex'
+        Output format: 'latex' for LaTeX table, 'ascii' for plain text.
+    
+    Returns
+    -------
+    table_str : str
+        The formatted table as a string.
+    """
+    import pandas as pd
+    
+    n_bins = len(fit_data_EE['ell_eff'])
+    ell_eff_EE = fit_data_EE['ell_eff']
+    ell_eff_BB = fit_data_BB['ell_eff']
+    
+    # Check consistency
+    if len(samples_free_list_EE) != n_bins or len(samples_free_list_BB) != n_bins:
+        raise ValueError("Number of samples lists does not match number of ell bins")
+    
+    # Prepare data for EE and BB tables separately
+    rows_EE = []
+    rows_BB = []
+    
+    for i in range(n_bins):
+        row_EE = {
+            'ell_range': f"{int(ell1[i])}--{int(ell2[i])}",
+            'ell_eff': f"{ell_eff_EE[i]:.1f}"
+        }
+        row_BB = {
+            'ell_range': f"{int(ell1[i])}--{int(ell2[i])}",
+            'ell_eff': f"{ell_eff_BB[i]:.1f}"
+        }
+        
+        # Extract statistics for EE mode
+        samples_EE = samples_free_list_EE[i]
+        samples_BB = samples_free_list_BB[i]
+        
+        # Store median values for ratio calculation
+        medians_EE = {}
+        medians_BB = {}
+        
+        for j, param_name in enumerate(param_names):
+            values_EE = samples_EE[:, j]
+            median_EE = np.median(values_EE)
+            std_EE = np.std(values_EE)
+            medians_EE[param_name] = median_EE
+
+            values_BB = samples_BB[:, j]
+            median_BB = np.median(values_BB)
+            std_BB = np.std(values_BB)
+            medians_BB[param_name] = median_BB
+
+            if param_name == 'A_s':
+                # Convert from K^2 to μK^2 (multiply by 1e6)
+                median_EE_conv = median_EE * 1e6
+                std_EE_conv = std_EE * 1e6
+                row_EE[param_name] = f"{median_EE_conv:.2f}"
+                row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
+            elif param_name == 'A_d':
+                # Convert from K^2 to μK^2 (multiply by 1e6)
+                median_EE_conv = median_EE * 1e6
+                std_EE_conv = std_EE * 1e6
+                row_EE[param_name] = f"{median_EE_conv:.2f}"
+                row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
+            elif param_name == 'rho':
+                # Correlation coefficient
+                row_EE[param_name] = f"{median_EE:.3f}"
+                row_EE[f'{param_name}_err'] = f"{std_EE:.3f}"
+            else:
+                # Spectral indices
+                row_EE[param_name] = f"{median_EE:.2f}"
+                row_EE[f'{param_name}_err'] = f"{std_EE:.2f}"
+
+            if param_name == 'A_s' or param_name == 'A_d':
+                median_BB_conv = median_BB * 1e6
+                std_BB_conv = std_BB * 1e6
+                row_BB[param_name] = f"{median_BB_conv:.2f}"
+                row_BB[f'{param_name}_err'] = f"{std_BB_conv:.2f}"
+            elif 'A_' in param_name:
+                # Fallback for any other amplitude-like parameter: compute BB/EE ratio (dimensionless)
+                if median_EE != 0:
+                    ratio = median_BB / median_EE
+                    rel_err_EE = std_EE / median_EE if median_EE != 0 else 0
+                    rel_err_BB = std_BB / median_BB if median_BB != 0 else 0
+                    ratio_err = ratio * np.sqrt(rel_err_EE**2 + rel_err_BB**2)
+                else:
+                    ratio = 0
+                    ratio_err = 0
+                row_BB[param_name] = f"{ratio:.3f}"
+                row_BB[f'{param_name}_err'] = f"{ratio_err:.3f}"
+            elif param_name == 'rho':
+                row_BB[param_name] = f"{median_BB:.3f}"
+                row_BB[f'{param_name}_err'] = f"{std_BB:.3f}"
+            else:
+                # Spectral indices
+                row_BB[param_name] = f"{median_BB:.2f}"
+                row_BB[f'{param_name}_err'] = f"{std_BB:.2f}"
+        
+        rows_EE.append(row_EE)
+        rows_BB.append(row_BB)
+    
+    if format == 'latex':
+        # Create LaTeX table with EE results on top, BB (absolute amplitudes) below
+        table_lines = []
+        table_lines.append(r"\begin{table*}[htbp]")
+        table_lines.append(r"\centering")
+        table_lines.append(r"\caption{Bin-to-bin fit results. EE mode (top) and BB mode (bottom).}")
+        table_lines.append(r"\label{tab:bin_to_bin_results}")
+        
+        # Build column specification: 2 fixed cols + 1 per parameter (value ± error in same column)
+        n_params = len(param_names)
+        col_spec = "c c " + " ".join(["c"] * n_params)
+        table_lines.append(r"\begin{tabular}{" + col_spec + "}")
+        table_lines.append(r"\hline\hline")
+        
+        # Header row for EE mode
+        header_cols = [r"$\ell$ range", r"$\ell_{\rm eff}$"]
+        for param_name in param_names:
+            # Convert parameter names to LaTeX with EE superscript and updated units
+            if param_name == 'A_s':
+                latex_name = r"$A^{\rm EE}_{\rm sync}$ [$\mu$K$^2$]"
+            elif param_name == 'beta_s':
+                latex_name = r"$\beta^{\rm EE}_{\rm sync}$"
+            elif param_name == 'A_d':
+                latex_name = r"$A^{\rm EE}_{\rm dust}$ [$\mu$K$^2$]"
+            elif param_name == 'beta_d':
+                latex_name = r"$\beta^{\rm EE}_{\rm dust}$"
+            elif param_name == 'rho':
+                latex_name = r"$\rho^{\rm EE}$"
+            else:
+                latex_name = param_name + r"$^{\rm EE}$"
+            
+            header_cols.append(latex_name)
+        
+        table_lines.append(" & ".join(header_cols) + r" \\")
+        table_lines.append(r"\hline")
+        
+        # EE mode data rows
+        for i in range(n_bins):
+            row_vals = [rows_EE[i]['ell_range'], rows_EE[i]['ell_eff']]
+            for param_name in param_names:
+                # Combine value and error in same column
+                val_err = f"{rows_EE[i][param_name]} $\\pm$ {rows_EE[i][f'{param_name}_err']}"
+                row_vals.append(val_err)
+            table_lines.append(" & ".join(row_vals) + r" \\")
+        
+        table_lines.append(r"\hline")
+        
+        # Header row for BB mode (with ratio notation for amplitudes)
+        header_cols_BB = [r"$\ell$ range", r"$\ell_{\rm eff}$"]
+        for param_name in param_names:
+            if param_name == 'A_s':
+                latex_name = r"$A^{\rm BB}_{\rm sync}$ [$\mu$K$^2$]"
+            elif param_name == 'beta_s':
+                latex_name = r"$\beta^{\rm BB}_{\rm sync}$"
+            elif param_name == 'A_d':
+                latex_name = r"$A^{\rm BB}_{\rm dust}$ [$\mu$K$^2$]"
+            elif param_name == 'beta_d':
+                latex_name = r"$\beta^{\rm BB}_{\rm dust}$"
+            elif param_name == 'rho':
+                latex_name = r"$\rho^{\rm BB}$"
+            else:
+                latex_name = param_name + r"$^{\rm BB}$"
+            
+            header_cols_BB.append(latex_name)
+        
+        table_lines.append(" & ".join(header_cols_BB) + r" \\")
+        table_lines.append(r"\hline")
+        
+        # BB mode data rows
+        for i in range(n_bins):
+            row_vals = [rows_BB[i]['ell_range'], rows_BB[i]['ell_eff']]
+            for param_name in param_names:
+                # Combine value and error in same column
+                val_err = f"{rows_BB[i][param_name]} $\\pm$ {rows_BB[i][f'{param_name}_err']}"
+                row_vals.append(val_err)
+            table_lines.append(" & ".join(row_vals) + r" \\")
+        
+        table_lines.append(r"\hline\hline")
+        table_lines.append(r"\end{tabular}")
+        table_lines.append(r"\end{table*}")
+        
+        table_str = "\n".join(table_lines)
+    
+    elif format == 'ascii':
+        # Create ASCII table with EE results on top, BB (with ratios) below
+        table_lines = []
+        table_lines.append("=" * 150)
+        table_lines.append("Bin-to-bin fit results")
+        table_lines.append("EE mode (top) and BB mode (bottom)")
+        table_lines.append("For BB mode, amplitudes A_s and A_d are shown in the same units as EE")
+        table_lines.append("=" * 150)
+        
+        # Header for EE (with EE superscript)
+        header = f"{'ell range':^12} | {'ell_eff':^8} |"
+        for param_name in param_names:
+            # Add EE suffix to parameter names
+            label = f"{param_name}_EE"
+            header += f" {label:^20} |"
+        table_lines.append(header)
+        table_lines.append("-" * 150)
+        
+        # EE mode data rows
+        for i in range(n_bins):
+            row_str = f"{rows_EE[i]['ell_range']:^12} | {rows_EE[i]['ell_eff']:^8} |"
+            for param_name in param_names:
+                val = rows_EE[i][param_name]
+                err = rows_EE[i][f'{param_name}_err']
+                row_str += f" {val:>9} ± {err:<9} |"
+            table_lines.append(row_str)
+        
+        table_lines.append("=" * 150)
+        
+        # Header for BB (with ratio notation)
+        header_BB = f"{'ell range':^12} | {'ell_eff':^8} |"
+        for param_name in param_names:
+            if param_name in ('A_s', 'A_d'):
+                label = f"{param_name}_BB"
+            elif 'A_' in param_name:
+                label = f"{param_name}_BB/EE"
+            else:
+                label = f"{param_name}_BB"
+            header_BB += f" {label:^20} |"
+        table_lines.append(header_BB)
+        table_lines.append("-" * 150)
+        
+        # BB mode data rows
+        for i in range(n_bins):
+            row_str = f"{rows_BB[i]['ell_range']:^12} | {rows_BB[i]['ell_eff']:^8} |"
+            for param_name in param_names:
+                val = rows_BB[i][param_name]
+                err = rows_BB[i][f'{param_name}_err']
+                row_str += f" {val:>9} ± {err:<9} |"
+            table_lines.append(row_str)
+        
+        table_lines.append("=" * 150)
+        table_str = "\n".join(table_lines)
+    
+    else:
+        raise ValueError(f"format must be 'latex' or 'ascii', got '{format}'")
+    
+    # Save if requested
+    if save_path:
+        with open(save_path, 'w') as f:
+            f.write(table_str)
+        print(f"[create_bin_to_bin_table] Table saved to: {save_path}")
+    
+    return table_str
+
+
+def plot_bin_to_bin_results(
+    fit_data_EE,
+    fit_data_BB,
+    samples_free_list_EE,
+    samples_free_list_BB,
+    param_names,
+    chi2_reduced_EE=None,
+    chi2_reduced_BB=None,
+    save_path=None,
+    figsize=(14, 10)
+):
+    """
+    Plot the evolution of fitted parameters with ell for bin-to-bin fitting.
+    
+    Parameters
+    ----------
+    fit_data_EE : dict
+        Output from prepare_mcmc_data for EE mode.
+    fit_data_BB : dict
+        Output from prepare_mcmc_data for BB mode.
+    samples_free_list_EE : list of ndarray
+        MCMC samples for each ell bin (EE mode).
+    samples_free_list_BB : list of ndarray
+        MCMC samples for each ell bin (BB mode).
+    param_names : list of str
+        Names of fitted parameters.
+    chi2_reduced_EE : list of float, optional
+        Reduced chi-squared values for each ell bin (EE mode).
+    chi2_reduced_BB : list of float, optional
+        Reduced chi-squared values for each ell bin (BB mode).
+    save_path : str or None
+        If provided, save the figure to this path.
+    figsize : tuple
+        Figure size (width, height) in inches.
+    
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The generated figure.
+    """
+    
+    n_params = len(param_names)
+    n_bins = len(samples_free_list_EE)
+    ell_eff_EE = fit_data_EE['ell_eff']
+    ell_eff_BB = fit_data_BB['ell_eff']
+    
+    # Create subplots (always use 3x2 layout to have space for chi2)
+    n_cols = 2
+    n_rows = 3
+    
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    axes = axes.flatten()
+    
+    # Parameter labels for plotting
+    param_labels = {
+        'A_s': r'$A_{\rm sync}$ [$\mu$K$^2$]',
+        'beta_s': r'$\beta_{\rm sync}$',
+        'A_d': r'$A_{\rm dust}$ [$10^{-3}$ $\mu$K$^2$]',
+        'beta_d': r'$\beta_{\rm dust}$',
+        'rho': r'$\rho$'
+    }
+    
+    # Unit conversion factors (from mK² to desired units)
+    unit_conversions = {
+        'A_s': 1e6,      # mK² to μK²
+        'A_d': 1e9,      # mK² to 10⁻³ μK² (= 1e6 * 1e3)
+        'beta_s': 1.0,
+        'beta_d': 1.0,
+        'rho': 1.0
+    }
+    
+    for i, param_name in enumerate(param_names):
+        ax = axes[i]
+        
+        # Get the conversion factor for this parameter
+        conversion_factor = unit_conversions.get(param_name, 1.0)
+        
+        # Extract values and errors for EE mode
+        medians_EE = []
+        lower_EE = []
+        upper_EE = []
+        
+        for j in range(n_bins):
+            samples = samples_free_list_EE[j][:, i]
+            median = np.median(samples) * conversion_factor
+            lower = np.percentile(samples, 16) * conversion_factor
+            upper = np.percentile(samples, 84) * conversion_factor
+            
+            medians_EE.append(median)
+            lower_EE.append(median - lower)
+            upper_EE.append(upper - median)
+        
+        # Extract values and errors for BB mode
+        medians_BB = []
+        lower_BB = []
+        upper_BB = []
+        
+        for j in range(n_bins):
+            samples = samples_free_list_BB[j][:, i]
+            median = np.median(samples) * conversion_factor
+            lower = np.percentile(samples, 16) * conversion_factor
+            upper = np.percentile(samples, 84) * conversion_factor
+            
+            medians_BB.append(median)
+            lower_BB.append(median - lower)
+            upper_BB.append(upper - median)
+        
+        # Plot EE mode
+        ax.errorbar(ell_eff_EE, medians_EE, 
+                   yerr=[lower_EE, upper_EE],
+                   fmt='o-', color='k', markersize=6, 
+                   capsize=3, label='EE', alpha=0.8)
+        
+        # Plot BB mode
+        ax.errorbar(ell_eff_BB, medians_BB,
+                   yerr=[lower_BB, upper_BB],
+                   fmt='s-', color='goldenrod', markersize=6,
+                   capsize=3, label='BB', alpha=0.8)
+        
+        # Formatting
+        ax.set_xlabel(r'$\ell_{\rm eff}$', fontsize=12)
+        ylabel = param_labels.get(param_name, param_name)
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.legend(loc='best', fontsize=10, frameon=False)
+        
+        # Use log scale for amplitudes if appropriate
+        if 'A_' in param_name:
+            try:
+                if all(v > 0 for v in medians_EE + medians_BB):
+                    ax.set_yscale('log')
+            except:
+                pass
+    
+    # Plot chi-squared evolution in the last panel (index n_params)
+    if chi2_reduced_EE is not None and chi2_reduced_BB is not None:
+        ax_chi2 = axes[n_params]
+        
+        # Plot EE mode chi2
+        ax_chi2.plot(ell_eff_EE, chi2_reduced_EE, 
+                    'o-', color='k', markersize=6, 
+                    label='EE', alpha=0.8)
+        
+        # Plot BB mode chi2
+        ax_chi2.plot(ell_eff_BB, chi2_reduced_BB,
+                    's-', color='goldenrod', markersize=6,
+                    label='BB', alpha=0.8)
+        
+        # Add horizontal line at chi2 = 1
+        # ax_chi2.axhline(y=1.0, color='gray', linestyle='--', linewidth=1.5, alpha=0.7, label=r'$\chi^2_{\rm red} = 1$')
+        
+        # Formatting
+        ax_chi2.set_xlabel(r'$\ell_{\rm eff}$', fontsize=12)
+        ax_chi2.set_ylabel(r'$\chi^2_{\rm red}$', fontsize=12)
+        ax_chi2.legend(loc='best', fontsize=10, frameon=False)
+    
+    # Remove remaining unused subplots
+    for i in range(n_params + 1, len(axes)):
+        fig.delaxes(axes[i])
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    
+    if save_path:
+        fig.savefig(save_path, bbox_inches='tight')
+        print(f"[plot_bin_to_bin_results] Figure saved to: {save_path}")
+    
+    return fig
+
+
+def plot_bin_to_bin_convergence(
+    samplers_EE,
+    samplers_BB,
+    ell_1,
+    ell_2,
+    ninter,
+    discard_fraction=0.5,
+    save_path=None,
+    figsize=(14, 10)
+):
+    """
+    Plot convergence diagnostics for bin-to-bin MCMC fitting.
+    
+    Parameters
+    ----------
+    samplers_EE : list of emcee.EnsembleSampler
+        List of samplers for each ell bin (EE mode).
+    samplers_BB : list of emcee.EnsembleSampler
+        List of samplers for each ell bin (BB mode).
+    ell_1 : list of int
+        Lower edges of ell bins.
+    ell_2 : list of int
+        Upper edges of ell bins.
+    ninter : int
+        Number of MCMC iterations used.
+    discard_fraction : float, optional
+        Fraction of samples to discard as burn-in (default: 0.5).
+    save_path : str or None, optional
+        If provided, save the figure to this path.
+    figsize : tuple, optional
+        Figure size (width, height) in inches.
+    
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The generated figure.
+    """
+    import matplotlib.pyplot as plt
+    
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    
+    # Extract diagnostics from EE
+    tau_max_EE = []
+    ESS_min_EE = []
+    accept_EE = []
+    ell_centers = []
+    
+    for bin_idx, sampler in enumerate(samplers_EE):
+        try:
+            tau = sampler.get_autocorr_time(tol=0)
+            chain = sampler.get_chain()
+            nsteps = chain.shape[0]
+            burn = int(discard_fraction * nsteps)
+            post = chain[burn:].reshape(-1, chain.shape[2])
+            ESS = post.shape[0] / tau
+            
+            tau_max_EE.append(np.max(tau))
+            ESS_min_EE.append(np.min(ESS))
+            accept_EE.append(np.mean(sampler.acceptance_fraction))
+            ell_centers.append((ell_1[bin_idx] + ell_2[bin_idx]) / 2)
+        except:
+            tau_max_EE.append(np.nan)
+            ESS_min_EE.append(np.nan)
+            accept_EE.append(np.nan)
+    
+    # Extract diagnostics from BB
+    tau_max_BB = []
+    ESS_min_BB = []
+    accept_BB = []
+    
+    for sampler in samplers_BB:
+        try:
+            tau = sampler.get_autocorr_time(tol=0)
+            chain = sampler.get_chain()
+            nsteps = chain.shape[0]
+            burn = int(discard_fraction * nsteps)
+            post = chain[burn:].reshape(-1, chain.shape[2])
+            ESS = post.shape[0] / tau
+            
+            tau_max_BB.append(np.max(tau))
+            ESS_min_BB.append(np.min(ESS))
+            accept_BB.append(np.mean(sampler.acceptance_fraction))
+        except:
+            tau_max_BB.append(np.nan)
+            ESS_min_BB.append(np.nan)
+            accept_BB.append(np.nan)
+    
+    # Plot 1: Max autocorrelation time vs ell
+    axes[0, 0].plot(ell_centers, tau_max_EE, 'o-', label='EE', color='C0')
+    axes[0, 0].plot(ell_centers, tau_max_BB, 's-', label='BB', color='C1')
+    axes[0, 0].axhline(0.05 * ninter, ls='--', color='red', alpha=0.5, label='5% threshold')
+    axes[0, 0].set_xlabel(r'$\ell$', fontsize=12)
+    axes[0, 0].set_ylabel(r'Max $\tau$', fontsize=12)
+    axes[0, 0].set_title('Autocorrelation Time', fontsize=13)
+    axes[0, 0].legend()
+    
+    # Plot 2: Min ESS vs ell
+    axes[0, 1].plot(ell_centers, ESS_min_EE, 'o-', label='EE', color='C0')
+    axes[0, 1].plot(ell_centers, ESS_min_BB, 's-', label='BB', color='C1')
+    axes[0, 1].axhline(1000, ls='--', color='orange', alpha=0.5, label='Min threshold (1000)')
+    axes[0, 1].axhline(3000, ls='--', color='green', alpha=0.5, label='Good threshold (3000)')
+    axes[0, 1].set_xlabel(r'$\ell$', fontsize=12)
+    axes[0, 1].set_ylabel('Min ESS', fontsize=12)
+    axes[0, 1].set_title('Effective Sample Size', fontsize=13)
+    axes[0, 1].legend()
+    
+    # Plot 3: Acceptance fraction vs ell
+    axes[1, 0].plot(ell_centers, accept_EE, 'o-', label='EE', color='C0')
+    axes[1, 0].plot(ell_centers, accept_BB, 's-', label='BB', color='C1')
+    axes[1, 0].axhline(0.2, ls='--', color='red', alpha=0.3)
+    axes[1, 0].axhline(0.6, ls='--', color='red', alpha=0.3)
+    axes[1, 0].set_xlabel(r'$\ell$', fontsize=12)
+    axes[1, 0].set_ylabel('Acceptance Fraction', fontsize=12)
+    axes[1, 0].set_title('MCMC Acceptance', fontsize=13)
+    axes[1, 0].legend()
+    
+    # Plot 4: Summary histogram
+    axes[1, 1].hist([ESS_min_EE, ESS_min_BB], bins=15, alpha=0.6, label=['EE', 'BB'])
+    axes[1, 1].axvline(1000, ls='--', color='orange', label='Min (1000)')
+    axes[1, 1].axvline(3000, ls='--', color='green', label='Good (3000)')
+    axes[1, 1].set_xlabel('Min ESS per bin', fontsize=12)
+    axes[1, 1].set_ylabel('Count', fontsize=12)
+    axes[1, 1].set_title('ESS Distribution', fontsize=13)
+    axes[1, 1].legend()
+    
+    plt.tight_layout()
+    
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"[plot_bin_to_bin_convergence] Figure saved to: {save_path}")
+    
+    return fig
+
 
 def read_corrected_cls(path_file, band_list):
     """
@@ -4055,7 +5151,7 @@ def plot_cls_auto_bands(spectra_dict, bands, save=False, save_path=None):
     plt.show()
 
 
-def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_dict, band_pairs, mask_name, save=False, save_path=None, plot_dl=False):
+def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_dict, band_pairs, mask_name, save=False, save_path=None, plot_dl=False, filename=None):
     """
     Plot multiple corrected spectra with error bars alongside the theoretical spectra 
     from pre-computed theoretical spectra files. All spectra are plotted on the same figure.
@@ -4076,6 +5172,8 @@ def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_di
         Directory where the plot will be saved.
     plot_dl : bool, default False
         If True, plot D_l = l(l+1)C_l/(2π) instead of C_l.
+    filename : str, optional
+        Custom filename for the saved figure. If None, generates automatic name.
     """
     # Handle single band_pair input for backward compatibility
     if isinstance(band_pairs, str):
@@ -4161,7 +5259,8 @@ def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_di
             axes[i].set_ylabel(rf"$C_\ell^{{{mode}}} \; [\mathrm{{mK}}^2]$")
         axes[i].legend(frameon=False, fontsize=9)
         axes[i].set_yscale('log')
-        axes[i].set_xlim(0, 200)  # Explicit limit even though we only plot up to 200
+        # axes[i].set_xlim(30, 185)
+        axes[i].set_xlim(0, 200)
         
         # Set reasonable y-limits based on all plotted data
         if all_values_per_mode[mode]:
@@ -4177,10 +5276,175 @@ def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_di
             raise ValueError("save_path must be provided if save=True")
         os.makedirs(save_path, exist_ok=True)
         # Create filename based on band pairs and plot type
-        bands_str = "_".join(band_pairs)
-        plot_type = "Dl" if plot_dl else "Cl"
-        filename = os.path.join(save_path, f"corrected_vs_theoretical_{plot_type}_{bands_str}_{mask_name}.pdf")
-        plt.savefig(filename)
-        print(f"Figure saved to {filename}")
+        if filename is None:
+            bands_str = "_".join(band_pairs)
+            plot_type = "Dl" if plot_dl else "Cl"
+            filename = f"corrected_vs_theoretical_{plot_type}_{bands_str}_{mask_name}.pdf"
+        full_path = os.path.join(save_path, filename)
+        plt.savefig(full_path)
+        print(f"Figure saved to {full_path}")
     
     plt.show()
+
+
+def plot_auto_cross_spectra(bands, spectra_dict, save=False, save_path=None, figsize=(14, 10), 
+                           show_errors=True):
+    """
+    Create a 2x2 grid of plots showing auto-spectra and cross-spectra for EE and BB modes.
+    
+    Parameters
+    ----------
+    bands : list of str
+        List of band identifiers to plot (e.g., ['11', '23', '30']).
+    spectra_dict : dict
+        Dictionary containing spectra data with structure:
+        spectra_dict[band_pair]['ell_eff']: effective multipoles
+        spectra_dict[band_pair]['EE']['SPECTRUM']: EE mode spectrum
+        spectra_dict[band_pair]['EE']['ERROR']: EE mode error
+        spectra_dict[band_pair]['BB']['SPECTRUM']: BB mode spectrum
+        spectra_dict[band_pair]['BB']['ERROR']: BB mode error
+    save : bool, optional
+        If True, save the figure to save_path. Default is False.
+    save_path : str, optional
+        Path where to save the figure. Required if save=True.
+    figsize : tuple, optional
+        Figure size as (width, height). Default is (14, 10).
+    show_errors : bool, optional
+        If True, display error bars. Default is True.
+    
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The generated figure object.
+    
+    Notes
+    -----
+    The function creates a 2x2 grid with:
+    - Top-left: Auto-spectra for EE mode
+    - Top-right: Cross-spectra for EE mode
+    - Bottom-left: Auto-spectra for BB mode
+    - Bottom-right: Cross-spectra for BB mode
+    
+    Auto-spectra show band_i x band_i correlations (circles for EE, squares for BB).
+    Cross-spectra show band_i x band_j correlations with i != j (absolute values plotted).
+    Error bars are shown as vertical bars.
+    """
+    
+    # Create 2x2 figure for auto and cross spectra (EE on top, BB on bottom)
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    
+    # Define colors and labels
+    default_colors = ['steelblue', 'black', 'goldenrod', 'crimson', 'forestgreen', 'darkorange']
+    colors = {band: default_colors[i % len(default_colors)] for i, band in enumerate(bands)}
+    labels = {band: f'{band} GHz' for band in bands}
+    
+    # Generate cross-pairs
+    cross_pairs = [(bands[i], bands[j]) for i in range(len(bands)) for j in range(i+1, len(bands))]
+    cross_colors = {f'{b1}_{b2}': default_colors[i % len(default_colors)] for i, (b1, b2) in enumerate(cross_pairs)}
+    cross_labels = {f'{b1}_{b2}': f'{b1}x{b2} GHz' for b1, b2 in cross_pairs}
+    
+    # ========== TOP ROW: EE MODE ==========
+    # Plot auto-spectra EE (top-left)
+    ax_auto_ee = axes[0, 0]
+    for band in bands:
+        pair = f'{band}_{band}'
+        if pair in spectra_dict:
+            ell = spectra_dict[pair]['ell_eff']
+            cl_ee = spectra_dict[pair]['EE']['SPECTRUM']
+            err_ee = spectra_dict[pair]['EE']['ERROR'] if show_errors else None
+            
+            if show_errors and err_ee is not None:
+                ax_auto_ee.errorbar(ell, cl_ee, yerr=err_ee, fmt='o', 
+                                   color=colors[band], label=f'{labels[band]}', 
+                                   alpha=0.7, capsize=3, markersize=5)
+            else:
+                ax_auto_ee.plot(ell, cl_ee, 'o', color=colors[band], 
+                              label=f'{labels[band]}', alpha=0.7, markersize=5)
+    
+    ax_auto_ee.set_xlabel(r'$\ell$', fontsize=12)
+    ax_auto_ee.set_ylabel(r'$C_\ell^{EE}$ [$\mu$K$^2$]', fontsize=12)
+    ax_auto_ee.set_title('Auto-Spectra (EE)', fontsize=14)
+    ax_auto_ee.set_yscale('log')
+    ax_auto_ee.legend(fontsize=9, frameon=False)
+    
+    # Plot cross-spectra EE (top-right)
+    ax_cross_ee = axes[0, 1]
+    for b1, b2 in cross_pairs:
+        pair = f'{b1}_{b2}'
+        if pair in spectra_dict:
+            ell = spectra_dict[pair]['ell_eff']
+            cl_ee = spectra_dict[pair]['EE']['SPECTRUM']
+            err_ee = spectra_dict[pair]['EE']['ERROR'] if show_errors else None
+            
+            if show_errors and err_ee is not None:
+                ax_cross_ee.errorbar(ell, cl_ee, yerr=err_ee, fmt='o', 
+                                    color=cross_colors[pair], label=f'{cross_labels[pair]}', 
+                                    alpha=0.7, capsize=3, markersize=5)
+            else:
+                ax_cross_ee.plot(ell, cl_ee, 'o', color=cross_colors[pair], 
+                               label=f'{cross_labels[pair]}', alpha=0.7, markersize=5)
+    
+    ax_cross_ee.set_xlabel(r'$\ell$', fontsize=12)
+    ax_cross_ee.set_ylabel(r'$C_\ell^{EE}$ [$\mu$K$^2$]', fontsize=12)
+    ax_cross_ee.set_title('Cross-Spectra (EE)', fontsize=14)
+    ax_cross_ee.set_yscale('log')
+    ax_cross_ee.legend(fontsize=9, frameon=False)
+    
+    # ========== BOTTOM ROW: BB MODE ==========
+    # Plot auto-spectra BB (bottom-left)
+    ax_auto_bb = axes[1, 0]
+    for band in bands:
+        pair = f'{band}_{band}'
+        if pair in spectra_dict:
+            ell = spectra_dict[pair]['ell_eff']
+            cl_bb = spectra_dict[pair]['BB']['SPECTRUM']
+            err_bb = spectra_dict[pair]['BB']['ERROR'] if show_errors else None
+            
+            if show_errors and err_bb is not None:
+                ax_auto_bb.errorbar(ell, cl_bb, yerr=err_bb, fmt='s', 
+                                   color=colors[band], label=f'{labels[band]}', 
+                                   alpha=0.7, capsize=3, markersize=5)
+            else:
+                ax_auto_bb.plot(ell, cl_bb, 's', color=colors[band], 
+                              label=f'{labels[band]}', alpha=0.7, markersize=5)
+    
+    ax_auto_bb.set_xlabel(r'$\ell$', fontsize=12)
+    ax_auto_bb.set_ylabel(r'$C_\ell^{BB}$ [$\mu$K$^2$]', fontsize=12)
+    ax_auto_bb.set_title('Auto-Spectra (BB)', fontsize=14)
+    ax_auto_bb.set_yscale('log')
+    ax_auto_bb.legend(fontsize=9, frameon=False)
+    
+    # Plot cross-spectra BB (bottom-right)
+    ax_cross_bb = axes[1, 1]
+    for b1, b2 in cross_pairs:
+        pair = f'{b1}_{b2}'
+        if pair in spectra_dict:
+            ell = spectra_dict[pair]['ell_eff']
+            cl_bb = spectra_dict[pair]['BB']['SPECTRUM']
+            err_bb = spectra_dict[pair]['BB']['ERROR'] if show_errors else None
+            
+            if show_errors and err_bb is not None:
+                ax_cross_bb.errorbar(ell, cl_bb, yerr=err_bb, fmt='s', 
+                                    color=cross_colors[pair], label=f'{cross_labels[pair]}', 
+                                    alpha=0.7, capsize=3, markersize=5)
+            else:
+                ax_cross_bb.plot(ell, cl_bb, 's', color=cross_colors[pair], 
+                               label=f'{cross_labels[pair]}', alpha=0.7, markersize=5)
+    
+    ax_cross_bb.set_xlabel(r'$\ell$', fontsize=12)
+    ax_cross_bb.set_ylabel(r'$C_\ell^{BB}$ [$\mu$K$^2$]', fontsize=12)
+    ax_cross_bb.set_title('Cross-Spectra (BB)', fontsize=14)
+    ax_cross_bb.set_yscale('log')
+    ax_cross_bb.legend(fontsize=9, frameon=False)
+    
+    plt.tight_layout()
+    
+    if save:
+        if save_path is None:
+            raise ValueError("save_path must be provided if save=True")
+        plt.savefig(save_path, bbox_inches='tight', dpi=300)
+        print(f"Figure saved to {save_path}")
+    
+    plt.show()
+    
+    return fig

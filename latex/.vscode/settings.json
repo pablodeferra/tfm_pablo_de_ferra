@@ -1,0 +1,54 @@
+{
+    // Compilar automáticamente al guardar
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    
+    // Configuración de la carpeta de salida (build)
+    "latex-workshop.latex.outDir": "./build",
+    
+    // Usar solo las recetas personalizadas (no las predeterminadas)
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "pdflatex ➞ bibtex ➞ pdflatex × 2",
+            "tools": [
+                "pdflatex",
+                "bibtex",
+                "pdflatex",
+                "pdflatex"
+            ]
+        }
+    ],
+    
+    // Deshabilitar recetas de detección mágica
+    "latex-workshop.latex.recipe.default": "first",
+    
+    // Herramientas de compilación
+    "latex-workshop.latex.tools": [
+        {
+            "name": "pdflatex",
+            "command": "pdflatex",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-output-directory=build",
+                "%DOC%"
+            ]
+        },
+        {
+            "name": "bibtex",
+            "command": "bibtex",
+            "args": [
+                "build/%DOCFILE%"
+            ],
+            "env": {
+                "BIBINPUTS": ".:"
+            }
+        }
+    ],
+    
+    // Limpiar archivos auxiliares al compilar
+    "latex-workshop.latex.clean.subfolder.enabled": true,
+    
+    // Visor de PDF
+    "latex-workshop.view.pdf.viewer": "tab"
+}

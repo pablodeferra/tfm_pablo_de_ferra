@@ -3800,15 +3800,15 @@ def create_bin_to_bin_table(
             medians_BB[param_name] = median_BB
 
             if param_name == 'A_s':
-                # Convert from K^2 to μK^2 (multiply by 1e6)
+                # Convert from mK^2 to μK^2 (multiply by 1e6)
                 median_EE_conv = median_EE * 1e6
                 std_EE_conv = std_EE * 1e6
                 row_EE[param_name] = f"{median_EE_conv:.2f}"
                 row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
             elif param_name == 'A_d':
-                # Convert from K^2 to μK^2 (multiply by 1e6)
-                median_EE_conv = median_EE * 1e6
-                std_EE_conv = std_EE * 1e6
+                # Convert from mK^2 to 10^-3 μK^2 (multiply by 1e9)
+                median_EE_conv = median_EE * 1e9
+                std_EE_conv = std_EE * 1e9
                 row_EE[param_name] = f"{median_EE_conv:.2f}"
                 row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
             elif param_name == 'rho':
@@ -3821,8 +3821,13 @@ def create_bin_to_bin_table(
                 row_EE[f'{param_name}_err'] = f"{std_EE:.2f}"
 
             if param_name == 'A_s' or param_name == 'A_d':
-                median_BB_conv = median_BB * 1e6
-                std_BB_conv = std_BB * 1e6
+                # Apply same conversion as for EE mode
+                if param_name == 'A_s':
+                    median_BB_conv = median_BB * 1e6
+                    std_BB_conv = std_BB * 1e6
+                else:  # A_d
+                    median_BB_conv = median_BB * 1e9
+                    std_BB_conv = std_BB * 1e9
                 row_BB[param_name] = f"{median_BB_conv:.2f}"
                 row_BB[f'{param_name}_err'] = f"{std_BB_conv:.2f}"
             elif 'A_' in param_name:
@@ -3871,7 +3876,7 @@ def create_bin_to_bin_table(
             elif param_name == 'beta_s':
                 latex_name = r"$\beta^{\rm EE}_{\rm sync}$"
             elif param_name == 'A_d':
-                latex_name = r"$A^{\rm EE}_{\rm dust}$ [$\mu$K$^2$]"
+                latex_name = r"$A^{\rm EE}_{\rm dust}$ [$10^{-3}$ $\mu$K$^2$]"
             elif param_name == 'beta_d':
                 latex_name = r"$\beta^{\rm EE}_{\rm dust}$"
             elif param_name == 'rho':
@@ -3903,7 +3908,7 @@ def create_bin_to_bin_table(
             elif param_name == 'beta_s':
                 latex_name = r"$\beta^{\rm BB}_{\rm sync}$"
             elif param_name == 'A_d':
-                latex_name = r"$A^{\rm BB}_{\rm dust}$ [$\mu$K$^2$]"
+                latex_name = r"$A^{\rm BB}_{\rm dust}$ [$10^{-3}$ $\mu$K$^2$]"
             elif param_name == 'beta_d':
                 latex_name = r"$\beta^{\rm BB}_{\rm dust}$"
             elif param_name == 'rho':
@@ -4061,8 +4066,8 @@ def plot_bin_to_bin_results(
     
     # Unit conversion factors (from mK² to desired units)
     unit_conversions = {
-        'A_s': 1e6,      # mK² to μK²
-        'A_d': 1e9,      # mK² to 10⁻³ μK² (= 1e6 * 1e3)
+        'A_s': 1e6,    
+        'A_d': 1e9,    
         'beta_s': 1.0,
         'beta_d': 1.0,
         'rho': 1.0

@@ -1,3 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Self-contained installer for the `cmb_py` conda environment.
+# Copy this single script to the target machine and run it to create the environment.
+# Usage:
+#   ./create_env_selfcontained.sh            # creates env with original name from YAML (cmb_py)
+#   ./create_env_selfcontained.sh --name NEW  # create using NEW as environment name
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [--name NEW_NAME]
+
+Creates the conda environment contained in this script. The embedded YAML was exported
+from the source machine; the script strips any 'prefix:' line before creating for portability.
+EOF
+}
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+if ! command -v conda &>/dev/null; then
+  echo "conda not found in PATH. Install Miniconda/Anaconda and ensure 'conda' is available." >&2
+  exit 2
+fi
+
+TMP_YML="$(mktemp --suffix=-cmb_py.yml)"
+
+cat > "$TMP_YML" <<'YML'
 name: cmb_py
 channels:
   - conda-forge
@@ -8,15 +39,15 @@ dependencies:
   - aom=3.9.1
   - astropy-iers-data=0.2025.9.15.0.37.0
   - asttokens=3.0.0
+  - blas=1.0
   - brotli-bin=1.1.0
   - brotli-python=1.1.0
   - bzip2=1.0.8
   - c-ares=1.34.5
-  - ca-certificates=2025.8.3
+  - ca-certificates=2025.9.9
   - cached-property=1.5.2
   - cached_property=1.5.2
   - cairo=1.18.4
-  - certifi=2025.8.3
   - cfitsio=4.2.0
   - charset-normalizer=3.4.3
   - chealpix=3.31.0
@@ -44,6 +75,7 @@ dependencies:
   - icu=73.2
   - idna=3.10
   - importlib-metadata=8.7.0
+  - importlib_resources=6.5.2
   - iniconfig=2.0.0
   - ipykernel=6.30.1
   - ipython=9.5.0
@@ -153,6 +185,7 @@ dependencies:
   - pytest-runner=6.0.0
   - python=3.11.13
   - python-dateutil=2.9.0.post0
+  - python-tzdata=2025.2
   - python_abi=3.11
   - qhull=2020.2
   - qtbase=6.9.2
@@ -210,23 +243,30 @@ dependencies:
   - zstd=1.5.7
   - pip:
     - astropy==7.1.0
+    - bottleneck==1.4.2
     - brotli==1.1.0
+    - certifi==2025.10.5
     - cffi==1.17.1
     - contourpy==1.3.3
+    - corner==2.2.3
     - debugpy==1.8.16
     - fonttools==4.59.2
     - h5py==3.14.0
     - healpy==0.0.0
+    - importlib-resources==6.5.2
     - kiwisolver==1.4.9
     - llvmlite==0.44.0
     - matplotlib==3.10.6
     - numba==0.61.2
+    - numexpr==2.10.1
     - numpy==1.26.4
+    - pandas==2.3.3
     - pillow==11.3.0
     - psutil==7.0.0
     - pymaster==1.5.1
     - pyqt6==6.9.1
     - pyqt6-sip==13.10.2
+    - pytz==2025.2
     - pyyaml==6.0.2
     - pyzmq==27.1.0
     - scipy==1.10.1
@@ -235,3 +275,29 @@ dependencies:
     - unicodedata2==16.0.0
     - zstandard==0.25.0
 prefix: /home/pablo/anaconda3/envs/cmb_py
+YML
+
+# Strip prefix to make the YAML portable
+sed -i.bak '/^prefix: /d' "$TMP_YML" && rm -f "${TMP_YML}.bak"
+
+# Optional --name override
+if [ "${1:-}" = "--name" ]; then
+  if [ -z "${2:-}" ]; then
+    echo "--name requires an argument" >&2
+    exit 2
+  fi
+  NEWNAME="$2"
+  tmpfile="${TMP_YML}.tmp"
+  awk -v name="$NEWNAME" 'BEGIN{p=1} /^name: /{print "name: " name; p=0; next} {print}' "$TMP_YML" > "$tmpfile"
+  mv "$tmpfile" "$TMP_YML"
+fi
+
+echo "Creating conda environment from embedded YAML..."
+set -x
+conda env create -f "$TMP_YML"
+set +x
+
+echo "Cleaning up..."
+rm -f "$TMP_YML"
+
+echo "Done. Activate with: conda activate cmb_py (or your chosen name)"

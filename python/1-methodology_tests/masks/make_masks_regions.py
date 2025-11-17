@@ -18,7 +18,7 @@ NSIDE_MASK_HIGH = 256       # High resolution for smoothing
 NSIDE_FINAL = 512           # Final resolution for output masks
 
 SMOOTH_MASKS = True         # Enable/disable mask smoothing
-SMOOTH_FWHM = np.deg2rad(10.0)  # FWHM for smoothing (in radians)
+SMOOTH_FWHM = np.deg2rad(15.0)  # FWHM for smoothing (in radians)
 
 USE_PLANCK_CMAP = True      # Use Planck colormap for polarization maps
 

@@ -64,11 +64,11 @@ For the power-law model fitting, we adopt uniform (flat) priors for all model pa
     \rho &\in [-1, 1],
 \end{align}
 
-For the bin-to-bin analysis, to regularize the fit and incorporate external information from the literature, we instead impose Gaussian priors on the spectral indices:
+For the bin-to-bin analysis, to regularize the fit and incorporate external information from the literature, we impose a Gaussian prior on the synchrotron frequency spectral index:
 
-\begin{align}
-\beta_s &\sim \mathcal{N}(-3.1, 0.18^2), \\
-\beta_d &\sim \mathcal{N}(1.55, 0.05^2), \\
-\alpha_s &\sim \mathcal{N}(-3.0, 0.30^2), \\
-\alpha_d &\sim \mathcal{N}(-2.48, 0.20^2),
-\end{align}
+\begin{equation}
+\beta_s \sim \mathcal{N}(-3.1, 0.30^2),
+\end{equation}
+
+while maintaining uniform priors for the remaining parameters within the bounds specified above.
+

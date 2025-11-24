@@ -36,7 +36,7 @@ where $B_\nu$ is the Planck function. Here, $A_s$ and $A_d$ are the amplitudes o
 
 \subsection{Data Selection and Frequency Coverage}
 
-We perform a Markov Chain Monte Carlo (MCMC) fitting procedure using data from QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz, covering the multipole range $30 < \ell < 200$. To avoid noise bias in the polarization power spectra, we exclusively use cross-spectra between different frequency bands ($i \neq j$), discarding all auto-spectra ($i = j$). This yields 78 independent cross-spectra from the 13 frequency bands, which improves the robustness of the fitted spectral indices while mitigating systematic effects from instrumental noise.
+We perform a Markov Chain Monte Carlo (MCMC) fitting procedure using data from QUIJOTE 11~GHz; WMAP 23, 33, 41, 61, and 94~GHz; and Planck 30, 44, 70, 100, 143, 217, and 353~GHz, covering the multipole range $30 < \ell < 200$. In this study, we use both auto- and cross-spectra between frequency bands. This yields 91 independent spectra from the 13 frequency bands.
 
 \subsection{Bayesian Inference}
 
@@ -72,3 +72,16 @@ For the bin-to-bin analysis, to regularize the fit and incorporate external info
 
 while maintaining uniform priors for the remaining parameters within the bounds specified above.
 
+\subsection{Fitting methods}
+\label{sec:fitting_methods}
+
+We apply three complementary approaches to the angular power spectra computed from the maps:
+
+\paragraph{Power-law fitting, $\Delta\ell = 10$}
+We compute the spectra with a bin width $\Delta\ell = 10$ and fit a power-law model for the multipole dependence of the primary foreground components (synchrotron and dust). This fit estimates the amplitudes ($A_s$, $A_d$), the frequency spectral indices ($\beta_s$, $\beta_d$), the multipole spectral indices ($\alpha_s$, $\alpha_d$), and the correlation coefficient ($\rho$) between components.
+
+\paragraph{Power-law fitting, $\Delta\ell = 20$}
+We repeat the power-law fit using a wider binning, $\Delta\ell = 20$, to test the stability of the fitted parameters with respect to the choice of bin size. Wider bins reduce per-bin noise at the cost of multipole resolution.
+
+\paragraph{Bin-to-bin analysis, $\Delta\ell = 20$}
+In this approach each multipole bin is fitted independently with $\Delta\ell = 20$, without assuming a global power-law dependence on $\ell$. For each bin we only fit the amplitudes ($A_s$, $A_d$), the frequency spectral indices ($\beta_s$, $\beta_d$), and the correlation ($\rho$); the multipole spectral indices ($\alpha_s$, $\alpha_d$) are not constrained in this analysis. This method allows us to identify scale-dependent behaviour and local deviations from the power-law assumption.

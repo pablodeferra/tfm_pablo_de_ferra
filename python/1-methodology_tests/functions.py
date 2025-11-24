@@ -5217,10 +5217,37 @@ def plot_corrected_vs_theoretical(corrected_spectra_dict, theoretical_spectra_di
                 ell_mask = (ell_eff >= 0) & (ell_eff <= 200)
                 ell_plot = ell_eff[ell_mask]
                 
-                # Get raw spectrum data and apply mask
+                # Get raw corrected spectrum data and apply mask
                 spectrum_raw = corr_spec[mode]['SPECTRUM'][ell_mask]
                 error_raw = corr_spec[mode]['ERROR'][ell_mask]
-                theo_spectrum_raw = theo_spec[mode][ell_mask]
+
+                # Obtain theoretical spectrum values and corresponding ell array.
+                # Theoretical data may come in two flavours (simple arrays or dicts
+                # with 'MEAN'/'STD' when average+std were stored). Normalize both
+                # to plain arrays, then interpolate the theoretical spectrum to
+                # the corrected `ell_eff` bins (ell_plot) so boolean indexing
+                # lengths match and comparison is meaningful.
+                # Get theoretical ell array
+                theo_ell = None
+                if isinstance(theo_spec.get('ell_eff', None), dict):
+                    theo_ell = theo_spec['ell_eff'].get('MEAN')
+                else:
+                    theo_ell = theo_spec.get('ell_eff')
+
+                # Get theoretical spectrum values for this mode
+                if isinstance(theo_spec[mode], dict):
+                    # average+std case
+                    theo_vals = theo_spec[mode].get('MEAN')
+                else:
+                    theo_vals = theo_spec[mode]
+
+                # Defensive checks
+                if theo_ell is None or theo_vals is None:
+                    raise ValueError(f"Theoretical spectrum for '{band_pair}' mode '{mode}' is missing ell or values")
+
+                # Interpolate theoretical spectrum onto the corrected ell bins
+                # Use ell_plot (which is subset of corr_spec['ell_eff']) as target
+                theo_spectrum_raw = np.interp(ell_plot, theo_ell, theo_vals)
                 
                 # Apply D_l transformation if requested
                 if plot_dl:

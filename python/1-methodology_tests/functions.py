@@ -1,10 +1,15 @@
 #%%
 import numpy as np
-import pysm3
+try:
+    import pysm3
+    import pysm3.units as u_pysm
+except Exception:
+    pysm3 = None
+    u_pysm = None
 import healpy as hp
 from astropy import units as u
 import os
-from data import data, path_map
+from data import data, path_map, color_corrections
 from tqdm import tqdm 
 import pymaster as nmt
 from astropy.io import fits
@@ -12,12 +17,12 @@ import re
 from scipy.constants import c,h,k
 import matplotlib.pyplot as plt
 import sys
-import pysm3.units as u_pysm
+# u_pysm may already be set above depending on pysm3 import
 import emcee
 import corner
 import multiprocessing as mp
 from scipy.stats import gaussian_kde
-
+from scipy import interpolate
 from data import data
 
 # ------------------------------------------------------------------
@@ -2632,6 +2637,7 @@ def mbb_scaling_KRJ(nu_GHz, nu0_GHz=353.0, beta=1.59, T_d=19.6):
 # ============================================================================
 
 def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
+                      cc_dict=None,
                       freq_ref=11.1, ell_ref=80.0):
     """
     Synchrotron angular power spectrum model.
@@ -2668,12 +2674,24 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
         c_terms = np.asarray(theta[3:3+N])
 
     model_list = []
+
     for d in datasets:
+        # Parse band identifiers (strings) from pair name like '11_353'
+        band1_str, band2_str = d['pair'].split('_')
         f1, f2 = d['freqs']
         scale_f1 = (f1 / freq_ref) ** beta_s
         scale_f2 = (f2 / freq_ref) ** beta_s
         ell_scale = (ell / ell_ref) ** alpha_s
-        Cl = A_s * ell_scale * scale_f1 * scale_f2
+        # Apply per-band color corrections using alpha = 2 + beta_s (spectral index)
+        if cc_dict is not None:
+            alpha_cc = 2.0 + float(beta_s)
+            poly1 = (cc_dict.get('synch', {}) or {}).get(str(band1_str))
+            poly2 = (cc_dict.get('synch', {}) or {}).get(str(band2_str))
+            cc_s1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
+            cc_s2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
+        else:
+            cc_s1 = cc_s2 = 1.0
+        Cl = A_s * ell_scale * (scale_f1/cc_s1) * (scale_f2/cc_s2)
         if fit_c_terms and (f1 == f2):
             i = freq_to_idx[f1]
             Cl = Cl + c_terms[i]
@@ -2681,6 +2699,7 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
     return np.concatenate(model_list)
 
 def model_dust(theta, datasets, ell, fit_c_terms=False,
+               cc_dict=None,
                freq_ref=353.0, T_d=19.6, ell_ref=80.0):
     """
     Dust angular power spectrum model with modified blackbody scaling in K_RJ units.
@@ -2723,12 +2742,23 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
     S = mbb_scaling_KRJ(freqs_all, nu0_GHz=freq_ref, beta=beta_d, T_d=T_d)
 
     model_list = []
+
     for d in datasets:
+        band1_str, band2_str = d['pair'].split('_')
         f1, f2 = d['freqs']
         s1 = S[freq_to_idx[f1]]
         s2 = S[freq_to_idx[f2]]
         ell_scale = (ell / ell_ref) ** alpha_d
-        Cl = A_d * ell_scale * s1 * s2
+        # Apply per-band color corrections using alpha = 2 + beta_d (spectral index)
+        if cc_dict is not None:
+            alpha_cc = 2.0 + float(alpha_d)
+            poly1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
+            poly2 = (cc_dict.get('dust', {}) or {}).get(str(band2_str))
+            cc_d1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
+            cc_d2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
+        else:
+            cc_d1 = cc_d2 = 1.0
+        Cl = A_d * ell_scale * (s1/cc_d1) * (s2/cc_d2)
         if fit_c_terms and (f1 == f2):
             i = freq_to_idx[f1]
             Cl = Cl + c_terms[i]
@@ -2736,6 +2766,7 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
     return np.concatenate(model_list)
 
 def model_cross(theta, datasets, ell,
+                cc_dict=None,
                 ref_sync=11.1, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
     """
     Cross-correlation between synchrotron and dust components.
@@ -2771,11 +2802,14 @@ def model_cross(theta, datasets, ell,
     Sd = mbb_scaling_KRJ(freqs_all, nu0_GHz=ref_dust, beta=beta_d, T_d=T_d)
 
     model_list = []
+
     for d in datasets:
+        band1_str, band2_str = d['pair'].split('_')
         f1, f2 = d['freqs']
         s1 = (f1 / ref_sync) ** beta_s
         s2 = (f2 / ref_sync) ** beta_s
         ell_scale_s = (ell / ell_ref) ** alpha_s
+        # synch-only term if needed
         C_s_ij = A_s * ell_scale_s * s1 * s2
 
         d1 = Sd[freq_to_idx[f1]]
@@ -2785,7 +2819,22 @@ def model_cross(theta, datasets, ell,
 
         # cross term (rho * sqrt(C_s * C_d))
         ell_scale_cross = (ell / ell_ref) ** ((alpha_s + alpha_d) / 2)
-        C_sd_ij = rho * np.sqrt(A_s * A_d) * (s1 * d2 + s2 * d1) * ell_scale_cross
+        # Apply per-band color corrections to the mixing terms using alpha_s=2+beta_s and alpha_d=2+beta_d
+        if cc_dict is not None:
+            alpha_s_cc = 2.0 + float(beta_s)
+            alpha_d_cc = 2.0 + float(beta_d)
+            syn1 = (cc_dict.get('synch', {}) or {}).get(str(band1_str))
+            syn2 = (cc_dict.get('synch', {}) or {}).get(str(band2_str))
+            dus1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
+            dus2 = (cc_dict.get('dust', {}) or {}).get(str(band2_str))
+            cc_s1 = (syn1[0] + syn1[1]*alpha_s_cc + syn1[2]*(alpha_s_cc**2)) if syn1 is not None else 1.0
+            cc_s2 = (syn2[0] + syn2[1]*alpha_s_cc + syn2[2]*(alpha_s_cc**2)) if syn2 is not None else 1.0
+            cc_d1 = (dus1[0] + dus1[1]*alpha_d_cc + dus1[2]*(alpha_d_cc**2)) if dus1 is not None else 1.0
+            cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
+        else:
+            cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
+        mix = ( (s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1) )
+        C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
     return np.concatenate(model_list)
@@ -2793,7 +2842,8 @@ def model_cross(theta, datasets, ell,
 
 
 def lnlike(theta_full, datasets, ell, y_all, yerr_all,
-           fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
+           fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
+           cc_dict=None):
     """
     Compute the log-likelihood (-0.5 chi^2) for the model given data.
 
@@ -2835,23 +2885,24 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
     if 'sync' in fit_components:
         y_model += model_synchrotron([A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else
                                      [A_s, alpha_s, beta_s],
-                                     datasets, ell, fit_c_terms=fit_c_terms)
+                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'dust' in fit_components:
         y_model += model_dust([A_d, alpha_d, beta_d, *c_dust] if fit_c_terms else
                               [A_d, alpha_d, beta_d],
-                              datasets, ell, fit_c_terms=fit_c_terms)
+                              datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'cross' in fit_components:
         y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
-                               datasets, ell)
+                               datasets, ell, cc_dict=cc_dict)
 
     chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
     return -0.5 * chi2
 
 
 def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all, 
-                         fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
+                         fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
+                         cc_dict=None):
     """
     Compute the reduced chi-squared for the model given data.
 
@@ -2893,16 +2944,16 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
     if 'sync' in fit_components:
         y_model += model_synchrotron([A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else
                                      [A_s, alpha_s, beta_s],
-                                     datasets, ell, fit_c_terms=fit_c_terms)
+                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'dust' in fit_components:
         y_model += model_dust([A_d, alpha_d, beta_d, *c_dust] if fit_c_terms else
                               [A_d, alpha_d, beta_d],
-                              datasets, ell, fit_c_terms=fit_c_terms)
+                              datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'cross' in fit_components:
         y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
-                               datasets, ell)
+                               datasets, ell, cc_dict=cc_dict)
 
     chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
     
@@ -3005,7 +3056,7 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
 
 def lnprob(theta_free, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-           param_map=None, fixed_values=None):
+           param_map=None, fixed_values=None, cc_dict=None):
     """
     Reconstruct full parameter vector from free parameters and fixed values,
     then compute log-posterior (lnprior + lnlike).
@@ -3037,7 +3088,8 @@ def lnprob(theta_free, datasets, ell, y_all, yerr_all,
     if not np.isfinite(lp):
         return -np.inf
     ll = lnlike(theta_full, datasets, ell, y_all, yerr_all,
-                fit_c_terms=fit_c_terms, fit_components=fit_components)
+                fit_c_terms=fit_c_terms, fit_components=fit_components,
+                cc_dict=cc_dict)
     return lp + ll
 
 
@@ -3050,6 +3102,7 @@ def run_mcmc(
     discard_fraction=0.5,
     verbose=True,
     fit_mode='power-law',
+    color_correction=False,
 ):
     """
     Run an MCMC fit using data prepared by `prepare_mcmc_data`.
@@ -3072,8 +3125,13 @@ def run_mcmc(
         If True, print progress information.
     fit_mode : str, default 'power-law'
         Fitting mode: 'power-law' or 'bin-to-bin'.
-        - 'power-law': fit global spectral indices (alpha_s, alpha_d) across all ells.
+        - 'power-law': fit global spectral indices (alpha_s_l, alpha_d_l, the multipole slopes) across all ells.
         - 'bin-to-bin': fit amplitudes and spectral indices independently for each ell bin.
+    color_correction : bool, default False
+        If True, apply per-band color-correction factors using quadratic polynomials evaluated at
+        alpha_cc = 2 + beta for each component (synch/dust), where beta is the spectral index in frequency.
+        The correction divides each band scaling (sync, dust, and cross) by the band’s polynomial value.
+        Polynomials are loaded once from color_corrections['cc_polynoms'] and cached in-memory as a dict.
 
     Returns
     -------
@@ -3091,17 +3149,30 @@ def run_mcmc(
 
     if fit_mode == 'power-law':
         return _run_mcmc_powerlaw(
-            fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose
+            fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
+            color_correction
         )
     elif fit_mode == 'bin-to-bin':
         return _run_mcmc_bin_to_bin(
-            fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose
+            fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose,
+            color_correction
         )
     else:
         raise ValueError(f"fit_mode must be 'power-law' or 'bin-to-bin', got '{fit_mode}'")
 
 
-def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose):
+def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
+                       color_correction):
+    # Load color-correction polynomials dict if requested
+    cc_dict = None
+    if color_correction:
+        try:
+            cc_dict = load_color_correction_polynomials()
+            if verbose:
+                print("[run_mcmc] Color corrections enabled (alpha-polynomials per band).")
+        except Exception as e:
+            print(f"[run_mcmc] WARNING: Failed to load color-correction polynomials: {e}. Proceeding without.")
+            cc_dict = None
     """Power-law mode: fit global spectral indices across all ells."""
     datasets = fit_data['datasets']
     ell = fit_data['ell_eff']
@@ -3184,7 +3255,7 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     with mp.get_context("fork").Pool(processes=n_procs, maxtasksperchild=200) as pool:
         sampler = emcee.EnsembleSampler(
             nwalkers, ndim, lnprob,
-            args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components, param_map, fixed_values),
+            args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components, param_map, fixed_values, cc_dict),
             pool=pool
         )
         if verbose:
@@ -3221,7 +3292,7 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     # Calculate reduced chi-squared
     chi2_reduced = compute_chi2_reduced(
         best_params_full, datasets, ell, y_all, yerr_all, 
-        fit_c_terms=fit_c_terms, fit_components=fit_components
+        fit_c_terms=fit_c_terms, fit_components=fit_components, cc_dict=cc_dict
     )
 
     if verbose:
@@ -3231,9 +3302,59 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     return sampler, samples_full, samples_free, param_map, chi2_reduced
 
 
-def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose):
+def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose,
+                         color_correction):
     """
-    Bin-to-bin mode: fit amplitudes and spectral indices independently for each ell bin.
+    Run MCMC in "bin-to-bin" mode, fitting each ell bin independently.
+
+    For every ell bin, an independent MCMC is performed on a compact parameter set:
+    - If 'sync' in fit_components:   [A_s, beta_s]
+    - If 'dust' in fit_components:   [A_d, beta_d]
+    - If 'cross' in fit_components:  [rho]
+
+    Parameters
+    ----------
+    fit_data : dict
+        Output of `prepare_mcmc_data`, with at least the keys:
+        - 'datasets': list of dataset dicts (pair, mode, freqs, slice)
+        - 'ell_eff' : array of effective ells (one per bin)
+        - 'y_all'   : concatenated spectra (not directly used here)
+        - 'yerr_all': concatenated errors   (not directly used here)
+    fit_components : tuple of str
+        Which components to include: any subset of ('sync', 'dust', 'cross').
+    nwalkers : int
+        Number of emcee walkers per bin.
+    ninter : int
+        Total number of iterations per walker (per bin).
+    discard_fraction : float
+        Fraction of initial samples to discard as burn-in when summarizing results.
+    verbose : bool
+        If True, prints progress and resource usage.
+    color_correction : bool
+        If True, applies per-band color-correction polynomials for each component in every bin.
+        The correction is evaluated at alpha_cc = 2 + beta (spectral index in frequency) and
+        divides the per-band scale factors in the synch, dust, and cross terms. Polynomials are
+        loaded once via `load_color_correction_polynomials()` and reused across bins.
+
+    Returns
+    -------
+    samplers_list : list[emcee.EnsembleSampler]
+        The sampler for each ell bin.
+    samples_full_list : list[np.ndarray]
+        Flattened chains (after burn-in) for each bin and its free parameters.
+    samples_free_list : list[np.ndarray]
+        Alias of samples_full_list (no fixed params in this mode).
+    param_names_base : list[str]
+        Names of parameters fitted per bin (depends on `fit_components`).
+    chi2_reduced_list : list[float]
+        Reduced chi-squared per bin at the best-fit parameters.
+
+    Notes
+    -----
+    - Bins are processed sequentially; within each bin, emcee uses a multiprocessing Pool.
+    - Color-corrections are applied in the same way as in power-law mode, but with the
+      bin-specific beta_s and beta_d in each likelihood evaluation.
+    - Each band uses its own polynomial; for dust, Planck HFI bands use the HFI set when present.
     """
     datasets = fit_data['datasets']
     ell = fit_data['ell_eff']
@@ -3263,6 +3384,17 @@ def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fra
         print(f"[run_mcmc bin-to-bin] Available cores: {available_cores}")
         print(f"[run_mcmc bin-to-bin] Using {available_cores} cores for walker parallelization")
     
+    # Load color-correction polynomials dict if requested
+    cc_dict = None
+    if color_correction:
+        try:
+            cc_dict = load_color_correction_polynomials()
+            if verbose:
+                print("[run_mcmc bin-to-bin] Color corrections enabled (alpha=2+beta per band).")
+        except Exception as e:
+            print(f"[run_mcmc bin-to-bin] WARNING: Failed to load color-correction polynomials: {e}. Proceeding without.")
+            cc_dict = None
+
     # Storage for results
     samplers_list = []
     samples_full_list = []
@@ -3334,7 +3466,7 @@ def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fra
         with mp.Pool(processes=available_cores) as pool:
             sampler = emcee.EnsembleSampler(
                 nwalkers, ndim, _lnprob_bin_to_bin,
-                args=(datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base),
+                args=(datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base, cc_dict),
                 pool=pool
             )
             sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
@@ -3348,7 +3480,7 @@ def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fra
         best_idx = np.argmax(sampler.get_log_prob(discard=discard, flat=True))
         best_params = samples_free[best_idx]
         chi2_reduced = _compute_chi2_reduced_bin_to_bin(
-            best_params, datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base
+            best_params, datasets_bin, ell_bin, y_bin, yerr_bin, fit_components, param_names_base, cc_dict
         )
         
         samplers_list.append(sampler)
@@ -3366,7 +3498,7 @@ def _run_mcmc_bin_to_bin(fit_data, fit_components, nwalkers, ninter, discard_fra
     return samplers_list, samples_full_list, samples_free_list, param_names_base, chi2_reduced_list
 
 
-def _lnprob_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+def _lnprob_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names, cc_dict=None):
     """Log-probability for bin-to-bin fitting (single ell bin)."""
     # Prior
     lp = _lnprior_bin_to_bin(theta, param_names)
@@ -3374,7 +3506,7 @@ def _lnprob_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
         return -np.inf
     
     # Likelihood
-    ll = _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names)
+    ll = _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names, cc_dict)
     if not np.isfinite(ll):
         return -np.inf
     
@@ -3418,7 +3550,7 @@ def _lnprior_bin_to_bin(theta, param_names):
     return lp
 
 
-def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names, cc_dict=None):
     """Likelihood for bin-to-bin fitting (single ell bin)."""
     param_dict = {name: theta[i] for i, name in enumerate(param_names)}
     
@@ -3442,7 +3574,15 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
             freq_ref_sync = 11.1
             scale_f1 = (f1 / freq_ref_sync) ** beta_s
             scale_f2 = (f2 / freq_ref_sync) ** beta_s
-            model_val += A_s * scale_f1 * scale_f2
+            if cc_dict is not None:
+                alpha_s_cc = 2.0 + float(beta_s)
+                poly1 = (cc_dict.get('synch', {}) or {}).get(str(d['pair'].split('_')[0]))
+                poly2 = (cc_dict.get('synch', {}) or {}).get(str(d['pair'].split('_')[1]))
+                cc_s1 = (poly1[0] + poly1[1]*alpha_s_cc + poly1[2]*(alpha_s_cc**2)) if poly1 is not None else 1.0
+                cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
+            else:
+                cc_s1 = cc_s2 = 1.0
+            model_val += A_s * (scale_f1/cc_s1) * (scale_f2/cc_s2)
         
         if 'dust' in fit_components:
             # Dust: A_d * mbb_scaling
@@ -3450,7 +3590,15 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
             T_d = 19.6
             scale_f1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
             scale_f2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
-            model_val += A_d * scale_f1 * scale_f2
+            if cc_dict is not None:
+                alpha_d_cc = 2.0 + float(beta_d)
+                poly1 = (cc_dict.get('dust', {}) or {}).get(str(d['pair'].split('_')[0]))
+                poly2 = (cc_dict.get('dust', {}) or {}).get(str(d['pair'].split('_')[1]))
+                cc_d1 = (poly1[0] + poly1[1]*alpha_d_cc + poly1[2]*(alpha_d_cc**2)) if poly1 is not None else 1.0
+                cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
+            else:
+                cc_d1 = cc_d2 = 1.0
+            model_val += A_d * (scale_f1/cc_d1) * (scale_f2/cc_d2)
         
         if 'cross' in fit_components:
             # Cross term: rho * sqrt(A_s * A_d) * (sync_scale1 * dust_scale2 + sync_scale2 * dust_scale1)
@@ -3462,8 +3610,22 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
             s2 = (f2 / freq_ref_sync) ** beta_s
             d1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
             d2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
-            
-            model_val += rho * np.sqrt(A_s * A_d) * (s1 * d2 + s2 * d1)
+            if cc_dict is not None:
+                alpha_s_cc = 2.0 + float(beta_s)
+                alpha_d_cc = 2.0 + float(beta_d)
+                b1, b2 = d['pair'].split('_')
+                syn1 = (cc_dict.get('synch', {}) or {}).get(str(b1))
+                syn2 = (cc_dict.get('synch', {}) or {}).get(str(b2))
+                dus1 = (cc_dict.get('dust', {}) or {}).get(str(b1))
+                dus2 = (cc_dict.get('dust', {}) or {}).get(str(b2))
+                cc_s1 = (syn1[0] + syn1[1]*alpha_s_cc + syn1[2]*(alpha_s_cc**2)) if syn1 is not None else 1.0
+                cc_s2 = (syn2[0] + syn2[1]*alpha_s_cc + syn2[2]*(alpha_s_cc**2)) if syn2 is not None else 1.0
+                cc_d1 = (dus1[0] + dus1[1]*alpha_d_cc + dus1[2]*(alpha_d_cc**2)) if dus1 is not None else 1.0
+                cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
+            else:
+                cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
+
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
         
         y_model[idx] = model_val
     
@@ -3472,7 +3634,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
     return -0.5 * chi2
 
 
-def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names):
+def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, param_names, cc_dict=None):
     """Compute reduced chi-squared for bin-to-bin fit."""
     param_dict = {name: theta[i] for i, name in enumerate(param_names)}
     
@@ -3495,14 +3657,32 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
             freq_ref_sync = 11.1
             scale_f1 = (f1 / freq_ref_sync) ** beta_s
             scale_f2 = (f2 / freq_ref_sync) ** beta_s
-            model_val += A_s * scale_f1 * scale_f2
+            if cc_dict is not None:
+                alpha_s_cc = 2.0 + float(beta_s)
+                b1, b2 = d['pair'].split('_')
+                poly1 = (cc_dict.get('synch', {}) or {}).get(str(b1))
+                poly2 = (cc_dict.get('synch', {}) or {}).get(str(b2))
+                cc_s1 = (poly1[0] + poly1[1]*alpha_s_cc + poly1[2]*(alpha_s_cc**2)) if poly1 is not None else 1.0
+                cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
+            else:
+                cc_s1 = cc_s2 = 1.0
+            model_val += A_s * (scale_f1/cc_s1) * (scale_f2/cc_s2)
         
         if 'dust' in fit_components:
             freq_ref_dust = 353.0
             T_d = 19.6
             scale_f1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
             scale_f2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
-            model_val += A_d * scale_f1 * scale_f2
+            if cc_dict is not None:
+                alpha_d_cc = 2.0 + float(beta_d)
+                b1, b2 = d['pair'].split('_')
+                poly1 = (cc_dict.get('dust', {}) or {}).get(str(b1))
+                poly2 = (cc_dict.get('dust', {}) or {}).get(str(b2))
+                cc_d1 = (poly1[0] + poly1[1]*alpha_d_cc + poly1[2]*(alpha_d_cc**2)) if poly1 is not None else 1.0
+                cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
+            else:
+                cc_d1 = cc_d2 = 1.0
+            model_val += A_d * (scale_f1/cc_d1) * (scale_f2/cc_d2)
         
         if 'cross' in fit_components:
             freq_ref_sync = 11.1
@@ -3513,8 +3693,22 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
             s2 = (f2 / freq_ref_sync) ** beta_s
             d1 = mbb_scaling_KRJ(np.array([f1]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
             d2 = mbb_scaling_KRJ(np.array([f2]), nu0_GHz=freq_ref_dust, beta=beta_d, T_d=T_d)[0]
-            
-            model_val += rho * np.sqrt(A_s * A_d) * (s1 * d2 + s2 * d1)
+            if cc_dict is not None:
+                alpha_s_cc = 2.0 + float(beta_s)
+                alpha_d_cc = 2.0 + float(beta_d)
+                b1, b2 = d['pair'].split('_')
+                syn1 = (cc_dict.get('synch', {}) or {}).get(str(b1))
+                syn2 = (cc_dict.get('synch', {}) or {}).get(str(b2))
+                dus1 = (cc_dict.get('dust', {}) or {}).get(str(b1))
+                dus2 = (cc_dict.get('dust', {}) or {}).get(str(b2))
+                cc_s1 = (syn1[0] + syn1[1]*alpha_s_cc + syn1[2]*(alpha_s_cc**2)) if syn1 is not None else 1.0
+                cc_s2 = (syn2[0] + syn2[1]*alpha_s_cc + syn2[2]*(alpha_s_cc**2)) if syn2 is not None else 1.0
+                cc_d1 = (dus1[0] + dus1[1]*alpha_d_cc + dus1[2]*(alpha_d_cc**2)) if dus1 is not None else 1.0
+                cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
+            else:
+                cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
+
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
         
         y_model[idx] = model_val
     
@@ -4354,6 +4548,53 @@ def read_corrected_cls(path_file, band_list):
 
     return spectra
 
+# ============================================================================================
+# COLOR CORRECTIONS: simple loader returning dict of polynomials per band
+# ============================================================================================
+
+def load_color_correction_polynomials():
+    """
+    Load color-correction polynomials from the FITS file into a simple dictionary.
+
+    Returns
+    -------
+    cc_dict : dict
+        {
+          'synch': { '11': (a0,a1,a2), '23': (...), ... },
+          'dust' : { '11': (a0,a1,a2), '353': (...), ... }
+        }
+    The polynomials are intended to be evaluated at the component's alpha parameter.
+    If both 'dust_HFI' and 'dust_nonHFI' are present for a band, 'dust_HFI' is preferred.
+    """
+    cc_path = color_corrections.get('cc_polynoms')
+    if cc_path is None or not os.path.exists(cc_path):
+        raise FileNotFoundError(f"Color correction FITS not found at '{cc_path}'")
+    with fits.open(cc_path) as hdul:
+        tbl = hdul['CC_POLYNOMS'].data
+        # Build maps
+        synch_map = {}
+        dust_map_hfi = {}
+        dust_map_non = {}
+        for row in tbl:
+            comp = str(row['COMP'])
+            band = str(row['BAND'])
+            a0 = float(row['A0']); a1 = float(row['A1']); a2 = float(row['A2'])
+            if comp == 'synch':
+                synch_map[band] = (a0, a1, a2)
+            elif comp == 'dust_HFI':
+                # Convert beta-polynomial to alpha-polynomial using alpha = beta + 2
+                # If P(beta) = a0 + a1*beta + a2*beta^2, then Q(alpha) = P(alpha-2)
+                # => Q(alpha) = (a0 - 2 a1 + 4 a2) + (a1 - 4 a2) * alpha + (a2) * alpha^2
+                A0p = a0 - 2.0*a1 + 4.0*a2
+                A1p = a1 - 4.0*a2
+                A2p = a2
+                dust_map_hfi[band] = (A0p, A1p, A2p)
+            elif comp == 'dust_nonHFI':
+                dust_map_non[band] = (a0, a1, a2)
+        # Merge dust maps, preferring HFI where available
+        dust_map = {**dust_map_non, **dust_map_hfi}
+        return {'synch': synch_map, 'dust': dust_map}
+
 
 
 # ============================================================================================
@@ -4727,6 +4968,59 @@ def fastcc(freq, alpha=False, td=False, bd=False, detector=False, debug=False, o
 	else:
 		return fastCC
     
+
+def interpcc_setup(infile,band,td_limit=40,method=2):
+	# Read in the fits file with precomputed values
+	dat = fits.open(infile)
+	# print(dat.info())
+	# print(dat[1].header)
+	bands = dat[1].data[0][0]
+	td = dat[1].data[0][1]
+	beta = dat[1].data[0][2]
+	#
+	doing_planck = False
+	if band.startswith('DB'):
+		band = band.split('DB')[1]
+	elif band.startswith('P'):
+		band = band.split('P')[1]
+		doing_planck = True
+	elif band.startswith('I'):
+		iras_bands = {'I100': '4', 'I60': '3', 'I25': '2', 'I12': '1'}
+		band = iras_bands.get(band, 0)
+	idx_band = [ii for ii,bb in enumerate(bands) if band ==bb]
+
+	if len(idx_band) == 0:
+		raise ValueError(f"Invalid band name '{band}'")
+
+	if doing_planck:
+		map_cc = dat[1].data[0][3][1][idx_band[0]]
+		# map_cc = map_cc[::2,::2]
+		# td = td[::2]
+		# beta = beta[::2]
+	else:
+		map_cc = dat[1].data[0][3][idx_band[0]]
+
+	# Limit the dust tempertaure
+	sel_td = (td <= td_limit)
+	X, Y = np.meshgrid(beta,td[sel_td])
+	Z = map_cc[:,sel_td].T
+
+	# Interpolation
+	if method == 1:
+		# Method 1: using interp2d
+		return interpolate.interp2d(X, Y, Z, kind ='cubic')
+	elif method == 2:
+		# Method 2: using Rbf
+		return interpolate.Rbf(X,Y,Z,function='cubic')
+	else:
+		# Method 3, using RegularGridInterpolator
+		return interpolate.RegularGridInterpolator((td[sel_td],beta),Z,method='linear')
+
+def interpcc(interp,td,bd):
+	try:
+		return np.around(interp(bd,td)[()],4)
+	except:
+		return np.around(interp([td,bd])[()],4)[0]
 
 '''
 # ====================================

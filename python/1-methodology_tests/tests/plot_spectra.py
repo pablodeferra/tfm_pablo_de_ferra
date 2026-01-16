@@ -18,7 +18,7 @@ band_list = quijote_bands + wmap_bands + planck_bands
 mask_select = masks['QUIJOTE_galcut']['galcut10_10mk']
 mask_name = mask_select['name']
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
-name_suffix = '_full_bin4-199'
+name_suffix = '_sim'
 
 # File paths
 path_corrected_spectra = os.path.join(out_path, f'corrected_power_spectra_{mask_name}{name_suffix}.fits')
@@ -30,15 +30,15 @@ theoretical_spectra_dict = functions.read_spectra_from_fits(path_theoretical_spe
 
 band_pairs_to_plot = [
     '11_11',
-    '23_23',
-    '30_30',
+    '353_353',
+    '11_353',
 ]
 
-band_pairs_to_plot = [
-    '11_23',
-    '11_30',
-    '23_30',
-]
+# band_pairs_to_plot = [
+#     '11_23',
+#     '11_30',
+#     '23_30',
+# ]
 
 # Output paths for figures
 mask_path = masks['QUIJOTE_galcut']['galcut10']['path']

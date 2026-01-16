@@ -3,105 +3,104 @@
 
 In the following subsections we first present the results obtained on simulated data and then the results for observational data, applying the three procedures described previously (Section \ref{sec:fitting_methods}).
 
-\subsection{Simulated data}
+% \subsection{Simulated data}
 
-We compute the angular power spectra from the PySM simulated maps. Below we present the simulated-data results organised by fitting method: power-law fits with $\Delta\ell = 10$ and $\Delta\ell = 20$, and the bin-to-bin analysis with $\Delta\ell = 20$.
+% We compute the angular power spectra from the PySM simulated maps. Below we present the simulated-data results organised by fitting method: power-law fits with $\Delta\ell = 10$ and $\Delta\ell = 20$, and the bin-to-bin analysis with $\Delta\ell = 20$.
 
 
-\subsubsection{Power-law fit ($\Delta\ell = 10$)}
-The MCMC fitting of the $\Delta\ell = 10$ spectra yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_sim} (EE mode) and Figure~\ref{fig:corner_sd_bb_sim} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components.
+% \subsubsection{Power-law fit ($\Delta\ell = 10$)}
+% The MCMC fitting of the $\Delta\ell = 10$ spectra yields posterior distributions shown in the corner plots of Figure~\ref{fig:corner_sd_ee_sim} (EE mode) and Figure~\ref{fig:corner_sd_bb_sim} (BB mode). These plots illustrate the parameter constraints and correlations for the synchrotron and dust components.
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_sim.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data using $\Delta \ell = 10$.}
-    \label{fig:corner_sd_ee_sim}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_sim.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data using $\Delta \ell = 10$.}
+%     \label{fig:corner_sd_ee_sim}
+% \end{figure*}
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_sim.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data using $\Delta \ell = 10$.}
-    \label{fig:corner_sd_bb_sim}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_sim.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data using $\Delta \ell = 10$.}
+%     \label{fig:corner_sd_bb_sim}
+% \end{figure*}
 
-\subsubsection{Power-law fit ($\Delta\ell = 20$)}
-To test stability with respect to binning, the power-law fit is repeated with $\Delta\ell = 20$. The resulting posterior distributions are displayed in Figure~\ref{fig:corner_sd_ee_sim_dl20} (EE) and Figure~\ref{fig:corner_sd_bb_sim_dl20} (BB).
+% \subsubsection{Power-law fit ($\Delta\ell = 20$)}
+% To test stability with respect to binning, the power-law fit is repeated with $\Delta\ell = 20$. The resulting posterior distributions are displayed in Figure~\ref{fig:corner_sd_ee_sim_dl20} (EE) and Figure~\ref{fig:corner_sd_bb_sim_dl20} (BB).
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_sim_bin4-199.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data using $\Delta \ell = 20$.}
-    \label{fig:corner_sd_ee_sim_dl20}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_sim_bin4-199.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated EE mode data using $\Delta \ell = 20$.}
+%     \label{fig:corner_sd_ee_sim_dl20}
+% \end{figure*}
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_sim_bin4-199.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data using $\Delta \ell = 20$.}
-    \label{fig:corner_sd_bb_sim_dl20}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_sim_bin4-199.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of simulated BB mode data using $\Delta \ell = 20$.}
+%     \label{fig:corner_sd_bb_sim_dl20}
+% \end{figure*}
 
-\subsubsection{Bin-to-bin analysis ($\Delta\ell = 20$)}
-The bin-to-bin analysis fits each multipole bin independently (see Section~\ref{sec:fitting_methods}). Table~\ref{tab:bin_to_bin_results_sim_bin4-199} summarises the fitted parameters per bin, and Figure~\ref{fig:bin-to-bin_sim} shows their evolution with multipole $\ell$.
+% \subsubsection{Bin-to-bin analysis ($\Delta\ell = 20$)}
+% The bin-to-bin analysis fits each multipole bin independently (see Section~\ref{sec:fitting_methods}). Table~\ref{tab:bin_to_bin_results_sim_bin4-199} summarises the fitted parameters per bin, and Figure~\ref{fig:bin-to-bin_sim} shows their evolution with multipole $\ell$.
 
-\input{/home/pablo/Desktop/master/tfm/tables/bin_to_bin_results_sim_bin4-199.tex}
+% \input{/home/pablo/Desktop/master/tfm/tables/bin_to_bin_results_sim_bin4-199.tex}
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{bin_to_bin_evolution_sim_bin4-199.pdf}
-    \caption{Bin-to-bin analysis results (simulations) showing the evolution of fitted synchrotron and dust parameters as a function of multipole $\ell$ for both EE (top) and BB (bottom) modes. The reduced $\chi^2$ values for each bin are shown in the bottom panels.}
-    \label{fig:bin-to-bin_sim}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{bin_to_bin_evolution_sim_bin4-199.pdf}
+%     \caption{Bin-to-bin analysis results (simulations) showing the evolution of fitted synchrotron and dust parameters as a function of multipole $\ell$ for both EE (top) and BB (bottom) modes. The reduced $\chi^2$ values for each bin are shown in the bottom panels.}
+%     \label{fig:bin-to-bin_sim}
+% \end{figure*}
 
 \subsection{Observational data}
 \label{sec:obs_data}
 
 We show results for the same set of fitting approaches used on the simulations to allow direct comparison.
 
-\subsubsection{Power-law fit ($\Delta\ell = 10$)}
-The MCMC fitting of the observational spectra with $\Delta\ell = 10$ yields posterior distributions shown in Figure~\ref{fig:corner_sd_ee_full} (EE) and Figure~\ref{fig:corner_sd_bb_full} (BB).
+% \subsubsection{Power-law fit ($\Delta\ell = 10$)}
+% The MCMC fitting of the observational spectra with $\Delta\ell = 10$ yields posterior distributions shown in Figure~\ref{fig:corner_sd_ee_full} (EE) and Figure~\ref{fig:corner_sd_bb_full} (BB).
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_full.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational EE mode data with bin width $\Delta\ell = 10$.}
-    \label{fig:corner_sd_ee_full}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_full.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational EE mode data with bin width $\Delta\ell = 10$.}
+%     \label{fig:corner_sd_ee_full}
+% \end{figure*}
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_full.pdf}
-    \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational BB mode data with bin width $\Delta\ell = 10$.}
-    \label{fig:corner_sd_bb_full}
-\end{figure*}
+% \begin{figure*}[h]
+%     \centering
+%     \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_full.pdf}
+%     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational BB mode data with bin width $\Delta\ell = 10$.}
+%     \label{fig:corner_sd_bb_full}
+% \end{figure*}
 
 \subsubsection{Power-law fit ($\Delta\ell = 20$)}
 The power-law fit with wider bins ($\Delta\ell = 20$) is shown in Figure~\ref{fig:corner_sd_ee_full_dl20} (EE) and Figure~\ref{fig:corner_sd_bb_full_dl20} (BB).
 
 \begin{figure*}[h]
     \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_EE_full_dl20.pdf}
+    \includegraphics[width=\linewidth]{corner/corner_quijote_galcut20_sync_dust_cross_EE_full_bin_20-199.pdf}
     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational EE mode data with bin width $\Delta\ell = 20$.}
     \label{fig:corner_sd_ee_full_dl20}
 \end{figure*}
 
 \begin{figure*}[h]
     \centering
-    \includegraphics[width=\linewidth]{corner/corner_sync_dust_cross_BB_full_dl20.pdf}
+    \includegraphics[width=\linewidth]{corner/corner_quijote_galcut20_sync_dust_cross_BB_full_bin_20-199.pdf}
     \caption{Corner plot showing posterior distributions for synchrotron and dust model parameters from MCMC fitting of observational BB mode data with bin width $\Delta\ell = 20$.}
     \label{fig:corner_sd_bb_full_dl20}
 \end{figure*}
 
 \subsubsection{Bin-to-bin analysis ($\Delta\ell = 20$)}
-The bin-to-bin analysis for observational data fits each multipole bin independently; results are listed in Table~\ref{tab:bin_to_bin_results_full_bin4-199} and illustrated in Figure~\ref{fig:bin-to-bin_full}.
+The bin-to-bin analysis for observational data fits each multipole bin independently; results are listed in Table~\ref{tab:bin_to_bin_results_galcut_20} and illustrated in Figure~\ref{fig:bin-to-bin_full_galcut_20}.
 
-\input{/home/pablo/Desktop/master/tfm/tables/bin_to_bin_results_full_bin4-199.tex}
+\input{/home/pablo/Desktop/master/tfm/tables/bin_to_bin_results_quijote_galcut20_full_bin_20-199.tex}
 
 \begin{figure*}[h]
     \centering
-    \includegraphics[width=\linewidth]{bin_to_bin_evolution_full_bin4-199.pdf}
+    \includegraphics[width=\linewidth]{bin-to-bin/bin_to_bin_evolution_quijote_galcut20_full_bin_20-199.pdf}
     \caption{Bin-to-bin analysis results (observational) showing the evolution of fitted synchrotron and dust parameters as a function of multipole $\ell$ for both EE (top) and BB (bottom) modes.}
-    \label{fig:bin-to-bin_full}
+    \label{fig:bin-to-bin_full_galcut_20}
 \end{figure*}
-

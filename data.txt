@@ -1,0 +1,218 @@
+======================================
+Maps
+======================================
+
+QUIJOTE:
+ ·quijote_mfi_skymap_11ghz_512_dr1.fits
+ ·quijote_mfi_skymap_11ghz_512_dr1_half1.fits
+ ·quijote_mfi_skymap_11ghz_512_dr1_half2.fits
+ 
+ ·quijote_mfi_skymap_17ghz_512_dr1.fits.fits
+ ·quijote_mfi_skymap_17ghz_512_dr1_half1.fits
+ ·quijote_mfi_skymap_17ghz_512_dr1_half2.fits
+
+
+WMAP:
+ ·wmap_band_iqumap_r9_9yr_K_v5.fits
+ ·wmap_iqumap_r9_yr1_K1_v5.fits
+ ·wmap_iqumap_r9_yr2_K1_v5.fits
+ ·wmap_iqumap_r9_yr3_K1_v5.fits
+ ·wmap_iqumap_r9_yr4_K1_v5.fits
+ ·wmap_iqumap_r9_yr5_K1_v5.fits
+ ·wmap_iqumap_r9_yr6_K1_v5.fits
+ ·wmap_iqumap_r9_yr7_K1_v5.fits
+ ·wmap_iqumap_r9_yr8_K1_v5.fits
+ ·wmap_iqumap_r9_yr9_K1_v5.fits
+ 
+ ·wmap_band_iqumap_r9_9yr_Ka_v5.fits
+ ·wmap_iqumap_r9_yr1_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr2_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr3_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr4_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr5_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr6_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr7_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr8_Ka1_v5.fits
+ ·wmap_iqumap_r9_yr9_Ka1_v5.fits
+ 
+ ·wmap_band_iqumap_r9_9yr_Q_v5.fits
+ ·wmap_iqumap_r9_yr1_Q1_v5.fits
+ ·wmap_iqumap_r9_yr2_Q1_v5.fits
+ ·wmap_iqumap_r9_yr3_Q1_v5.fits
+ ·wmap_iqumap_r9_yr4_Q1_v5.fits
+ ·wmap_iqumap_r9_yr5_Q1_v5.fits
+ ·wmap_iqumap_r9_yr6_Q1_v5.fits
+ ·wmap_iqumap_r9_yr7_Q1_v5.fits
+ ·wmap_iqumap_r9_yr8_Q1_v5.fits
+ ·wmap_iqumap_r9_yr9_Q1_v5.fits
+ ·wmap_iqumap_r9_yr1_Q2_v5.fits
+ ·wmap_iqumap_r9_yr2_Q2_v5.fits
+ ·wmap_iqumap_r9_yr3_Q2_v5.fits
+ ·wmap_iqumap_r9_yr4_Q2_v5.fits
+ ·wmap_iqumap_r9_yr5_Q2_v5.fits
+ ·wmap_iqumap_r9_yr6_Q2_v5.fits
+ ·wmap_iqumap_r9_yr7_Q2_v5.fits
+ ·wmap_iqumap_r9_yr8_Q2_v5.fits
+ ·wmap_iqumap_r9_yr9_Q2_v5.fits
+ 
+ ·wmap_band_iqumap_r9_9yr_V_v5.fits
+ ·wmap_iqumap_r9_yr1_V1_v5.fits
+ ·wmap_iqumap_r9_yr2_V1_v5.fits
+ ·wmap_iqumap_r9_yr3_V1_v5.fits
+ ·wmap_iqumap_r9_yr4_V1_v5.fits
+ ·wmap_iqumap_r9_yr5_V1_v5.fits
+ ·wmap_iqumap_r9_yr6_V1_v5.fits
+ ·wmap_iqumap_r9_yr7_V1_v5.fits
+ ·wmap_iqumap_r9_yr8_V1_v5.fits
+ ·wmap_iqumap_r9_yr9_V1_v5.fits
+ ·wmap_iqumap_r9_yr1_V2_v5.fits
+ ·wmap_iqumap_r9_yr2_V2_v5.fits
+ ·wmap_iqumap_r9_yr3_V2_v5.fits
+ ·wmap_iqumap_r9_yr4_V2_v5.fits
+ ·wmap_iqumap_r9_yr5_V2_v5.fits
+ ·wmap_iqumap_r9_yr6_V2_v5.fits
+ ·wmap_iqumap_r9_yr7_V2_v5.fits
+ ·wmap_iqumap_r9_yr8_V2_v5.fits
+ ·wmap_iqumap_r9_yr9_V2_v5.fits
+ 
+ ·wmap_band_iqumap_r9_9yr_W_v5.fits
+ ·wmap_iqumap_r9_yr1_W1_v5.fits
+ ·wmap_iqumap_r9_yr2_W1_v5.fits
+ ·wmap_iqumap_r9_yr3_W1_v5.fits
+ ·wmap_iqumap_r9_yr4_W1_v5.fits
+ ·wmap_iqumap_r9_yr5_W1_v5.fits
+ ·wmap_iqumap_r9_yr6_W1_v5.fits
+ ·wmap_iqumap_r9_yr7_W1_v5.fits
+ ·wmap_iqumap_r9_yr8_W1_v5.fits
+ ·wmap_iqumap_r9_yr9_W1_v5.fits
+ ·wmap_iqumap_r9_yr1_W2_v5.fits
+ ·wmap_iqumap_r9_yr2_W2_v5.fits
+ ·wmap_iqumap_r9_yr3_W2_v5.fits
+ ·wmap_iqumap_r9_yr4_W2_v5.fits
+ ·wmap_iqumap_r9_yr5_W2_v5.fits
+ ·wmap_iqumap_r9_yr6_W2_v5.fits
+ ·wmap_iqumap_r9_yr7_W2_v5.fits
+ ·wmap_iqumap_r9_yr8_W2_v5.fits
+ ·wmap_iqumap_r9_yr9_W2_v5.fits
+ ·wmap_iqumap_r9_yr1_W3_v5.fits
+ ·wmap_iqumap_r9_yr2_W3_v5.fits
+ ·wmap_iqumap_r9_yr3_W3_v5.fits
+ ·wmap_iqumap_r9_yr4_W3_v5.fits
+ ·wmap_iqumap_r9_yr5_W3_v5.fits
+ ·wmap_iqumap_r9_yr6_W3_v5.fits
+ ·wmap_iqumap_r9_yr7_W3_v5.fits
+ ·wmap_iqumap_r9_yr8_W3_v5.fits
+ ·wmap_iqumap_r9_yr9_W3_v5.fits
+ ·wmap_iqumap_r9_yr1_W4_v5.fits
+ ·wmap_iqumap_r9_yr2_W4_v5.fits
+ ·wmap_iqumap_r9_yr3_W4_v5.fits
+ ·wmap_iqumap_r9_yr4_W4_v5.fits
+ ·wmap_iqumap_r9_yr5_W4_v5.fits
+ ·wmap_iqumap_r9_yr6_W4_v5.fits
+ ·wmap_iqumap_r9_yr7_W4_v5.fits
+ ·wmap_iqumap_r9_yr8_W4_v5.fits
+ ·wmap_iqumap_r9_yr9_W4_v5.fits
+
+
+Planck LFI:
+ ·LFI_SkyMap_030-BPassCorrected_1024_R3.00_full.fits
+ ·LFI_SkyMap_030-BPassCorrected_1024_R3.00_full-ringhalf-1.fits
+ ·LFI_SkyMap_030-BPassCorrected_1024_R3.00_full-ringhalf-2.fits
+ 
+ ·LFI_SkyMap_044-BPassCorrected_1024_R3.00_full.fits
+ ·LFI_SkyMap_044-BPassCorrected_1024_R3.00_full-ringhalf-1.fits
+ ·LFI_SkyMap_044-BPassCorrected_1024_R3.00_full-ringhalf-2.fits
+ 
+ ·LFI_SkyMap_070-BPassCorrected_1024_R3.00_full.fits
+ ·LFI_SkyMap_070-BPassCorrected_1024_R3.00_full-ringhalf-1.fits
+ ·LFI_SkyMap_070-BPassCorrected_1024_R3.00_full-ringhalf-2.fits
+
+Planck HFI:
+ ·HFI_SkyMap_100_2048_R3.01_full.fits
+ ·HFI_SkyMap_100_2048_R3.01_halfmission-1.fits
+ ·HFI_SkyMap_100_2048_R3.01_halfmission-2.fits
+ 
+ ·HFI_SkyMap_143_2048_R3.01_full.fits
+ ·HFI_SkyMap_143_2048_R3.01_halfmission-1.fits
+ ·HFI_SkyMap_143_2048_R3.01_halfmission-2.fits
+ 
+ ·HFI_SkyMap_217_2048_R3.01_full.fits
+ ·HFI_SkyMap_217_2048_R3.01_halfmission-1.fits
+ ·HFI_SkyMap_217_2048_R3.01_halfmission-2.fits
+ 
+ ·HFI_SkyMap_353-psb_2048_R3.01_full.fits
+ ·HFI_SkyMap_353-psb_2048_R3.01_halfmission-1.fits
+ ·HFI_SkyMap_353-psb_2048_R3.01_halfmission-2.fits
+
+======================================
+Noise simulations (n = 1)
+======================================
+
+QUIJOTE:
+ ·quijote_11GHz_horn3_0001_sm1deg.fits
+ ·19 GHz simulations
+
+
+WMAP:
+ ·My own white noise simualtions
+
+
+Planck LFI:
+ ·ffp10_noise_030_full_map_mc_00001.fits
+ ·ffp10_noise_044_full_map_mc_00001.fits
+ ·ffp10_noise_070_full_map_mc_00001.fits
+
+
+Planck HFI:
+ ·ffp10_noise_100_full_map_mc_00001.fits
+ ·ffp10_noise_143_full_map_mc_00001.fits
+ ·ffp10_noise_217_full_map_mc_00001.fits
+ ·ffp10_noise_353_psb_full_map_mc_00001.fits
+
+======================================
+Simulated maps
+======================================
+
+QUIJOTE:
+ ·My own simulations, built with PySM
+
+
+WMAP:
+ ·My own simulations, built with PySM
+
+
+Planck LFI:
+ ·My own simulations, built with PySM
+
+
+Planck HFI:
+ ·My own simulations, built with PySM
+
+
+======================================
+Beams
+======================================
+
+QUIJOTE:
+ ·rimo_quijote_mfi_beamtf_dr1.fits
+
+
+WMAP:
+ ·wmap_ampl_bl_K_9yr_v5p1.txt
+ ·wmap_ampl_bl_Ka_9yr_v5p1.txt
+ ·wmap_ampl_bl_Q_9yr_v5p1.txt
+ ·wmap_ampl_bl_V_9yr_v5p1.txt
+ ·wmap_ampl_bl_W_9yr_v5p1.txt
+
+
+Planck LFI:
+ ·LFI_RIMO_R3.31.fits
+
+
+Planck HFI:
+ ·Bl_TEB_R3.01_fullsky_100x100.fits
+ ·Bl_TEB_R3.01_fullsky_143x143.fits
+ ·Bl_TEB_R3.01_fullsky_217x217.fits
+ ·Bl_TEB_R3.01_fullsky_353x353.fits
+
+

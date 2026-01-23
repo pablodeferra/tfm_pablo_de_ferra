@@ -7,6 +7,7 @@ from astropy.io import fits
 import sys
 sys.path.append('./')
 from data import path_cc
+import functions as functions
 
 # Configuration
 TDUST = 19.6
@@ -65,15 +66,11 @@ for exp, bands in SYNCH_CODES.items():
         dust_nonhfi_rows.append((exp, band_label, 'dust_nonHFI', 'alpha', a0, a1, a2, np.nan))
 
 # HFI dust from table at Tdust
-cc_td_hfi_path = os.path.join(path_cc, 'c_td_10-40_beta_hfi_pr3.fits')
+cc_td_hfi_path = os.path.join(path_cc, 'c_td_10-40_beta_hfi_bps_pr3.fits')
 # Read native grids (bands, Tdust, beta) and slice to Planck case
 with fits.open(cc_td_hfi_path) as hdul:
     bands_arr = hdul[1].data[0][0]
-    td_arr = np.asarray(hdul[1].data[0][1], dtype=float)
     beta_grid = np.asarray(hdul[1].data[0][2], dtype=float).ravel()
-    # map_cc shape handling per functions.interpcc_setup
-    # For Planck bands: dat[1].data[0][3][1][idx_band]
-    full_maps = hdul[1].data[0][3]
 
 hfi_dust_rows = []
 for band_label in HFI_DUST_BANDS:
@@ -82,32 +79,9 @@ for band_label in HFI_DUST_BANDS:
     if not idx_band:
         raise ValueError(f"Band {band_label} not found in HFI CC table")
     idx = idx_band[0]
-    # Planck-specific slice
-    with fits.open(cc_td_hfi_path) as hdul:
-        full_maps = hdul[1].data[0][3]
-        map_cc = np.asarray(full_maps[1][idx], dtype=float)  # shape ~ [len(beta), len(td)]
-        td_arr = np.asarray(hdul[1].data[0][1], dtype=float)
-        beta_grid = np.asarray(hdul[1].data[0][2], dtype=float).ravel()
-
-    # Select temperature window up to 40 K (as in functions)
-    sel_td = td_arr <= 40.0
-    td_sel = td_arr[sel_td]
-    Z = map_cc[:, sel_td].T  # shape (len(td_sel), len(beta))
-
-    # Interpolate along temperature to get values at TDUST for all beta
-    if TDUST <= td_sel.min() or TDUST >= td_sel.max():
-        # Clamp to bounds if outside
-        td_used = td_sel[np.argmin(np.abs(td_sel - TDUST))]
-        row = Z[np.argmin(np.abs(td_sel - TDUST)), :]
-    else:
-        # Find bracketing indices
-        i = np.searchsorted(td_sel, TDUST) - 1
-        i = max(0, min(i, len(td_sel) - 2))
-        t0, t1 = td_sel[i], td_sel[i+1]
-        w = (TDUST - t0) / (t1 - t0)
-        row = (1.0 - w) * Z[i, :] + w * Z[i+1, :]
-
-    cc_vals = np.asarray(row, dtype=float)
+    # Build cc(beta, TDUST) using the table interpolator (method=3) for all beta
+    interp_bps = functions.interpcc_setup(cc_td_hfi_path, f"P{band_label}", td_limit=40, method=3)
+    cc_vals = np.array([functions.interpcc(interp_bps, TDUST, b) for b in beta_grid], dtype=float)
     a0, a1, a2 = fit_quadratic(beta_grid, cc_vals)
     hfi_dust_rows.append(('Planck', band_label, 'dust_HFI', 'beta', float(a0), float(a1), float(a2), float(TDUST)))
 

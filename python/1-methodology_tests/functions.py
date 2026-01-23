@@ -1865,6 +1865,35 @@ def cmb_unit_conversion(nuGHz, option='KCMB2KRJ', help=False):
     return fac
 
 
+# Unit corrections for PLANCK HFI. Values extracted from PLA, explanatory supplement.
+# https://wiki.cosmos.esa.int/planck-legacy-archive/index.php/UC_CC_Tables
+# RGS values sent via email, 26-27/Feb/2025
+def planck_uc_hfi(use_bps=True):
+    bands_hfi = np.array([100, 143, 217, 353, 545, 857], dtype=float) # GHz
+
+    # Table 1. Coefficient MJy/sr/KCMB. Values correspond to "avg" entry.
+    UC_HFI_KCMB2MJysr_PLA = np.array([244.0960, 371.7327, 483.6874, 287.4517, 58.0356, 2.2681])
+
+    # Computed by RGS, including bandpass shift
+    UC_HFI_KCMB2MJysr_rgs = np.array([242.09786, 370.53512, 481.93046, 287.22432, 56.659334, 2.1156277])
+
+    # Table 2. KRJ/(MJy/sr).
+    # Note: Coincides with Table 5 of Planck 2013, IX. HFI spectral response
+    UC_HFI_MJysr2KRJ_PLA = np.array([0.0032548074, 0.0015916707, 0.00069120334, 0.00026120163, 0.00010958025, 4.4316316e-05 ])
+
+    # Computed by RGS, evaluated at the center
+    UC_HFI_MJysr2KRJ_rgs = 1./np.array([307.09143, 627.97125, 1446.0629, 3826.6356, 9121.3834, 22554.299])
+
+    # Derived quantities (final outputs)
+    UC_HFI_KCMB2KRJ = UC_HFI_KCMB2MJysr_rgs * UC_HFI_MJysr2KRJ_rgs #includes Bandpass shifts
+    uc_hfi_no_bps   = UC_HFI_KCMB2MJysr_PLA * UC_HFI_MJysr2KRJ_PLA
+
+    # Select output. Default is bandpass shift corrected value.
+    output = UC_HFI_KCMB2KRJ
+    if use_bps==False: output = uc_hfi_no_bps
+
+    return output
+
 # ---------------------------------------------------------------------
 def load_cmb_spectrum_from_file(filepath, ell_values, planck_format=True):
     """
@@ -2073,7 +2102,25 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
                     nuGHz = float(freq)
 
                 # Unit conversion factor (K_CMB → K_RJ)
-                unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
+                if correct_unit:
+                    # Use generic conversion for all bands except Planck HFI
+                    is_planck = str(exp).lower() == 'planck'
+                    hfi_band_set = {'100','143','217','353','545','857'}
+                    if is_planck and str(band) in hfi_band_set:
+                        # Select HFI KCMB->KRJ value with bandpass shift correction (use_bps=True)
+                        try:
+                            uc_hfi = planck_uc_hfi(use_bps=True)
+                            hfi_order = [100, 143, 217, 353, 545, 857]
+                            idx = hfi_order.index(int(float(band)))
+                            unit_dict[band] = float(uc_hfi[idx])
+                        except Exception:
+                            # Fallback to generic conversion if mapping fails
+                            print('HFI uc failed, using generic conversion instead')
+                            unit_dict[band] = float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
+                    else:
+                        unit_dict[band] = float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
+                else:
+                    unit_dict[band] = 1.0
                     
                 wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
                 break
@@ -2312,7 +2359,21 @@ def correct_theoretical_spectra(path_theoretical_spectra, band_list, data, nside
                     nuGHz = float(freq)
 
                 # Unit conversion factor (K_CMB → K_RJ)
-                unit_dict[band] = cmb_unit_conversion(nuGHz, 'KCMB2KRJ') if correct_unit else 1.0
+                if correct_unit:
+                    is_planck = str(exp).lower() == 'planck'
+                    hfi_band_set = {'100','143','217','353','545','857'}
+                    if is_planck and str(band) in hfi_band_set:
+                        try:
+                            uc_hfi = planck_uc_hfi(use_bps=True)
+                            hfi_order = [100, 143, 217, 353, 545, 857]
+                            idx = hfi_order.index(int(float(band)))
+                            unit_dict[band] = float(uc_hfi[idx])
+                        except Exception:
+                            unit_dict[band] = float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
+                    else:
+                        unit_dict[band] = float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
+                else:
+                    unit_dict[band] = 1.0
                     
                 wp_dict[band] = wp_interp if correct_pixel else np.ones_like(ell_eff)
                 break

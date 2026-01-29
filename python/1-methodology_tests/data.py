@@ -6,10 +6,6 @@ path_masks = '/media/pablo/cmb_ssd/masks/'
 path_cc = '/home/pablo/Desktop/master/tfm/cc/'
 
 data = {
-    'color_corrections': {
-        'path': path_cc,
-        'cache_file': path_cc + 'color_corrections_table.fits',
-    },
     'QUIJOTE': {
         '11': {
             'freq': 10.98 * u.GHz,
@@ -56,7 +52,7 @@ data = {
             'half_2': path_map + 'QUIJOTE/hmdm/quijote_mfi_skymap_17ghz_512_dr1_half2.fits',
             'path_noise_simulations': path_map + 'QUIJOTE/noise_simulations/17_quijote/',
             'path_white_noise_simulations': path_map + 'QUIJOTE/noise_simulations/17/',
-            'noise_simulation_1': 'quijote_17GHz_horn4_0001_sm1deg.fits',
+            'noise_simulation_1': 'quijote_17GHz_hornx_0001_sm1deg.fits',
             'white_noise_simulation_1': 'white_noise_17ghz_0001.fits',
         },
         '19': {
@@ -72,7 +68,7 @@ data = {
             'half_2': path_map + 'QUIJOTE/hmdm/quijote_mfi_skymap_19ghz_512_dr1_half2.fits',
             'path_noise_simulations': path_map + 'QUIJOTE/noise_simulations/19_quijote/',
             'path_white_noise_simulations': path_map + 'QUIJOTE/noise_simulations/19/',
-            'noise_simulation_1': 'quijote_19GHz_horn4_0001_sm1deg.fits',
+            'noise_simulation_1': 'quijote_19GHz_hornx_0001_sm1deg.fits',
             'white_noise_simulation_1': 'white_noise_19ghz_0001.fits',
         },
     },
@@ -633,5 +629,4 @@ color_corrections = {
     'Planck_HFI_dust_bps': path_cc + 'c_td_10-40_beta_hfi_bps_pr3.fits',
     'Planck_HFI_dust': path_cc + 'c_td_10-40_beta_hfi_pr3.fits',
     'cc_polynoms': path_cc + 'cc_polynoms.fits'
-
 }

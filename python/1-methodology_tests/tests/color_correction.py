@@ -138,7 +138,7 @@ for band in bands_hfi:
 #%%
 # Interpolate HFI PR3-bps table to Tdust and fit polynomial; compare value at alpha_dust=3.5
 TDUST = 19.6
-alpha_d_fit = 3.5
+alpha_d_fit = 3.55
 beta_d_fit = alpha_d_fit - 2.0
 
 def beta_to_alpha_poly(a0b, a1b, a2b):

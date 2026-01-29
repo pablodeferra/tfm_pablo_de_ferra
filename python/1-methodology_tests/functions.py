@@ -24,6 +24,9 @@ import multiprocessing as mp
 from scipy.stats import gaussian_kde
 from scipy import interpolate
 from data import data
+from math import log, pi
+from math import lgamma as _lgamma
+from scipy.special import gammaln
 
 # ------------------------------------------------------------------
 # Optional Gaussian priors (global, lightweight mechanism)
@@ -908,25 +911,60 @@ def save_band_beam(band_name, header_template, data, save_path):
     print(f'Saved band beam file: {file_path}')
 
 
-def generate_band_beams(BANDS, beam_path, save_path):
+def generate_band_beams(BANDS, beam_path, save_path, data_dict=None, band_code_map=None, use_qu=True, mask_path=None, normalize_weights=True):
     '''
-    Generate averaged beams for each frequency band from DA beams.
-    
+    Generate effective band beams by combining DA beams, automatically computing DA weights from N_obs and DA noise if data_dict is provided.
+
     Parameters
     ----------
     BANDS : dict
-        Dictionary of bands and their DAs.
+        Dictionary of bands and their DAs, e.g. {'W': ['W1','W2','W3','W4'], ...}.
     beam_path : str
-        Path to the directory containing original DA beam txt files.
+        Directory containing original DA beam txt files (wmap_ampl_bl_<DA>_9yr_v5p1.txt).
     save_path : str
-        Path where the new band beams will be saved.
+        Directory where the band-averaged beam files will be written.
+    data_dict : dict or None, optional
+        If provided, will be used to read DA map FITS and compute weights from N_obs and DA noise.
+    band_code_map : dict or None, optional
+        Mapping from band letter to WMAP band code (e.g., {'K': '23', 'Ka': '33', ...}). If None, uses default mapping.
+    use_qu : bool, default True
+        Use 'noise_QU' for sigma0 if True, else 'noise_I'.
+    mask_path : str or None, optional
+        Optional Healpy mask FITS path; if provided, weights use N_obs within the unmasked region (mask>0).
+    normalize_weights : bool, default True
+        Whether to normalize weights so they sum to 1 before averaging.
 
     Returns
     -------
     None
-        The function writes a text file for each band to disk and prints a confirmation message.
+        Writes one beam file per band and prints a confirmation message.
     '''
-    
+
+    def _compute_band_weights(band, da_list):
+        # If data_dict is provided, compute weights from N_obs and DA noise
+        if data_dict is not None:
+            # Map band letter to WMAP band code
+            default_code_map = {'K': '23', 'Ka': '33', 'Q': '41', 'V': '61', 'W': '94'}
+            code_map = band_code_map if band_code_map is not None else default_code_map
+            band_code = code_map.get(band, None)
+            if band_code is None:
+                print(f"WARNING: No band code for {band}; using equal weights.")
+                return np.ones(len(da_list), dtype=float) / len(da_list)
+            # Use helper to compute weights
+            w_dict = compute_wmap_da_weights(data_dict, band_code, {band: da_list}, use_qu=use_qu, mask_path=mask_path)
+            w = np.array([w_dict.get(da, 1.0) for da in da_list], dtype=float)
+            if normalize_weights:
+                s = np.sum(w)
+                if s > 0:
+                    w = w / s
+            return w
+        else:
+            # Default: equal weights
+            w = np.ones(len(da_list), dtype=float)
+            if normalize_weights:
+                w = w / len(da_list)
+            return w
+
     for band, das in BANDS.items():
         all_data = []
         header_template = None
@@ -939,19 +977,157 @@ def generate_band_beams(BANDS, beam_path, save_path):
             header, data = load_beam_file(file_path)
             if header_template is None:
                 header_template = header
-            all_data.append(data)
+            all_data.append((da, data))
         if len(all_data) == 0:
             print(f'No beams found for band {band}')
             continue
-        # Average B_l (column 2) and fractional error (column 3) across DAs
-        avg_data = np.copy(all_data[0])
-        if len(all_data) > 1:
-            for i in range(1, len(all_data)):
-                avg_data[:,1] += all_data[i][:,1]
-                avg_data[:,2] += all_data[i][:,2]
-            avg_data[:,1] /= len(all_data)
-            avg_data[:,2] /= len(all_data)
+
+        # Prepare weights aligned with loaded DA order
+        da_loaded = [da for da, _ in all_data]
+        w = _compute_band_weights(band, da_loaded)
+
+        # Initialize output array with ell column from the first DA
+        first_data = all_data[0][1]
+        avg_data = np.zeros_like(first_data)
+        avg_data[:, 0] = first_data[:, 0]
+
+        # Sanity check: all ell columns match; if not, we use interpolation
+        ell_ref = first_data[:, 0]
+        mismatch = False
+        for _, data in all_data[1:]:
+            if not np.array_equal(data[:, 0], ell_ref):
+                mismatch = True
+                break
+
+        if mismatch:
+            # Interpolate each DA onto the reference ell grid before averaging
+            def _interp_to_ref(data_arr):
+                ell = data_arr[:, 0]
+                bl = data_arr[:, 1]
+                ferr = data_arr[:, 2]
+                bl_i = np.interp(ell_ref, ell, bl, left=1.0, right=1.0)
+                ferr_i = np.interp(ell_ref, ell, ferr, left=ferr[0], right=ferr[-1])
+                return bl_i, ferr_i
+
+            bl_sum = np.zeros_like(ell_ref, dtype=float)
+            ferr_sum = np.zeros_like(ell_ref, dtype=float)
+            for (da, data), wi in zip(all_data, w):
+                bl_i, ferr_i = _interp_to_ref(data)
+                bl_sum += wi * bl_i
+                ferr_sum += wi * ferr_i
+            avg_data[:, 1] = bl_sum
+            avg_data[:, 2] = ferr_sum
+        else:
+            # Weighted average on matching ell grid
+            bl_sum = np.zeros_like(ell_ref, dtype=float)
+            ferr_sum = np.zeros_like(ell_ref, dtype=float)
+            for (da, data), wi in zip(all_data, w):
+                bl_sum += wi * data[:, 1]
+                ferr_sum += wi * data[:, 2]
+            avg_data[:, 1] = bl_sum
+            avg_data[:, 2] = ferr_sum
+
         save_band_beam(band, header_template, avg_data, save_path)
+
+
+def compute_wmap_da_weights(data_dict, band_code, BANDS, use_qu=True, mask_path=None):
+    '''
+    Compute per-DA weights for a WMAP band using N_obs and DA noise.
+
+    Parameters
+    ----------
+    data_dict : dict
+        The `data` dictionary from data.py containing paths and DA noise.
+    band_code : str
+        WMAP band frequency code as used in `data_dict['WMAP']` (e.g., '41' for Q, '61' for V, '94' for W).
+    BANDS : dict
+        Mapping of nominal band letters to DA lists, e.g. {'Q': ['Q1','Q2'], 'W': ['W1','W2','W3','W4']}.
+        This function infers the band letter from `band_code`.
+    use_qu : bool, default True
+        If True, use 'noise_QU' for sigma0; otherwise use 'noise_I'.
+    mask_path : str or None
+        Optional Healpy mask FITS path; if provided, weights use N_obs within the unmasked region (mask>0).
+
+    Returns
+    -------
+    dict
+        Dictionary mapping DA name to normalized weight, e.g. {'W1': w1, 'W2': w2, ...}.
+
+    Notes
+    -----
+    - Weight definition: w_i ∝ sigma_p N_obs_i(p) / sigma0_i^2 over pixels p (optionally masked).
+    - If sigma0_i is unavailable, falls back to w_i ∝ sigma_p N_obs_i(p).
+    - Uses 9-year DA maps (paths like wmap_iqumap_r9_9yr_<DA>_v5.fits) specified in data.py.
+    '''
+    # Map numeric band code to letter used in DA names
+    code_to_letter = {
+        '23': 'K', '33': 'Ka', '41': 'Q', '61': 'V', '94': 'W'
+    }
+    if band_code not in code_to_letter:
+        raise ValueError(f"Unsupported WMAP band code: {band_code}")
+    band_letter = code_to_letter[band_code]
+    da_list = BANDS.get(band_letter, [])
+    if not da_list:
+        raise ValueError(f"No DAs found for band {band_letter} in BANDS")
+
+    mask = None
+    if mask_path is not None and os.path.exists(mask_path):
+        try:
+            mask = hp.read_map(mask_path)
+        except Exception:
+            mask = None
+
+    weights = {}
+    for da in da_list:
+        # Find DA key in data_dict for this band (e.g., '94_1' corresponds to W1)
+        # Build expected DA index from last char of DA name
+        try:
+            da_idx = int(da[-1])
+        except Exception:
+            da_idx = 1
+        da_key = f"{band_code}_{da_idx}"
+        if 'WMAP' not in data_dict or da_key not in data_dict['WMAP']:
+            print(f"WARNING: Missing WMAP DA entry for {da_key} in data dict; skipping")
+            continue
+
+        da_entry = data_dict['WMAP'][da_key]
+        da_path = da_entry.get('path')
+        if not da_path or not os.path.exists(da_path):
+            print(f"WARNING: DA map not found for {da_key}: {da_path}")
+            continue
+
+        # Read N_obs from HDU 1, field index 3 (I,Q,U,N_obs)
+        try:
+            nobs = hp.read_map(da_path, field=3, hdu=1)
+        except Exception:
+            print(f"WARNING: Could not read N_obs for {da_key}; skipping")
+            continue
+
+        if mask is not None:
+            sel = (mask > 0)
+            nobs_sum = float(np.sum(nobs[sel]))
+        else:
+            nobs_sum = float(np.sum(nobs))
+
+        # sigma0 from data dict; prefer QU for polarization beams
+        sigma0 = da_entry.get('noise_QU' if use_qu else 'noise_I', None)
+        if hasattr(sigma0, 'value'):
+            sigma0 = float(sigma0.value)
+        elif sigma0 is not None:
+            sigma0 = float(sigma0)
+
+        if sigma0 and sigma0 > 0:
+            w = nobs_sum / (sigma0 ** 2)
+        else:
+            w = nobs_sum
+        weights[da] = w
+
+    # Normalize
+    s = sum(weights.values())
+    if s > 0:
+        for da in list(weights.keys()):
+            weights[da] = weights[da] / s
+    return weights
 
 
 '''
@@ -1566,6 +1742,7 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
                     sum_dict[key][cl_key] += arr
                     sumsq_dict[key][cl_key] += arr**2
 
+
     # Build final dictionary with MEAN and STD
     avg_std_dict = {}
     for key in sum_dict:
@@ -1703,6 +1880,300 @@ def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
                 spectra_dict[key] = spec_dict
 
     return spectra_dict
+
+def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
+    """
+    Read power spectra from a FITS file into a dictionary.
+
+    The function automatically detects whether the FITS file contains:
+    - Simple spectra (columns: 'ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB')
+    - Averaged spectra with errors (columns: 'TT_MEAN','TT_STD', ...)
+
+    Depending on the case, the returned dictionary has one of the following forms:
+
+    Case 1: simple spectra
+        spectra['band_i_band_j']['TT'] -> array
+
+    Case 2: average+std spectra
+        spectra['band_i_band_j']['TT']['MEAN'] -> array
+        spectra['band_i_band_j']['TT']['STD']  -> array
+
+    Parameters
+    ----------
+    path_fits : str
+        Path to the FITS file containing the spectra (without '_wn' suffix).
+    band_list : list of str
+        Ordered list of frequency bands.
+    use_white_noise : bool, optional
+        If True, '_wn' will be appended to the filename **only** if the file
+        contains average+std spectra.
+
+    Returns
+    -------
+    spectra_dict : dict
+        Dictionary with spectra for all band pairs.
+    """
+    # Try to open file — if use_white_noise=True, assume it's an avg+std file
+    if use_white_noise:
+        base, ext = os.path.splitext(path_fits)
+        if ext.lower() != ".fits":
+            ext = ".fits"
+        path_fits = f"{base}_wn{ext}"
+
+    if not os.path.exists(path_fits):
+        raise FileNotFoundError(f"FITS file not found: {path_fits}")
+
+    spectra_dict = {}
+
+    with fits.open(path_fits) as hdul:
+        for band_i in band_list:
+            for band_j in band_list:
+                key = f"{band_i}_{band_j}"
+                hdu = next((h for h in hdul[1:] if h.name == key), None)
+                if hdu is None:
+                    raise ValueError(f"HDU {key} not found in {path_fits}")
+
+                colnames = [c.upper() for c in hdu.data.names]
+                spec_dict = {}
+
+                # Detect case automatically
+                if any(name.endswith("_MEAN") for name in colnames):
+                    # Case 2: avg+std spectra
+                    for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
+                        spec_dict[cl_key] = {
+                            "MEAN": hdu.data[f"{cl_key}_MEAN"],
+                            "STD":  hdu.data[f"{cl_key}_STD"],
+                        }
+                else:
+                    # Case 1: simple spectra (no _wn suffix logic)
+                    for cl_key in ['ell1','ell2','ell_eff','TT','EE','BB','TE','TB','EB']:
+                        spec_dict[cl_key] = hdu.data[cl_key]
+
+                spectra_dict[key] = spec_dict
+
+    return spectra_dict
+
+
+def read_sims_from_fits(path_fits):
+    """
+    Read per-simulation spectra HDUs appended to a FITS file by
+    `save_avg_std_to_fits()` and return a structured dictionary.
+
+    The function looks for HDUs whose name includes the suffix '_SIMS'
+    (or which include headers 'BAND_I'/'BAND_J' and 'CLKEY'/'SIMKEY') and
+    expects columns named 'SIM_1', 'SIM_2', ..., each column being an array
+    over bins. It returns a dictionary with the structure:
+
+        sims[band_pair]["{cl_key}__{subkey}"] = ndarray shape (n_sim, n_bins)
+
+    where `band_pair` is like '11_11', `cl_key` is e.g. 'EE', and `subkey`
+    is the name used when saving (e.g. 'SIMS').
+
+    Parameters
+    ----------
+    path_fits : str
+        Path to the FITS file containing appended simulation HDUs.
+
+    Returns
+    -------
+    sims_dict : dict
+        Nested dictionary with per-simulation arrays.
+    """
+    if not os.path.exists(path_fits):
+        raise FileNotFoundError(f"FITS file not found: {path_fits}")
+
+    sims = {}
+    with fits.open(path_fits) as hdul:
+        for h in hdul[1:]:
+            # Heuristic: HDU names that end with '_SIMS' are per-sim tables
+            name = h.name if hasattr(h, 'name') else ''
+            is_sims_hdu = False
+            if isinstance(name, str) and name.endswith('_SIMS'):
+                is_sims_hdu = True
+            # Also consider header markers
+            hdr = h.header
+            if not is_sims_hdu:
+                if 'SIMKEY' in hdr or ('BAND_I' in hdr and 'CLKEY' in hdr):
+                    is_sims_hdu = True
+
+            if not is_sims_hdu:
+                continue
+
+            # Attempt to parse band_pair, cl_key and subkey from the HDU name
+            band_pair = None
+            cl_key = None
+            subkey = None
+            if isinstance(name, str) and '__' in name:
+                parts = name.split('__')
+                if len(parts) >= 3:
+                    band_pair = parts[0]
+                    cl_key = parts[1]
+                    subpart = parts[2]
+                    subkey = subpart.replace('_SIMS', '')
+
+            # Fallback to header values if parsing failed
+            if band_pair is None or cl_key is None:
+                bi = hdr.get('BAND_I', None)
+                bj = hdr.get('BAND_J', None)
+                if bi is not None and bj is not None:
+                    band_pair = f"{bi}_{bj}"
+                cl_key = cl_key or hdr.get('CLKEY', 'UNKNOWN')
+                subkey = subkey or hdr.get('SIMKEY', 'SIMS')
+
+            # Identify SIM_* columns
+            if not hasattr(h, 'data') or h.data is None:
+                continue
+            colnames = [c for c in h.data.names]
+            sim_cols = [c for c in colnames if c.upper().startswith('SIM_')]
+            if len(sim_cols) == 0:
+                # nothing to read
+                continue
+
+            # Each SIM_k column is an array of length n_bins; stack them into (n_sim, n_bins)
+            try:
+                sims_arr = np.vstack([h.data[c] for c in sim_cols])
+            except Exception:
+                # if stacking fails, skip this HDU
+                continue
+
+            sims.setdefault(band_pair, {})[f"{cl_key}__{subkey}"] = sims_arr
+
+    return sims
+
+
+def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_white_noise=False, sims_npz=None):
+    """
+    Save per-simulation spectra into a new FITS file.
+
+    This function accepts either:
+      - an `avg_std_dict` that contains per-simulation 2D arrays under
+        avg_std_dict['band_i_band_j'][cl_key][subkey] (subkey != 'MEAN'/'STD'),
+      - or a compressed NPZ file (`sims_npz`) with keys like '11_11__EE'
+        containing arrays shape (n_sim, n_bins).
+
+    The output FITS will contain one BinTableHDU per (band_pair, cl_key, subkey)
+    with columns: ELL1, ELL2, ELL_EFF, SIM_1 ... SIM_N.
+
+    Parameters
+    ----------
+    avg_std_dict : dict or None
+        Dictionary that may contain per-simulation arrays (optional if sims_npz provided).
+    band_list : list of str
+        Ordered list of bands.
+    out_file : str
+        Output FITS filename (same naming convention as save_avg_std_to_fits).
+    use_white_noise : bool
+        If True, append '_wn' before '.fits' in the filename.
+    sims_npz : str or None
+        Path to an external compressed NPZ with per-sim arrays. If provided, data
+        will be read from this NPZ and saved into the FITS. If None, the function
+        will inspect `avg_std_dict` for per-sim arrays.
+
+    Returns
+    -------
+    out_file : str
+        Path to the written FITS file.
+    """
+    if out_file is None:
+        raise ValueError("out_file must be provided")
+    if band_list is None:
+        raise ValueError("band_list must be provided")
+
+    # Adjust filename for white-noise convention
+    if use_white_noise:
+        base, ext = os.path.splitext(out_file)
+        if ext.lower() != ".fits":
+            ext = ".fits"
+        out_file = f"{base}_wn{ext}"
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(out_file), exist_ok=True)
+
+    # Prepare a mapping of per-sim arrays: key -> (cl_key, subkey, array)
+    sims_map = {}
+
+    # Prefer external NPZ if provided
+    if sims_npz is not None and os.path.exists(sims_npz):
+        npz = np.load(sims_npz)
+        for k in npz.files:
+            # Expect keys like '11_11__EE' or '11_11__EE__SUB'
+            parts = k.split('__')
+            if len(parts) >= 2:
+                band_pair = parts[0]
+                cl_key = parts[1]
+                subkey = parts[2] if len(parts) > 2 else 'SIMS'
+            else:
+                continue
+            arr = np.asarray(npz[k], dtype=float)
+            if arr.ndim != 2:
+                continue
+            sims_map.setdefault(band_pair, []).append((cl_key, subkey, arr))
+    else:
+        # Inspect avg_std_dict for 2D per-sim arrays under non-MEAN/STD subkeys
+        if avg_std_dict is None:
+            raise ValueError("Neither sims_npz found nor avg_std_dict provided with sims")
+        for band_i in band_list:
+            for band_j in band_list:
+                band_pair = f"{band_i}_{band_j}"
+                spec_dict = avg_std_dict.get(band_pair, {})
+                for cl_key in ['ell1', 'ell2', 'ell_eff', 'TT', 'EE', 'BB', 'TE', 'TB', 'EB']:
+                    cl_entry = spec_dict.get(cl_key, None)
+                    if not isinstance(cl_entry, dict):
+                        continue
+                    for subk, subv in cl_entry.items():
+                        if subk in ('MEAN', 'STD'):
+                            continue
+                        try:
+                            arr = np.asarray(subv, dtype=float)
+                        except Exception:
+                            continue
+                        if arr.ndim != 2:
+                            continue
+                        sims_map.setdefault(band_pair, []).append((cl_key, subk, arr))
+
+    # Write FITS: one HDU per (band_pair, cl_key, subkey)
+    hdu_list = fits.HDUList()
+    hdu_list.append(fits.PrimaryHDU())
+
+    for band_pair, entries in sims_map.items():
+        for cl_key, subkey, arr in entries:
+            n_sim, n_bins = arr.shape
+
+            # Try to get ell arrays from avg_std_dict if available
+            ell1 = None; ell2 = None; ell_eff = None
+            if avg_std_dict is not None and band_pair in avg_std_dict:
+                spec = avg_std_dict[band_pair]
+                ell1 = spec.get('ell1', {}).get('MEAN', None)
+                ell2 = spec.get('ell2', {}).get('MEAN', None)
+                ell_eff = spec.get('ell_eff', {}).get('MEAN', None)
+
+            if ell1 is None:
+                ell1 = np.arange(n_bins)
+            if ell2 is None:
+                ell2 = np.arange(n_bins)
+            if ell_eff is None:
+                ell_eff = np.arange(n_bins)
+
+            cols = [fits.Column(name='ELL1', format='D', array=ell1),
+                    fits.Column(name='ELL2', format='D', array=ell2),
+                    fits.Column(name='ELL_EFF', format='D', array=ell_eff)]
+
+            for s in range(n_sim):
+                cols.append(fits.Column(name=f"SIM_{s+1}", format='D', array=arr[s]))
+
+            hdu = fits.BinTableHDU.from_columns(cols)
+            bi, bj = band_pair.split('_') if '_' in band_pair else (band_pair, '')
+            hdu.header['BAND_I'] = bi
+            hdu.header['BAND_J'] = bj
+            hdu.header['CLKEY'] = cl_key
+            hdu.header['SIMKEY'] = subkey
+            hdu.name = f"{band_pair}__{cl_key}__{subkey}_SIMS"
+            hdu_list.append(hdu)
+
+    # Write to disk
+    hdu_list.writeto(out_file, overwrite=True)
+    print(f"Saved per-simulation spectra to {out_file}")
+    return out_file
 
 
 '''
@@ -2142,6 +2613,9 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         cmb_spectra = load_cmb_spectrum_from_file(cmb_spectrum_path, ell_eff, planck_format=is_planck_format)
         print(f"[INFO] Loaded CMB spectrum with format: {'Planck PLA' if is_planck_format else 'CAMB'}")
 
+    # Define cross-band pairs with known correlated noise to subtract in cross-spectra
+    correlated_cross_pairs = {('11', '13'), ('13', '11'), ('17', '19'), ('19', '17')}
+
     # Apply corrections and noise subtraction
     corr_spectra = {}
     for key, spec in spectra.items():
@@ -2177,19 +2651,24 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
             # Check if this is a cross-spectrum (band1 != band2)
             is_cross_spectrum = (band1 != band2)
             
-            # Step 1: Noise/HMDM subtraction (only for auto-spectra)
+            # Step 1: Noise/HMDM subtraction
             if is_cross_spectrum:
-                # For cross-spectra: no noise subtraction, use raw spectrum
-                Cl = Cl_raw
+                # For cross-spectra: subtract noise only for known correlated pairs (11-13 and 17-19)
+                if (band1, band2) in correlated_cross_pairs:
+                    if use_white_noise:
+                        Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
+                    else:
+                        Nl = np.array(hmdm_spectra[key][cl_key])
+                    Cl = Cl_raw - Nl  # mK²_CMB, convolved with beams/pixel
+                else:
+                    # Other cross-spectra: keep raw spectrum (no noise subtraction)
+                    Cl = Cl_raw
             else:
                 # For auto-spectra: subtract noise
                 if use_white_noise:
-                    # Subtract white noise simulation mean
                     Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
                 else:
-                    # Subtract HMDM spectra (same format as regular spectra from save_spectra_to_fits)
                     Nl = np.array(hmdm_spectra[key][cl_key])
-                
                 Cl = Cl_raw - Nl  # mK²_CMB, convolved with beams/pixel
 
             # Step 2: Subtract CMB contribution (before deconvolution)
@@ -2219,8 +2698,15 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
 
             # Propagate errors
             if is_cross_spectrum:
-                # For cross-spectra: error only from sky+noise std
-                err_num = np.array(avg_std_skyplusnoise[key][cl_key]['STD'])
+                if (band1, band2) in correlated_cross_pairs:
+                    # When subtracting cross-noise, include both sky+noise and noise uncertainties
+                    err_num = np.sqrt(
+                        np.array(avg_std_skyplusnoise[key][cl_key]['STD'])**2 +
+                        np.array(avg_std_noise[key][cl_key]['STD'])**2
+                    )
+                else:
+                    # For other cross-spectra: error only from sky+noise std
+                    err_num = np.array(avg_std_skyplusnoise[key][cl_key]['STD'])
             else:
                 # For auto-spectra: quadratic sum as before
                 err_num = np.sqrt(
@@ -2759,6 +3245,88 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
         model_list.append(Cl)
     return np.concatenate(model_list)
 
+
+def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
+                           cc_dict=None,
+                           freq_ref=11.1, ell_ref=80.0):
+    """
+    Synchrotron angular power spectrum model for joint EE-BB analysis.
+    
+    Parameters
+    ----------
+    theta : list or array
+        Parameters [A_s_EE, A_s_BB, alpha_s, beta_s] (+ c_sync[mode][band] if fit_c_terms).
+    datasets : list of dict
+        Prepared datasets with frequency pairs, spectra, and errors.
+    ell : array
+        Multipoles.
+    mode : str
+        Either 'EE' or 'BB' - determines which amplitude to use.
+    fit_c_terms : bool
+        Whether to fit constant terms for auto-spectra.
+    cc_dict : dict, optional
+        Color correction polynomials.
+    freq_ref : float
+        Reference frequency in GHz.
+    ell_ref : float
+        Reference multipole.
+
+    Returns
+    -------
+    model_vector : array
+        Concatenated modeled spectra for all datasets.
+    """
+    A_s_EE, A_s_BB, alpha_s, beta_s = theta[:4]
+    
+    # Select amplitude based on mode
+    A_s = A_s_EE if mode == 'EE' else A_s_BB
+    
+    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
+
+    c_terms = np.zeros(N)
+    if fit_c_terms:
+        if len(theta) != 4 + N:
+            raise ValueError("theta length mismatch for synch c_terms in joint analysis")
+        c_terms = np.asarray(theta[4:4+N])
+
+    model_list = []
+
+    for d in datasets:
+        # Parse band identifiers from pair name like '11_353'
+        band1_str, band2_str = d['pair'].split('_')
+        f1, f2 = d['freqs']
+        
+        # Frequency scaling (shared beta_s for both modes)
+        scale_f1 = (f1 / freq_ref) ** beta_s
+        scale_f2 = (f2 / freq_ref) ** beta_s
+        
+        # Multipole scaling (shared alpha_s for both modes)
+        ell_scale = (ell / ell_ref) ** alpha_s
+        
+        # Apply per-band color corrections using spectral index alpha = 2 + beta_s
+        if cc_dict is not None:
+            alpha_cc = 2.0 + float(beta_s)
+            poly1 = (cc_dict.get('synch', {}) or {}).get(str(band1_str))
+            poly2 = (cc_dict.get('synch', {}) or {}).get(str(band2_str))
+            cc_s1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
+            cc_s2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
+        else:
+            cc_s1 = cc_s2 = 1.0
+        
+        # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
+        Cl = A_s * ell_scale * (scale_f1/cc_s1) * (scale_f2/cc_s2)
+        
+        # Add constant term for auto-spectra if requested
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
+        
+        model_list.append(Cl)
+    
+    return np.concatenate(model_list)
+
 def model_dust(theta, datasets, ell, fit_c_terms=False,
                cc_dict=None,
                freq_ref=353.0, T_d=19.6, ell_ref=80.0):
@@ -2825,6 +3393,96 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
             Cl = Cl + c_terms[i]
         model_list.append(Cl)
     return np.concatenate(model_list)
+
+
+
+def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
+                    cc_dict=None,
+                    freq_ref=353.0, T_d=19.6, ell_ref=80.0):
+    """
+    Dust angular power spectrum model for joint EE-BB analysis with modified 
+    blackbody scaling in K_RJ units.
+
+    Parameters
+    ----------
+    theta : list or array
+        Parameters [A_d_EE, A_d_BB, alpha_d, beta_d] (+ c_dust[mode][band] if fit_c_terms).
+    datasets : list of dict
+        Prepared datasets.
+    ell : array
+        Multipoles.
+    mode : str
+        Either 'EE' or 'BB' - determines which amplitude to use.
+    fit_c_terms : bool
+        Whether to fit constant terms for auto-spectra.
+    cc_dict : dict, optional
+        Color correction polynomials.
+    freq_ref : float
+        Reference frequency in GHz.
+    T_d : float
+        Dust temperature in K.
+    ell_ref : float
+        Reference multipole.
+
+    Returns
+    -------
+    model_vector : array
+        Concatenated modeled spectra for all datasets.
+    """
+    A_d_EE, A_d_BB, alpha_d, beta_d = theta[:4]
+    
+    # Select amplitude based on mode
+    A_d = A_d_EE if mode == 'EE' else A_d_BB
+    
+    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
+
+    c_terms = np.zeros(N)
+    if fit_c_terms:
+        if len(theta) != 4 + N:
+            raise ValueError("theta length mismatch for dust c_terms in joint analysis")
+        c_terms = np.asarray(theta[4:4+N])
+
+    # Precompute per-frequency dust scaling (K_RJ units)
+    freqs_all = np.array(unique_freqs)
+    S = mbb_scaling_KRJ(freqs_all, nu0_GHz=freq_ref, beta=beta_d, T_d=T_d)
+
+    model_list = []
+
+    for d in datasets:
+        band1_str, band2_str = d['pair'].split('_')
+        f1, f2 = d['freqs']
+        
+        # Frequency scaling using modified blackbody (shared beta_d for both modes)
+        s1 = S[freq_to_idx[f1]]
+        s2 = S[freq_to_idx[f2]]
+        
+        # Multipole scaling (shared alpha_d for both modes)
+        ell_scale = (ell / ell_ref) ** alpha_d
+        
+        # Apply per-band color corrections using spectral index alpha = 2 + beta_d
+        if cc_dict is not None:
+            alpha_cc = 2.0 + float(beta_d)
+            poly1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
+            poly2 = (cc_dict.get('dust', {}) or {}).get(str(band2_str))
+            cc_d1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
+            cc_d2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
+        else:
+            cc_d1 = cc_d2 = 1.0
+        
+        # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
+        Cl = A_d * ell_scale * (s1/cc_d1) * (s2/cc_d2)
+        
+        # Add constant term for auto-spectra if requested
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
+        
+        model_list.append(Cl)
+    
+    return np.concatenate(model_list)
+
 
 def model_cross(theta, datasets, ell,
                 cc_dict=None,
@@ -2902,6 +3560,205 @@ def model_cross(theta, datasets, ell,
 
 
 
+def model_cross_joint(theta, datasets, ell, mode,
+                     cc_dict=None,
+                     ref_sync=11.1, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
+    """
+    Cross-correlation between synchrotron and dust components for joint EE-BB analysis.
+
+    Parameters
+    ----------
+    theta : list or array
+        Parameters [rho, A_s_EE, A_s_BB, A_d_EE, A_d_BB, alpha_s, alpha_d, beta_s, beta_d].
+    datasets : list of dict
+        Prepared datasets.
+    ell : array
+        Multipoles.
+    mode : str
+        Either 'EE' or 'BB' - determines which amplitudes to use.
+    cc_dict : dict, optional
+        Color correction polynomials.
+    ref_sync : float
+        Reference synchrotron frequency in GHz.
+    ref_dust : float
+        Reference dust frequency in GHz.
+    T_d : float
+        Dust temperature in K.
+    ell_ref : float
+        Reference multipole.
+
+    Returns
+    -------
+    model_vector : array
+        Concatenated modeled spectra for all datasets.
+    """
+    rho, A_s_EE, A_s_BB, A_d_EE, A_d_BB, alpha_s, alpha_d, beta_s, beta_d = theta
+    
+    # Select amplitudes based on mode
+    A_s = A_s_EE if mode == 'EE' else A_s_BB
+    A_d = A_d_EE if mode == 'EE' else A_d_BB
+    
+    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+
+    freqs_all = np.array(unique_freqs)
+    # Use K_RJ units for dust (Planck convention)
+    Sd = mbb_scaling_KRJ(freqs_all, nu0_GHz=ref_dust, beta=beta_d, T_d=T_d)
+
+    model_list = []
+
+    for d in datasets:
+        band1_str, band2_str = d['pair'].split('_')
+        f1, f2 = d['freqs']
+        
+        # Synchrotron frequency scaling (shared beta_s)
+        s1 = (f1 / ref_sync) ** beta_s
+        s2 = (f2 / ref_sync) ** beta_s
+        
+        # Dust frequency scaling (shared beta_d)
+        d1 = Sd[freq_to_idx[f1]]
+        d2 = Sd[freq_to_idx[f2]]
+        
+        # Multipole scaling: average of synch and dust slopes (shared)
+        ell_scale_cross = (ell / ell_ref) ** ((alpha_s + alpha_d) / 2)
+        
+        # Apply per-band color corrections
+        if cc_dict is not None:
+            alpha_s_cc = 2.0 + float(beta_s)
+            alpha_d_cc = 2.0 + float(beta_d)
+            
+            syn1 = (cc_dict.get('synch', {}) or {}).get(str(band1_str))
+            syn2 = (cc_dict.get('synch', {}) or {}).get(str(band2_str))
+            dus1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
+            dus2 = (cc_dict.get('dust', {}) or {}).get(str(band2_str))
+            
+            cc_s1 = (syn1[0] + syn1[1]*alpha_s_cc + syn1[2]*(alpha_s_cc**2)) if syn1 is not None else 1.0
+            cc_s2 = (syn2[0] + syn2[1]*alpha_s_cc + syn2[2]*(alpha_s_cc**2)) if syn2 is not None else 1.0
+            cc_d1 = (dus1[0] + dus1[1]*alpha_d_cc + dus1[2]*(alpha_d_cc**2)) if dus1 is not None else 1.0
+            cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
+        else:
+            cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
+        
+        # Cross term: rho × sqrt(A_s × A_d) × (s1×d2 + s2×d1) × ell_scale
+        # This represents the correlation between synchrotron and dust
+        mix = ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
+        C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
+
+        model_list.append(C_sd_ij)
+    
+    return np.concatenate(model_list)
+
+
+def log_multivariate_gamma(p, a):
+    """
+    log Γ_p(a) = (p(p-1)/4) log π + sum_{i=1}^p log Γ(a + (1-i)/2)
+    """
+    return (
+        0.25 * p * (p - 1) * log(pi)
+        + sum(gammaln(a + 0.5 * (1 - i)) for i in range(1, p + 1))
+    )
+
+
+def make_spd(M, eps=0.0):
+    """
+    Symmetrize matrix and add diagonal jitter if needed
+    to ensure positive definiteness.
+    """
+    M = 0.5 * (M + M.T)
+
+    sign, _ = np.linalg.slogdet(M)
+    if sign > 0 and eps == 0.0:
+        return M
+
+    # adaptive jitter
+    scale = np.max(np.abs(np.diag(M)))
+    jitter = eps if eps > 0 else (1e-6 * scale if scale > 0 else 1e-12)
+
+    return M + jitter * np.eye(M.shape[0])
+
+def loglik_wishart(C_hat, C_model, nu, drop_const=True, jitter=0.0):
+    """
+    Log-likelihood for the (scaled) Wishart distribution.
+
+    Parameters
+    ----------
+    C_hat : array
+        Empirical covariance(s):
+        - scalar case: (L,)
+        - multivariate case: (L, p, p)
+    C_model : array
+        Model covariance(s), same shape as C_hat
+    nu : array (L,)
+        Degrees of freedom (typically 2ell + 1)
+    """
+    C_hat = np.asarray(C_hat)
+    C_model = np.asarray(C_model)
+    nu = np.asarray(nu)
+
+    if C_hat.shape != C_model.shape:
+        raise ValueError("C_hat and C_model must have the same shape.")
+
+    L = nu.size
+    logL = 0.0
+
+    # --------------------------------------------------
+    # Scalar case (p = 1)
+    # --------------------------------------------------
+    if C_hat.ndim == 1:
+        p = 1
+        eps = jitter if jitter > 0 else 1e-30
+
+        for i in range(L):
+            Sh = max(float(C_hat[i]), eps)
+            Sm = max(float(C_model[i]), eps)
+
+            logL += 0.5 * (
+                (nu[i] - p - 1) * np.log(Sh)
+                - nu[i] * (Sh / Sm)
+                - nu[i] * np.log(Sm)
+            )
+
+    # --------------------------------------------------
+    # Multivariate case
+    # --------------------------------------------------
+    else:
+        if C_hat.ndim != 3 or C_hat.shape[1] != C_hat.shape[2]:
+            raise ValueError("Multivariate case requires shape (L, p, p).")
+
+        p = C_hat.shape[1]
+
+        for i in range(L):
+            Sh = make_spd(C_hat[i], jitter)
+            Sm = make_spd(C_model[i], jitter)
+
+            s_sign, s_logdet = np.linalg.slogdet(Sh)
+            m_sign, m_logdet = np.linalg.slogdet(Sm)
+
+            if s_sign <= 0 or m_sign <= 0:
+                raise ValueError("Covariance matrices must be positive definite.")
+
+            # Tr(C_model^{-1} C_hat)
+            tr_term = np.trace(np.linalg.solve(Sm, Sh))
+
+            logL += 0.5 * (
+                (nu[i] - p - 1) * s_logdet
+                - nu[i] * tr_term
+                - nu[i] * m_logdet
+            )
+
+    # --------------------------------------------------
+    # Normalization constant (optional)
+    # --------------------------------------------------
+    if not drop_const:
+        const = 0.0
+        for i in range(L):
+            const += 0.5 * nu[i] * p * np.log(2.0)
+            const += log_multivariate_gamma(p, nu[i] / 2.0)
+        logL -= const
+
+    return float(logL)
+
+
 def lnlike(theta_full, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
            cc_dict=None):
@@ -2959,6 +3816,142 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
 
     chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
     return -0.5 * chi2
+
+
+
+def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell, 
+                 y_EE, yerr_EE, y_BB, yerr_BB,
+                 fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
+                 cc_dict=None):
+    """
+    Compute the log-likelihood for joint EE-BB analysis.
+
+    Parameters
+    ----------
+    theta_full : array
+        Full parameter vector:
+        [A_s_EE, A_s_BB, alpha_s, beta_s, A_d_EE, A_d_BB, alpha_d, beta_d, rho, ...]
+        (+ c_terms if fit_c_terms=True)
+    datasets_EE : list of dict
+        Prepared datasets for EE mode.
+    datasets_BB : list of dict
+        Prepared datasets for BB mode.
+    ell : array
+        Multipoles.
+    y_EE : array
+        Observed EE spectra concatenated.
+    yerr_EE : array
+        Errors for EE spectra.
+    y_BB : array
+        Observed BB spectra concatenated.
+    yerr_BB : array
+        Errors for BB spectra.
+    fit_c_terms : bool
+        Whether to fit constant c terms.
+    fit_components : tuple
+        Components to include ('sync','dust','cross').
+    cc_dict : dict, optional
+        Color correction polynomials.
+
+    Returns
+    -------
+    lnL : float
+        Log-likelihood value.
+    """
+    # Extract base parameters
+    A_s_EE, A_s_BB = theta_full[0], theta_full[1]
+    alpha_s, beta_s = theta_full[2], theta_full[3]
+    A_d_EE, A_d_BB = theta_full[4], theta_full[5]
+    alpha_d, beta_d = theta_full[6], theta_full[7]
+    rho = theta_full[8]
+    
+    # Extract c_terms if present
+    unique_freqs = sorted({f for d in datasets_EE + datasets_BB for f in d['freqs']})
+    N = len(unique_freqs)
+    
+    c_sync_EE = np.zeros(N)
+    c_sync_BB = np.zeros(N)
+    c_dust_EE = np.zeros(N)
+    c_dust_BB = np.zeros(N)
+    
+    offset = 9
+    if fit_c_terms:
+        c_sync_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_sync_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+    
+    # =========================================================================
+    # Build model for EE mode
+    # =========================================================================
+    y_model_EE = np.zeros_like(y_EE)
+    
+    if 'sync' in fit_components:
+        theta_sync = [A_s_EE, A_s_BB, alpha_s, beta_s]
+        if fit_c_terms:
+            theta_sync.extend(c_sync_EE)
+        y_model_EE += model_synchrotron_joint(
+            theta_sync, datasets_EE, ell, mode='EE',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'dust' in fit_components:
+        theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_EE)
+        y_model_EE += model_dust_joint(
+            theta_dust, datasets_EE, ell, mode='EE',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'cross' in fit_components:
+        theta_cross = [rho, A_s_EE, A_s_BB, A_d_EE, A_d_BB, 
+                      alpha_s, alpha_d, beta_s, beta_d]
+        y_model_EE += model_cross_joint(
+            theta_cross, datasets_EE, ell, mode='EE',
+            cc_dict=cc_dict
+        )
+    
+    # =========================================================================
+    # Build model for BB mode
+    # =========================================================================
+    y_model_BB = np.zeros_like(y_BB)
+    
+    if 'sync' in fit_components:
+        theta_sync = [A_s_EE, A_s_BB, alpha_s, beta_s]
+        if fit_c_terms:
+            theta_sync.extend(c_sync_BB)
+        y_model_BB += model_synchrotron_joint(
+            theta_sync, datasets_BB, ell, mode='BB',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'dust' in fit_components:
+        theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_BB)
+        y_model_BB += model_dust_joint(
+            theta_dust, datasets_BB, ell, mode='BB',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'cross' in fit_components:
+        theta_cross = [rho, A_s_EE, A_s_BB, A_d_EE, A_d_BB,
+                      alpha_s, alpha_d, beta_s, beta_d]
+        y_model_BB += model_cross_joint(
+            theta_cross, datasets_BB, ell, mode='BB',
+            cc_dict=cc_dict
+        )
+    
+    # =========================================================================
+    # Compute combined chi-squared
+    # =========================================================================
+    chi2_EE = np.sum(((y_EE - y_model_EE) / yerr_EE) ** 2)
+    chi2_BB = np.sum(((y_BB - y_model_BB) / yerr_BB) ** 2)
+    chi2_total = chi2_EE + chi2_BB
+    
+    return -0.5 * chi2_total
+
 
 
 def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all, 
@@ -3043,6 +4036,149 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
     
     return chi2 / dof
 
+
+def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
+                               y_EE, yerr_EE, y_BB, yerr_BB,
+                               fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
+                               cc_dict=None):
+    """
+    Compute the reduced chi-squared for joint EE-BB analysis.
+
+    Parameters
+    ----------
+    theta_full : array
+        Full parameter vector.
+    datasets_EE : list of dict
+        Prepared datasets for EE mode.
+    datasets_BB : list of dict
+        Prepared datasets for BB mode.
+    ell : array
+        Multipoles.
+    y_EE : array
+        Observed EE spectra.
+    yerr_EE : array
+        Errors for EE spectra.
+    y_BB : array
+        Observed BB spectra.
+    yerr_BB : array
+        Errors for BB spectra.
+    fit_c_terms : bool
+        Whether constant c terms are fitted.
+    fit_components : tuple
+        Components included in fit.
+    cc_dict : dict, optional
+        Color correction polynomials.
+
+    Returns
+    -------
+    chi2_reduced : float
+        Reduced chi-squared value.
+    """
+    # Extract parameters
+    A_s_EE, A_s_BB = theta_full[0], theta_full[1]
+    alpha_s, beta_s = theta_full[2], theta_full[3]
+    A_d_EE, A_d_BB = theta_full[4], theta_full[5]
+    alpha_d, beta_d = theta_full[6], theta_full[7]
+    rho = theta_full[8]
+    
+    unique_freqs = sorted({f for d in datasets_EE + datasets_BB for f in d['freqs']})
+    N = len(unique_freqs)
+    
+    c_sync_EE = np.zeros(N)
+    c_sync_BB = np.zeros(N)
+    c_dust_EE = np.zeros(N)
+    c_dust_BB = np.zeros(N)
+    
+    offset = 9
+    if fit_c_terms:
+        c_sync_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_sync_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+    
+    # Build models
+    y_model_EE = np.zeros_like(y_EE)
+    y_model_BB = np.zeros_like(y_BB)
+    
+    if 'sync' in fit_components:
+        theta_sync = [A_s_EE, A_s_BB, alpha_s, beta_s]
+        if fit_c_terms:
+            theta_sync.extend(c_sync_EE)
+        y_model_EE += model_synchrotron_joint(
+            theta_sync, datasets_EE, ell, mode='EE',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+        
+        theta_sync_BB = [A_s_EE, A_s_BB, alpha_s, beta_s]
+        if fit_c_terms:
+            theta_sync_BB.extend(c_sync_BB)
+        y_model_BB += model_synchrotron_joint(
+            theta_sync_BB, datasets_BB, ell, mode='BB',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'dust' in fit_components:
+        theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_EE)
+        y_model_EE += model_dust_joint(
+            theta_dust, datasets_EE, ell, mode='EE',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+        
+        theta_dust_BB = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust_BB.extend(c_dust_BB)
+        y_model_BB += model_dust_joint(
+            theta_dust_BB, datasets_BB, ell, mode='BB',
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
+        )
+    
+    if 'cross' in fit_components:
+        theta_cross = [rho, A_s_EE, A_s_BB, A_d_EE, A_d_BB,
+                      alpha_s, alpha_d, beta_s, beta_d]
+        y_model_EE += model_cross_joint(
+            theta_cross, datasets_EE, ell, mode='EE',
+            cc_dict=cc_dict
+        )
+        y_model_BB += model_cross_joint(
+            theta_cross, datasets_BB, ell, mode='BB',
+            cc_dict=cc_dict
+        )
+    
+    # Compute chi-squared
+    chi2_EE = np.sum(((y_EE - y_model_EE) / yerr_EE) ** 2)
+    chi2_BB = np.sum(((y_BB - y_model_BB) / yerr_BB) ** 2)
+    chi2_total = chi2_EE + chi2_BB
+    
+    # Calculate degrees of freedom
+    n_data = len(y_EE) + len(y_BB)
+    n_params = 9  # Base parameters: A_s_EE, A_s_BB, alpha_s, beta_s, A_d_EE, A_d_BB, alpha_d, beta_d, rho
+    
+    if fit_c_terms:
+        # 4 sets of N c-terms (c_sync_EE, c_sync_BB, c_dust_EE, c_dust_BB)
+        n_params += 4 * N
+    
+    # Adjust for components not being fitted
+    if 'sync' not in fit_components:
+        n_params -= 4  # A_s_EE, A_s_BB, alpha_s, beta_s
+        if fit_c_terms:
+            n_params -= 2 * N  # c_sync_EE, c_sync_BB
+    if 'dust' not in fit_components:
+        n_params -= 4  # A_d_EE, A_d_BB, alpha_d, beta_d
+        if fit_c_terms:
+            n_params -= 2 * N  # c_dust_EE, c_dust_BB
+    if 'cross' not in fit_components:
+        n_params -= 1  # rho
+    
+    dof = n_data - n_params
+    
+    if dof <= 0:
+        return np.inf
+    
+    return chi2_total / dof
+
+
 def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
     """
     Apply priors on parameters.
@@ -3115,6 +4251,116 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
 
     return lp
 
+
+def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
+    """
+    Apply priors on parameters for joint EE-BB analysis.
+
+    Parameters
+    ----------
+    theta_full : array
+        Full parameter vector.
+    fit_c_terms : bool
+        Whether c terms are included.
+    fit_components : tuple
+        Components included in fit.
+
+    Returns
+    -------
+    lnp : float
+        Log-prior value. Returns -np.inf if any prior is violated.
+    """
+    A_s_EE, A_s_BB = theta_full[0], theta_full[1]
+    alpha_s, beta_s = theta_full[2], theta_full[3]
+    A_d_EE, A_d_BB = theta_full[4], theta_full[5]
+    alpha_d, beta_d = theta_full[6], theta_full[7]
+    rho = theta_full[8]
+    
+    # Apply bounds for synchrotron parameters
+    if 'sync' in fit_components:
+        if not (A_s_EE >= 0.0): return -np.inf
+        if not (A_s_BB >= 0.0): return -np.inf
+        if not (-6 <= alpha_s <= 0): return -np.inf
+        if not (-6 <= beta_s <= 0): return -np.inf
+    
+    # Apply bounds for dust parameters
+    if 'dust' in fit_components:
+        if not (A_d_EE >= 0.0): return -np.inf
+        if not (A_d_BB >= 0.0): return -np.inf
+        if not (-6 <= alpha_d <= 0): return -np.inf
+        if not (0 <= beta_d <= 6): return -np.inf
+    
+    # Apply bounds for correlation parameter
+    if 'cross' in fit_components:
+        if not (-1 <= rho <= 1): return -np.inf
+    
+    # Check c_terms if present
+    if fit_c_terms:
+        unique_freqs_count = len(theta_full[9:]) // 4  # Assumes 4 sets of c_terms
+        offset = 9
+        
+        if 'sync' in fit_components:
+            c_sync_EE = theta_full[offset:offset+unique_freqs_count]
+            c_sync_BB = theta_full[offset+unique_freqs_count:offset+2*unique_freqs_count]
+            if not (np.all(np.isfinite(c_sync_EE)) and np.all(np.abs(c_sync_EE) <= 1e6)):
+                return -np.inf
+            if not (np.all(np.isfinite(c_sync_BB)) and np.all(np.abs(c_sync_BB) <= 1e6)):
+                return -np.inf
+            offset += 2 * unique_freqs_count
+        
+        if 'dust' in fit_components:
+            c_dust_EE = theta_full[offset:offset+unique_freqs_count]
+            c_dust_BB = theta_full[offset+unique_freqs_count:offset+2*unique_freqs_count]
+            if not (np.all(np.isfinite(c_dust_EE)) and np.all(np.abs(c_dust_EE) <= 1e6)):
+                return -np.inf
+            if not (np.all(np.isfinite(c_dust_BB)) and np.all(np.abs(c_dust_BB) <= 1e6)):
+                return -np.inf
+    
+    # Add optional Gaussian priors
+    lp = 0.0
+    try:
+        if 'beta_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_s']
+            if sig > 0:
+                lp += -0.5 * ((beta_s - mu)/sig)**2
+        if 'beta_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['beta_d']
+            if sig > 0:
+                lp += -0.5 * ((beta_d - mu)/sig)**2
+        if 'rho' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['rho']
+            if sig > 0:
+                lp += -0.5 * ((rho - mu)/sig)**2
+        if 'alpha_s' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['alpha_s']
+            if sig > 0:
+                lp += -0.5 * ((alpha_s - mu)/sig)**2
+        if 'alpha_d' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['alpha_d']
+            if sig > 0:
+                lp += -0.5 * ((alpha_d - mu)/sig)**2
+        if 'A_s_EE' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_s_EE']
+            if sig > 0:
+                lp += -0.5 * ((A_s_EE - mu)/sig)**2
+        if 'A_s_BB' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_s_BB']
+            if sig > 0:
+                lp += -0.5 * ((A_s_BB - mu)/sig)**2
+        if 'A_d_EE' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_d_EE']
+            if sig > 0:
+                lp += -0.5 * ((A_d_EE - mu)/sig)**2
+        if 'A_d_BB' in _GAUSSIAN_PRIORS:
+            mu, sig = _GAUSSIAN_PRIORS['A_d_BB']
+            if sig > 0:
+                lp += -0.5 * ((A_d_BB - mu)/sig)**2
+    except Exception:
+        pass
+    
+    return lp
+
+
 def lnprob(theta_free, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
            param_map=None, fixed_values=None, cc_dict=None):
@@ -3154,72 +4400,311 @@ def lnprob(theta_free, datasets, ell, y_all, yerr_all,
     return lp + ll
 
 
-def run_mcmc(
-    fit_data,
-    fit_components=('sync', 'dust', 'cross'),
-    fit_c_terms=False,
-    nwalkers=100,
-    ninter=5000,
-    discard_fraction=0.5,
-    verbose=True,
-    fit_mode='power-law',
-    color_correction=False,
-):
+def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
+                y_EE, yerr_EE, y_BB, yerr_BB,
+                fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
+                cc_dict=None):
     """
-    Run an MCMC fit using data prepared by `prepare_mcmc_data`.
+    Compute log-posterior for joint EE-BB analysis (prior + likelihood).
+
+    Parameters
+    ----------
+    theta_full : array
+        Full parameter vector.
+    datasets_EE : list of dict
+        Prepared datasets for EE mode.
+    datasets_BB : list of dict
+        Prepared datasets for BB mode.
+    ell : array
+        Multipoles.
+    y_EE : array
+        Observed EE spectra.
+    yerr_EE : array
+        Errors for EE spectra.
+    y_BB : array
+        Observed BB spectra.
+    yerr_BB : array
+        Errors for BB spectra.
+    fit_c_terms : bool
+        Whether c terms are fitted.
+    fit_components : tuple
+        Components included.
+    cc_dict : dict, optional
+        Color correction polynomials.
+
+    Returns
+    -------
+    lnpost : float
+        Log-posterior probability.
+    """
+    lp = lnprior_joint(theta_full, fit_c_terms=fit_c_terms, fit_components=fit_components)
+    if not np.isfinite(lp):
+        return -np.inf
+    
+    ll = lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
+                     y_EE, yerr_EE, y_BB, yerr_BB,
+                     fit_c_terms=fit_c_terms, fit_components=fit_components,
+                     cc_dict=cc_dict)
+    
+    return lp + ll
+
+
+def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
+            fit_c_terms=False, nwalkers=100, ninter=5000,
+            discard_fraction=0.5, verbose=True,
+            fit_mode='power-law', color_correction=False,
+            joint_analysis=False):
+    """
+    Run MCMC fit with optional joint EE-BB analysis.
 
     Parameters
     ----------
     fit_data : dict
-        Output from `prepare_mcmc_data`.
+        Output from prepare_mcmc_data.
     fit_components : tuple
-        Components to include in the fit ('sync', 'dust', 'cross').
+        Components to include ('sync', 'dust', 'cross').
     fit_c_terms : bool
-        Whether to include constant terms for auto-spectra.
+        Whether to fit constant terms.
     nwalkers : int
-        Number of walkers for emcee.
+        Number of emcee walkers.
     ninter : int
-        Total number of iterations per walker.
+        Number of iterations per walker.
     discard_fraction : float
-        Fraction of initial samples to discard as burn-in.
+        Fraction to discard as burn-in.
     verbose : bool
-        If True, print progress information.
-    fit_mode : str, default 'power-law'
-        Fitting mode: 'power-law' or 'bin-to-bin'.
-        - 'power-law': fit global spectral indices (alpha_s_l, alpha_d_l, the multipole slopes) across all ells.
-        - 'bin-to-bin': fit amplitudes and spectral indices independently for each ell bin.
-    color_correction : bool, default False
-        If True, apply per-band color-correction factors using quadratic polynomials evaluated at
-        alpha_cc = 2 + beta for each component (synch/dust), where beta is the spectral index in frequency.
-        The correction divides each band scaling (sync, dust, and cross) by the band’s polynomial value.
-        Polynomials are loaded once from color_corrections['cc_polynoms'] and cached in-memory as a dict.
+        Whether to print progress.
+    fit_mode : str
+        'power-law' or 'bin-to-bin'.
+    color_correction : bool
+        Whether to apply color corrections.
+    joint_analysis : bool
+        If True, perform joint EE-BB analysis with shared spectral indices.
 
     Returns
     -------
     sampler : emcee.EnsembleSampler or list
-        The sampler object(s) after running MCMC. For 'bin-to-bin', returns list of samplers.
+        Sampler(s) after running.
     samples_full : ndarray or list
-        Full chain including both free and fixed parameters. For 'bin-to-bin', returns list of arrays.
+        Full parameter chains.
     samples_free : ndarray or list
-        Chain containing only free parameters. For 'bin-to-bin', returns list of arrays.
-    param_map : list
-        List of (name, is_free) tuples describing each parameter.
+        Free parameter chains.
+    param_map : list or param_names : list
+        Parameter information.
     chi2_reduced : float or list
-        Reduced chi-squared value(s) at the best-fit parameters.
+        Reduced chi-squared value(s).
     """
-
+    if joint_analysis:
+        # Check that both EE and BB modes are present
+        modes_present = set()
+        for d in fit_data['datasets']:
+            modes_present.add(d['mode'])
+        
+        if modes_present != {'EE', 'BB'}:
+            raise ValueError(
+                "joint_analysis=True requires both 'EE' and 'BB' modes in fit_data. "
+                "Use prepare_mcmc_data with modes=['EE', 'BB']"
+            )
+        
+        if fit_mode != 'power-law':
+            raise ValueError(
+                "joint_analysis=True is only supported with fit_mode='power-law'. "
+                f"Got fit_mode='{fit_mode}'"
+            )
+        
+        return _run_mcmc_joint(
+            fit_data, fit_components, fit_c_terms,
+            nwalkers, ninter, discard_fraction, verbose,
+            color_correction
+        )
+    
+    # Standard analysis (single mode or separate EE/BB)
     if fit_mode == 'power-law':
         return _run_mcmc_powerlaw(
-            fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
+            fit_data, fit_components, fit_c_terms,
+            nwalkers, ninter, discard_fraction, verbose,
             color_correction
         )
     elif fit_mode == 'bin-to-bin':
         return _run_mcmc_bin_to_bin(
-            fit_data, fit_components, nwalkers, ninter, discard_fraction, verbose,
-            color_correction
+            fit_data, fit_components, nwalkers, ninter,
+            discard_fraction, verbose, color_correction
         )
     else:
         raise ValueError(f"fit_mode must be 'power-law' or 'bin-to-bin', got '{fit_mode}'")
+
+
+def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
+                   nwalkers, ninter, discard_fraction, verbose,
+                   color_correction):
+    """
+    Run MCMC for joint EE-BB analysis.
+
+    Parameters
+    ----------
+    fit_data : dict
+        Output from prepare_mcmc_data with modes=['EE', 'BB'].
+    fit_components : tuple
+        Components to include ('sync', 'dust', 'cross').
+    fit_c_terms : bool
+        Whether to fit constant terms.
+    nwalkers : int
+        Number of emcee walkers.
+    ninter : int
+        Number of iterations per walker.
+    discard_fraction : float
+        Fraction of samples to discard as burn-in.
+    verbose : bool
+        Whether to print progress.
+    color_correction : bool
+        Whether to apply color corrections.
+
+    Returns
+    -------
+    sampler : emcee.EnsembleSampler
+        The sampler after running.
+    samples_full : ndarray
+        Flattened chain after burn-in.
+    samples_free : ndarray
+        Same as samples_full (no fixed parameters in joint analysis).
+    param_names : list
+        List of parameter names.
+    chi2_reduced : float
+        Reduced chi-squared at best fit.
+    """
+    # Load color-correction polynomials if requested
+    cc_dict = None
+    if color_correction:
+        try:
+            cc_dict = load_color_correction_polynomials()
+            if verbose:
+                print("[run_mcmc_joint] Color corrections enabled.")
+        except Exception as e:
+            print(f"[run_mcmc_joint] WARNING: Failed to load color corrections: {e}")
+            cc_dict = None
+    
+    # Separate datasets by mode
+    datasets_EE = [d for d in fit_data['datasets'] if d['mode'] == 'EE']
+    datasets_BB = [d for d in fit_data['datasets'] if d['mode'] == 'BB']
+    
+    if len(datasets_EE) == 0 or len(datasets_BB) == 0:
+        raise ValueError(
+            "Joint analysis requires both EE and BB modes in fit_data. "
+            "Use prepare_mcmc_data with modes=['EE', 'BB']"
+        )
+    
+    # Reconstruct y and yerr for each mode
+    y_EE, yerr_EE = [], []
+    y_BB, yerr_BB = [], []
+    
+    for d in datasets_EE:
+        y_EE.append(d['spectrum'])
+        yerr_EE.append(d['error'])
+    for d in datasets_BB:
+        y_BB.append(d['spectrum'])
+        yerr_BB.append(d['error'])
+    
+    y_EE = np.concatenate(y_EE)
+    yerr_EE = np.concatenate(yerr_EE)
+    y_BB = np.concatenate(y_BB)
+    yerr_BB = np.concatenate(yerr_BB)
+    
+    ell = fit_data['ell_eff']
+    
+    # Build parameter names
+    param_names = [
+        'A_s_EE', 'A_s_BB',      # Synchrotron amplitudes
+        'alpha_s', 'beta_s',     # Synchrotron spectral indices (shared)
+        'A_d_EE', 'A_d_BB',      # Dust amplitudes
+        'alpha_d', 'beta_d',     # Dust spectral indices (shared)
+        'rho'                    # Cross-correlation (shared)
+    ]
+    
+    # Add c_terms if requested
+    unique_freqs = sorted({f for d in fit_data['datasets'] for f in d['freqs']})
+    N = len(unique_freqs)
+    
+    if fit_c_terms:
+        for f in unique_freqs:
+            param_names.extend([
+                f'c_sync_EE[{int(f)}]',
+                f'c_sync_BB[{int(f)}]',
+                f'c_dust_EE[{int(f)}]',
+                f'c_dust_BB[{int(f)}]'
+            ])
+    
+    ndim = len(param_names)
+    
+    if verbose:
+        print(f"[run_mcmc_joint] Joint EE-BB analysis")
+        print(f"[run_mcmc_joint] Parameters: {param_names[:9]}")  # Show base params
+        print(f"[run_mcmc_joint] Total parameters: {ndim}")
+        print(f"[run_mcmc_joint] EE data points: {len(y_EE)}")
+        print(f"[run_mcmc_joint] BB data points: {len(y_BB)}")
+    
+    # Initialize walkers
+    rng = np.random.default_rng()
+    p0_center = np.array([
+        1.0,    # A_s_EE
+        0.25,   # A_s_BB
+        -3.0,   # alpha_s
+        -3.0,   # beta_s
+        1.0,    # A_d_EE
+        0.5,    # A_d_BB (typically smaller than EE)
+        -2.3,   # alpha_d
+        1.59,   # beta_d
+        0.05    # rho
+    ], dtype=float)
+    
+    # Add zeros for c_terms
+    if fit_c_terms:
+        p0_center = np.concatenate([p0_center, np.zeros(4 * N)])
+    
+    p0_walkers = p0_center + 1e-2 * rng.standard_normal((nwalkers, ndim))
+    
+    # Determine number of processes
+    try:
+        available = len(os.sched_getaffinity(0))
+    except AttributeError:
+        available = os.cpu_count() or 1
+    n_procs = max(1, min(available, max(1, nwalkers // 2)))
+    
+    if verbose:
+        print(f"[run_mcmc_joint] Using {n_procs} processes with {nwalkers} walkers")
+        print(f"[run_mcmc_joint] Running {ninter} iterations...")
+    
+    # Run MCMC
+    with mp.get_context("fork").Pool(processes=n_procs, maxtasksperchild=200) as pool:
+        sampler = emcee.EnsembleSampler(
+            nwalkers, ndim, lnprob_joint,
+            args=(datasets_EE, datasets_BB, ell, y_EE, yerr_EE, y_BB, yerr_BB,
+                  fit_c_terms, fit_components, cc_dict),
+            pool=pool
+        )
+        sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
+    
+    # Post-processing
+    discard = int(ninter * discard_fraction)
+    samples = sampler.get_chain(discard=discard, flat=True)
+    
+    if verbose:
+        print(f"[run_mcmc_joint] MCMC completed. {samples.shape[0]} samples after burn-in.")
+    
+    # Compute reduced chi-squared at best fit
+    best_idx = np.argmax(sampler.get_log_prob(discard=discard, flat=True))
+    best_params = samples[best_idx]
+    
+    chi2_reduced = compute_chi2_reduced_joint(
+        best_params, datasets_EE, datasets_BB, ell,
+        y_EE, yerr_EE, y_BB, yerr_BB,
+        fit_c_terms=fit_c_terms, fit_components=fit_components,
+        cc_dict=cc_dict
+    )
+    
+    if verbose:
+        print(f"[run_mcmc_joint] Reduced chi-squared at best fit: {chi2_reduced:.4f}")
+    
+    return sampler, samples, samples, param_names, chi2_reduced
+
 
 
 def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
@@ -3305,15 +4790,15 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     # Run the sampler
     # -------------------------------
     try:
-        available = len(os.sched_getaffinity(0))
+        available_cores = len(os.sched_getaffinity(0))
     except AttributeError:
-        available = os.cpu_count() or 1
-    n_procs = max(1, min(available, max(1, nwalkers // 2)))
+        available_cores = os.cpu_count() or 1
 
     if verbose:
-        print(f"[run_mcmc] Using {n_procs} processes (of {available}) with {nwalkers} walkers")
+        print(f"[run_mcmc] Available cores: {available_cores}")
+        print(f"[run_mcmc] Using {available_cores} cores for walker parallelization")
 
-    with mp.get_context("fork").Pool(processes=n_procs, maxtasksperchild=200) as pool:
+    with mp.Pool(processes=available_cores) as pool:
         sampler = emcee.EnsembleSampler(
             nwalkers, ndim, lnprob,
             args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components, param_map, fixed_values, cc_dict),
@@ -3322,6 +4807,7 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
         if verbose:
             print("[run_mcmc] Starting MCMC...")
         sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
+        
 
     # -------------------------------
     # Post-processing
@@ -3808,16 +5294,21 @@ def apply_corner_scales(samples, labels, scale_map):
             X[:, j] *= factor
     return X
 
+
 def plot_corner(samples_free, param_map, save_path=None, title=None):
     """
     Generate a publication-quality corner plot for MCMC samples.
+    
+    Supports both standard single-mode analysis and joint EE-BB analysis.
+    Automatically detects parameter names with _EE and _BB suffixes.
     
     Parameters
     ----------
     samples_free : ndarray
         MCMC samples for the free parameters (after burn-in).
     param_map : list
-        List of (parameter_name, is_free) tuples.
+        List of (parameter_name, is_free) tuples for standard analysis,
+        or list of parameter names (strings) for joint analysis.
     save_path : str or None
         If provided, save the figure to this path (e.g., 'corner_plot.png').
     title : str or None
@@ -3829,17 +5320,33 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
         The corner plot figure.
     """
 
+    # -------------------------------
+    # Handle both param_map formats
+    # -------------------------------
+    # Check if param_map is list of tuples (standard) or list of strings (joint)
+    if len(param_map) > 0 and isinstance(param_map[0], tuple):
+        # Standard format: [(name, is_free), ...]
+        labels_free = [name for name, is_free in param_map if is_free]
+    else:
+        # Joint format: [name, name, ...]
+        labels_free = list(param_map)
 
     # -------------------------------
     # Prepare labels and scaling
     # -------------------------------
-    labels_free = [name for name, is_free in param_map if is_free]
-
     scale_map = {
+        # Standard single-mode parameters
         'A_s': (1e6, r'$\mu\mathrm{K}^2$'),
         'A_d': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
+        
+        # Joint EE-BB parameters (mode-specific amplitudes)
+        'A_s_EE': (1e6, r'$\mu\mathrm{K}^2$'),
+        'A_s_BB': (1e6, r'$\mu\mathrm{K}^2$'),
+        'A_d_EE': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
+        'A_d_BB': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
     }
 
+    # Add scaling for c_terms (both standard and joint formats)
     for name in labels_free:
         if name.startswith('c_sync') or name.startswith('c_dust'):
             scale_map[name] = (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$')
@@ -3850,6 +5357,7 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
     # LaTeX labels
     # -------------------------------
     latex_labels = {
+        # Standard single-mode parameters
         'A_s': r'$A_{\mathrm{s}}\,[\mu\mathrm{K}^2]$',
         'alpha_s': r'$\alpha_{\mathrm{s}}$',
         'beta_s': r'$\beta_{\mathrm{s}}$',
@@ -3857,15 +5365,35 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
         'alpha_d': r'$\alpha_{\mathrm{d}}$',
         'beta_d': r'$\beta_{\mathrm{d}}$',
         'rho': r'$\rho$',
+        
+        # Joint EE-BB parameters (mode-specific amplitudes)
+        'A_s_EE': r'$A_{\mathrm{s}}^{\mathrm{EE}}\,[\mu\mathrm{K}^2]$',
+        'A_s_BB': r'$A_{\mathrm{s}}^{\mathrm{BB}}\,[\mu\mathrm{K}^2]$',
+        'A_d_EE': r'$A_{\mathrm{d}}^{\mathrm{EE}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
+        'A_d_BB': r'$A_{\mathrm{d}}^{\mathrm{BB}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
+        # Note: alpha_s, alpha_d, beta_s, beta_d, rho are shared (no suffix)
     }
 
+    # Handle c_terms with automatic frequency extraction
     for name in labels_free:
-        if name.startswith('c_sync'):
+        if name.startswith('c_sync_EE'):
             freq = name.split('[')[-1].strip(']')
-            latex_labels[name] = rf'$c_{{\mathrm{{sync}},\,{freq}}}\,[10^{-3}\,\mu\mathrm{{K}}^2]$'
+            latex_labels[name] = rf'$c_{{\mathrm{{sync}}}}^{{\mathrm{{EE}}}}_{{,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
+        elif name.startswith('c_sync_BB'):
+            freq = name.split('[')[-1].strip(']')
+            latex_labels[name] = rf'$c_{{\mathrm{{sync}}}}^{{\mathrm{{BB}}}}_{{,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
+        elif name.startswith('c_dust_EE'):
+            freq = name.split('[')[-1].strip(']')
+            latex_labels[name] = rf'$c_{{\mathrm{{dust}}}}^{{\mathrm{{EE}}}}_{{,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
+        elif name.startswith('c_dust_BB'):
+            freq = name.split('[')[-1].strip(']')
+            latex_labels[name] = rf'$c_{{\mathrm{{dust}}}}^{{\mathrm{{BB}}}}_{{,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
+        elif name.startswith('c_sync'):
+            freq = name.split('[')[-1].strip(']')
+            latex_labels[name] = rf'$c_{{\mathrm{{sync}},\,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
         elif name.startswith('c_dust'):
             freq = name.split('[')[-1].strip(']')
-            latex_labels[name] = rf'$c_{{\mathrm{{dust}},\,{freq}}}\,[10^{-3}\,\mu\mathrm{{K}}^2]$'
+            latex_labels[name] = rf'$c_{{\mathrm{{dust}},\,{freq}}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$'
 
     labels_plot = [latex_labels.get(name, name) for name in labels_free]
 

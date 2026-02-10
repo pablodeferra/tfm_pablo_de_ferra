@@ -1675,7 +1675,8 @@ def get_noise_filename(base_name, sim_number):
 
 def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
                                  use_white_noise=False, n_sim=100, only_noise=False,
-                                 workspaces=None, lmax=None):
+                                 workspaces=None, lmax=None,
+                                 capture_sims=False, capture_keys=None):
     """
     Compute the average and standard deviation of auto- and cross-spectra
     over multiple noise realizations using precomputed NaMaster workspaces.
@@ -1683,6 +1684,8 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
     This function returns a unified dictionary structure:
         spectra['band_i_band_j']['TT']['MEAN']
         spectra['band_i_band_j']['TT']['STD']
+    If `capture_sims=True`, it also stores per-simulation arrays with shape
+    (n_sim, n_bins) under a subkey (default 'SIMS') for selected cl keys.
 
     Parameters
     ----------
@@ -1707,6 +1710,11 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
         Dictionary of precomputed NaMaster workspaces for each field combination.
     lmax : int or None
         Maximum multipole for lmax_sht parameter.
+    capture_sims : bool, optional
+        If True, also capture and return per-simulation arrays under non-MEAN/STD
+        subkeys so they can be written by `save_sims_to_fits`. Default False.
+    capture_keys : list[str] or None
+        Which spectra keys to capture per-sim for. Defaults to ['TT','EE','BB','TE','TB','EB'].
 
     Returns
     -------
@@ -1720,6 +1728,29 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
     for key, cl_dict in spectra_dict.items():
         sum_dict[key] = {k: np.zeros_like(v, dtype=float) for k, v in cl_dict.items()}
         sumsq_dict[key] = {k: np.zeros_like(v, dtype=float) for k, v in cl_dict.items()}
+
+    # Optional per-simulation storage
+    sims_store = None
+    sim_subkey = 'SIMS'
+    if capture_sims:
+        if capture_keys is None:
+            capture_keys = ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']
+        # Determine n_bins from any available key in spectra_dict
+        # Assume common binning for all pairs and cl keys
+        first_pair_key = next(iter(spectra_dict.keys()))
+        first_cl = spectra_dict[first_pair_key]
+        # prefer EE if present, else take any of capture_keys that exists
+        ref_key = next((k for k in ['EE','BB','TT','TE','TB','EB'] if k in first_cl), None)
+        if ref_key is None:
+            # fallback to 'ell_eff'
+            ref_key = 'ell_eff'
+        n_bins = int(np.asarray(first_cl[ref_key]).size)
+
+        sims_store = {}
+        for i, band_i in enumerate(band_list):
+            for j, band_j in enumerate(band_list):
+                band_pair = f"{band_i}_{band_j}"
+                sims_store[band_pair] = {k: np.zeros((n_sim, n_bins), dtype=float) for k in capture_keys}
 
     # Loop over noise realizations
     for sim in tqdm(range(1, n_sim + 1), desc="Simulations"):
@@ -1741,6 +1772,9 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
                     arr = np.array(arr, dtype=float)
                     sum_dict[key][cl_key] += arr
                     sumsq_dict[key][cl_key] += arr**2
+                    # Optionally capture per-simulation arrays for selected keys
+                    if capture_sims and sims_store is not None and cl_key in sims_store[key]:
+                        sims_store[key][cl_key][sim - 1, :] = arr
 
 
     # Build final dictionary with MEAN and STD
@@ -1753,6 +1787,12 @@ def average_and_std_spectra(data, spectra_dict, band_list, mask, b,
             var = np.where(var < 0, 0, var)  # Avoid negative variance due to numerical errors
             std = np.sqrt(var)
             avg_std_dict[key][cl_key] = {"MEAN": mean, "STD": std}
+        # Attach per-simulation arrays only for CL keys (avoid ell arrays)
+        if capture_sims and sims_store is not None:
+            for cl_key in sims_store[key].keys():
+                if cl_key not in avg_std_dict[key]:
+                    avg_std_dict[key][cl_key] = {}
+                avg_std_dict[key][cl_key][sim_subkey] = sims_store[key][cl_key]
 
     return avg_std_dict
 
@@ -1797,10 +1837,7 @@ def save_avg_std_to_fits(avg_std_dict, band_list, out_file, use_white_noise=Fals
 
     # Ajustar nombre si use_white_noise=True
     if use_white_noise:
-        base, ext = os.path.splitext(out_file)
-        if ext.lower() != ".fits":
-            ext = ".fits"
-        out_file = f"{base}_wn{ext}"
+        out_file = _with_suffix_before_fits(out_file, '_wn')
 
     # Crear directorio si no existe
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
@@ -1843,10 +1880,7 @@ def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
     """
     # Try to open file — if use_white_noise=True, assume it's an avg+std file
     if use_white_noise:
-        base, ext = os.path.splitext(path_fits)
-        if ext.lower() != ".fits":
-            ext = ".fits"
-        path_fits = f"{base}_wn{ext}"
+        path_fits = _with_suffix_before_fits(path_fits, '_wn')
 
     if not os.path.exists(path_fits):
         raise FileNotFoundError(f"FITS file not found: {path_fits}")
@@ -1915,10 +1949,7 @@ def read_spectra_from_fits(path_fits, band_list, use_white_noise=False):
     """
     # Try to open file — if use_white_noise=True, assume it's an avg+std file
     if use_white_noise:
-        base, ext = os.path.splitext(path_fits)
-        if ext.lower() != ".fits":
-            ext = ".fits"
-        path_fits = f"{base}_wn{ext}"
+        path_fits = _with_suffix_before_fits(path_fits, '_wn')
 
     if not os.path.exists(path_fits):
         raise FileNotFoundError(f"FITS file not found: {path_fits}")
@@ -2020,28 +2051,664 @@ def read_sims_from_fits(path_fits):
                 cl_key = cl_key or hdr.get('CLKEY', 'UNKNOWN')
                 subkey = subkey or hdr.get('SIMKEY', 'SIMS')
 
-            # Identify SIM_* columns
             if not hasattr(h, 'data') or h.data is None:
                 continue
-            colnames = [c for c in h.data.names]
-            sim_cols = [c for c in colnames if c.upper().startswith('SIM_')]
-            if len(sim_cols) == 0:
-                # nothing to read
+            colnames = list(h.data.names) if h.data.names is not None else []
+            colnames_upper = [c.upper() for c in colnames]
+
+            # Grouped layout: one HDU per (band_pair, subkey), with columns TT/EE/... each (n_bins, n_sim)
+            known_cls = ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']
+            if any(k in colnames_upper for k in known_cls):
+                for cl in known_cls:
+                    if cl not in colnames_upper:
+                        continue
+                    try:
+                        colname = colnames[colnames_upper.index(cl)]
+                        sims_by_bin = np.asarray(h.data[colname])  # (n_bins, n_sim)
+                    except Exception:
+                        continue
+                    if sims_by_bin.ndim == 2:
+                        sims.setdefault(band_pair, {})[f"{cl}__{subkey}"] = sims_by_bin.T
                 continue
 
-            # Each SIM_k column is an array of length n_bins; stack them into (n_sim, n_bins)
+            # Per-(band_pair, cl_key) compact layout: a single vector column named 'SIMS'
+            if 'SIMS' in colnames_upper:
+                try:
+                    sims_by_bin = np.asarray(h.data[colnames[colnames_upper.index('SIMS')]])  # (n_bins, n_sim)
+                except Exception:
+                    continue
+                if sims_by_bin.ndim == 2:
+                    sims.setdefault(band_pair, {})[f"{cl_key}__{subkey}"] = sims_by_bin.T
+                continue
+
+            # Legacy layout: one column per simulation (SIM_1 ... SIM_N)
+            sim_cols = [c for c in colnames if c.upper().startswith('SIM_')]
+            if len(sim_cols) == 0:
+                continue
             try:
                 sims_arr = np.vstack([h.data[c] for c in sim_cols])
             except Exception:
-                # if stacking fails, skip this HDU
                 continue
-
             sims.setdefault(band_pair, {})[f"{cl_key}__{subkey}"] = sims_arr
 
     return sims
 
 
-def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_white_noise=False, sims_npz=None):
+def build_covariance_matrix_from_sims(
+    path_sims_fits,
+    band_list,
+    modes=['EE', 'BB'],
+    ell_min=30,
+    ell_max=200,
+    band_pairs='all',
+    correlated_pairs=None
+):
+    """
+    Build a full covariance matrix from simulation FITS files, accounting for
+    correlations between specified band pairs.
+
+    Parameters
+    ----------
+    path_sims_fits : str
+        Path to FITS file containing per-simulation spectra (from save_sims_to_fits).
+    band_list : list of str
+        List of band names (e.g., ['11', '13', '17', '19', '23', ...]).
+    modes : list of str
+        List of modes to include (e.g., ['EE', 'BB']).
+    ell_min : int
+        Minimum multipole to include.
+    ell_max : int
+        Maximum multipole to include.
+    band_pairs : str or list
+        Either 'all' or a list of specific band pairs (e.g., ['11_13', '17_19']).
+    correlated_pairs : list of tuples, optional
+        List of band pair tuples that should have cross-covariance computed.
+        E.g., [('11', '13'), ('17', '19')] for QUIJOTE correlations.
+        If None, only diagonal covariances are computed.
+
+    Returns
+    -------
+    cov_matrix : ndarray
+        Full covariance matrix of shape (n_data, n_data) where
+        n_data = n_bins × n_band_pairs × n_modes.
+    data_index : dict
+        Dictionary mapping (band_pair, mode, bin_idx) to the index in the covariance matrix.
+    """
+    # Read simulations
+    sims_dict = read_sims_from_fits(path_sims_fits)
+    
+    # Build list of band pairs
+    if band_pairs == 'all':
+        bp_list = []
+        for i, bi in enumerate(band_list):
+            for j, bj in enumerate(band_list):
+                if i <= j:
+                    bp_list.append(f"{bi}_{bj}")
+    else:
+        bp_list = band_pairs
+    
+    # Get ell values and determine bin range from first available spectrum
+    sample_bp = bp_list[0]
+    sample_mode = modes[0]
+    sample_key = f"{sample_mode}__SIMS"
+    
+    if sample_bp not in sims_dict or sample_key not in sims_dict[sample_bp]:
+        raise ValueError(f"Cannot find simulations for {sample_bp}, {sample_mode}")
+    
+    # Get ell_eff from the corresponding spectrum file
+    # We need to read the ell values from somewhere - typically from the spectra file
+    # For now, we'll infer bin indices from the simulation array shape
+    sims_sample = sims_dict[sample_bp][sample_key]  # shape: (n_sim, n_bins)
+    n_bins_total = sims_sample.shape[1]
+    
+    # We need ell values to filter by ell_min/ell_max
+    # This requires reading from the original spectra file
+    # For simplicity, we'll use all bins and let the user filter externally
+    # Or we can add ell_eff as a parameter
+    
+    # Build index mapping
+    data_index = {}
+    idx = 0
+    for mode in modes:
+        for bp in bp_list:
+            for bin_idx in range(n_bins_total):
+                data_index[(bp, mode, bin_idx)] = idx
+                idx += 1
+    
+    n_data = idx
+    cov_matrix = np.zeros((n_data, n_data))
+    
+    # Compute diagonal and auto-covariances
+    for mode in modes:
+        for bp in bp_list:
+            sim_key = f"{mode}__SIMS"
+            if bp not in sims_dict or sim_key not in sims_dict[bp]:
+                continue
+            
+            sims = sims_dict[bp][sim_key]  # shape: (n_sim, n_bins)
+            
+            # Compute covariance across simulations for this band-pair and mode
+            # cov[i,j] = < (sim_i - mean_i) * (sim_j - mean_j) >
+            for bin_i in range(n_bins_total):
+                for bin_j in range(n_bins_total):
+                    idx_i = data_index[(bp, mode, bin_i)]
+                    idx_j = data_index[(bp, mode, bin_j)]
+                    
+                    # Covariance between bins within same band-pair
+                    cov_matrix[idx_i, idx_j] = np.cov(sims[:, bin_i], sims[:, bin_j])[0, 1]
+    
+    # Compute cross-covariances for correlated pairs
+    if correlated_pairs is not None:
+        for (band_i, band_j) in correlated_pairs:
+            # Find all band pairs involving these bands
+            for bp1 in bp_list:
+                for bp2 in bp_list:
+                    # Check if this pair involves the correlated bands
+                    bp1_bands = bp1.split('_')
+                    bp2_bands = bp2.split('_')
+                    
+                    # Correlate if they share one of the correlated bands
+                    should_correlate = False
+                    if (band_i in bp1_bands and band_j in bp2_bands) or \
+                       (band_j in bp1_bands and band_i in bp2_bands) or \
+                       (band_i in bp1_bands and band_i in bp2_bands) or \
+                       (band_j in bp1_bands and band_j in bp2_bands):
+                        should_correlate = True
+                    
+                    if not should_correlate or bp1 == bp2:
+                        continue
+                    
+                    # Compute cross-covariance
+                    for mode in modes:
+                        sim_key = f"{mode}__SIMS"
+                        
+                        if bp1 not in sims_dict or sim_key not in sims_dict[bp1]:
+                            continue
+                        if bp2 not in sims_dict or sim_key not in sims_dict[bp2]:
+                            continue
+                        
+                        sims1 = sims_dict[bp1][sim_key]
+                        sims2 = sims_dict[bp2][sim_key]
+                        
+                        for bin_i in range(n_bins_total):
+                            for bin_j in range(n_bins_total):
+                                idx_i = data_index[(bp1, mode, bin_i)]
+                                idx_j = data_index[(bp2, mode, bin_j)]
+                                
+                                # Cross-covariance between different band-pairs
+                                cov_val = np.cov(sims1[:, bin_i], sims2[:, bin_j])[0, 1]
+                                cov_matrix[idx_i, idx_j] = cov_val
+                                cov_matrix[idx_j, idx_i] = cov_val  # Symmetric
+    
+    return cov_matrix, data_index
+
+
+def extract_covariance_for_mcmc(
+    cov_matrix,
+    data_index,
+    fit_data,
+    modes=['EE']
+):
+    """
+    Extract the relevant sub-matrix of the covariance for MCMC fitting.
+
+    Parameters
+    ----------
+    cov_matrix : ndarray
+        Full covariance matrix from build_covariance_matrix_from_sims.
+    data_index : dict
+        Index mapping from build_covariance_matrix_from_sims.
+    fit_data : dict
+        Dictionary from prepare_mcmc_data containing 'datasets', 'ell', etc.
+    modes : list of str
+        Modes being fitted (e.g., ['EE'] or ['EE', 'BB']).
+
+    Returns
+    -------
+    cov_mcmc : ndarray
+        Covariance matrix for the MCMC data (n_mcmc_data, n_mcmc_data).
+    """
+    datasets = fit_data['datasets']
+    ell = fit_data.get('ell_eff', fit_data.get('ell', None))
+    
+    if ell is None:
+        raise KeyError("fit_data must contain either 'ell_eff' or 'ell' key")
+    
+    # Build list of indices corresponding to the MCMC data
+    mcmc_indices = []
+    
+    for dataset in datasets:
+        # Handle both old and new dataset key naming conventions
+        if 'pair' in dataset:
+            band_pair = dataset['pair']  # New format: 'pair' key
+        elif 'band_i' in dataset and 'band_j' in dataset:
+            band_pair = f"{dataset['band_i']}_{dataset['band_j']}"  # Old format
+        else:
+            raise KeyError("Dataset must contain either 'pair' or 'band_i'/'band_j' keys")
+        
+        # Get mode
+        if 'mode' in dataset:
+            mode = dataset['mode']  # New format: 'mode' key
+        elif 'cl_key' in dataset:
+            mode = dataset['cl_key']  # Old format
+        else:
+            raise KeyError("Dataset must contain either 'mode' or 'cl_key' key")
+        
+        if mode not in modes:
+            continue
+        
+        # Each dataset contributes len(ell) data points
+        for bin_idx in range(len(ell)):
+            key = (band_pair, mode, bin_idx)
+            if key in data_index:
+                mcmc_indices.append(data_index[key])
+    
+    # Extract sub-matrix
+    n_mcmc = len(mcmc_indices)
+    cov_mcmc = np.zeros((n_mcmc, n_mcmc))
+    
+    for i, idx_i in enumerate(mcmc_indices):
+        for j, idx_j in enumerate(mcmc_indices):
+            cov_mcmc[i, j] = cov_matrix[idx_i, idx_j]
+    
+    return cov_mcmc
+
+
+def build_block_diagonal_cov_inv(
+    path_sims_fits,
+    fit_data,
+    modes=['EE'],
+    quijote_bands_11_13=['11', '13'],
+    quijote_bands_17_19=['17', '19'],
+    n_sims=100,
+    path_noise_sims=None
+):
+    """
+    Build block-diagonal inverse covariance matrix for MCMC.
+    
+    Only QUIJOTE 11-13 and 17-19 get covariance blocks.
+    Everything else uses diagonal errors (1/error²).
+    
+    This is MUCH faster than full covariance inversion!
+    
+    Parameters
+    ----------
+    path_sims_fits : str
+        Path to simulation FITS file (Sky + Noise).
+    fit_data : dict
+        Output from prepare_mcmc_data.
+    modes : list of str
+        Modes to include (e.g., ['EE']).
+    quijote_bands_11_13 : list
+        QUIJOTE bands to correlate (default: ['11', '13']).
+    quijote_bands_17_19 : list
+        QUIJOTE bands to correlate (default: ['17', '19']).
+    n_sims : int
+        Number of simulations (default: 100).
+    path_noise_sims : str, optional
+        Path to noise-only simulation FITS file.
+        If provided, noise covariance will be added to the sky+noise covariance:
+        Cov_total = Cov(Sky+Noise) + Cov(Noise)
+        This matches the error propagation in correct_power_spectra.
+    
+    Returns
+    -------
+    cov_inv : ndarray
+        Block-diagonal inverse covariance matrix.
+        Can be passed directly to run_mcmc(..., cov_matrix=cov_inv).
+    """
+    # Read simulations
+    print("Reading simulations (Sky + Noise)...")
+    sims_dict = read_sims_from_fits(path_sims_fits)
+    
+    noise_sims_dict = None
+    if path_noise_sims is not None:
+        print("Reading simulations (Noise only)...")
+        noise_sims_dict = read_sims_from_fits(path_noise_sims)
+    
+    datasets = fit_data['datasets']
+    y_all = fit_data['y_all']
+    yerr_all = fit_data['yerr_all']
+    n_data = len(y_all)
+    
+    # Initialize as diagonal (1/error²)
+    print(f"Building block-diagonal inverse covariance matrix ({n_data} x {n_data})...")
+    cov_inv = np.diag(1.0 / yerr_all**2)
+    
+    # Helper: get indices for simple band pairs and mode
+    def get_indices_for_bands(band_list, allowed_modes):
+        """Get data indices for pairs where BOTH bands are in band_list and mode is allowed."""
+        indices = []
+        dataset_info = []
+        
+        # Handle single mode or list of modes
+        if isinstance(allowed_modes, str):
+            allowed_modes = [allowed_modes]
+        
+        for i, dataset in enumerate(datasets):
+            pair = dataset.get('pair', f"{dataset.get('band_i', '')}_{dataset.get('band_j', '')}")
+            ds_mode = dataset.get('mode', dataset.get('cl_key', ''))
+            
+            if ds_mode not in allowed_modes:
+                continue
+            
+            # Check if BOTH bands in the pair are in the correlated band list
+            try:
+                b1, b2 = pair.split('_')
+                if b1 in band_list and b2 in band_list:
+                    start, stop = dataset['slice']
+                    idx_range = list(range(start, stop))
+                    indices.extend(idx_range)
+                    dataset_info.append({
+                        'pair': pair,
+                        'indices': idx_range,
+                        'dataset_idx': i,
+                        'mode': ds_mode
+                    })
+            except:
+                continue
+        
+        return indices, dataset_info
+    
+    # Process QUIJOTE 11-13 block
+    print("\nProcessing QUIJOTE 11-13 covariance block...")
+    idx_11_13, info_11_13 = get_indices_for_bands(quijote_bands_11_13, modes)
+    
+    if len(idx_11_13) > 0:
+        print(f"  Found {len(idx_11_13)} data points involving bands {quijote_bands_11_13}")
+        print(f"  Pairs: {[d['pair'] for d in info_11_13]}")
+        
+        # Build covariance sub-matrix for this block
+        n_block = len(idx_11_13)
+        cov_block = np.zeros((n_block, n_block))
+        
+        # Create mapping from global index to (dataset_info, local_bin_index)
+        idx_to_dataset_map = {}
+        for ds_info in info_11_13:
+            for local_bin, global_idx in enumerate(ds_info['indices']):
+                idx_to_dataset_map[global_idx] = (ds_info, local_bin)
+        
+        # Gather all simulation data for this block (vectorized approach)
+        # sim_key = f"{modes[0]}__SIMS" # <-- OLD, wrong for joint analysis
+        n_sims_actual = None
+        block_sims = np.zeros((n_block, n_sims))
+        block_noise_sims = None
+        if noise_sims_dict is not None:
+            block_noise_sims = np.zeros((n_block, n_sims))
+        
+        for i in range(n_block):
+            global_idx_i = idx_11_13[i]
+            info_i, local_bin_i = idx_to_dataset_map[global_idx_i]
+            pair_i = info_i['pair']
+            mode_i = info_i['mode']
+            sim_key = f"{mode_i}__SIMS"
+            
+            if pair_i in sims_dict and sim_key in sims_dict[pair_i]:
+                sims_data = sims_dict[pair_i][sim_key]
+                if n_sims_actual is None:
+                    n_sims_actual = sims_data.shape[0]
+                    # Check if number of simulations matches expectation
+                    if n_sims_actual != n_sims:
+                        # Resize if needed (e.g. fewer sims available)
+                         block_sims = np.zeros((n_block, n_sims_actual))
+                         if block_noise_sims is not None:
+                             block_noise_sims = np.zeros((n_block, n_sims_actual))
+
+                block_sims[i, :] = sims_data[:, local_bin_i]
+                
+                # Also gather noise sims if available
+                if block_noise_sims is not None and pair_i in noise_sims_dict and sim_key in noise_sims_dict[pair_i]:
+                     noise_data = noise_sims_dict[pair_i][sim_key]
+                     # Assuming noise sims have same shape/count, or we take min
+                     n_noise_sims = noise_data.shape[0]
+                     limit = min(n_sims_actual, n_noise_sims)
+                     block_noise_sims[i, :limit] = noise_data[:, local_bin_i][:limit]
+
+            else:
+                # If no sims, use zero (will fall back to diagonal)
+                if n_sims_actual is None:
+                    n_sims_actual = n_sims
+                    block_sims = np.zeros((n_block, n_sims_actual))
+                    if block_noise_sims is not None:
+                        block_noise_sims = np.zeros((n_block, n_sims_actual))
+        
+        # -----------------------------------------------------------------
+        # APPLY CORRECTIONS TO EACH SIMULATION BEFORE COMPUTING COVARIANCE
+        # -----------------------------------------------------------------
+        # This ensures the diagonal of the covariance matrix matches yerr_all exactly
+        if n_sims_actual is not None and n_sims_actual > 1:
+            print("  Applying corrections to each simulation...")
+            
+            # For each data point in the block, get the correction factors
+            correction_factors = np.ones(n_block)
+            
+            for i in range(n_block):
+                global_idx = idx_11_13[i]
+                # Get correction factor from the ratio of corrected to raw std
+                std_raw_i = np.std(block_sims[i, :], ddof=1)
+                if std_raw_i > 0:
+                    correction_factors[i] = yerr_all[global_idx] / std_raw_i
+                else:
+                    correction_factors[i] = 1.0
+            
+            # Apply corrections to each simulation
+            block_sims_corrected = block_sims * correction_factors[:, np.newaxis]
+            
+            # Also correct noise sims if available
+            block_noise_sims_corrected = None
+            if block_noise_sims is not None:
+                block_noise_sims_corrected = block_noise_sims * correction_factors[:, np.newaxis]
+            
+            # Now compute covariance from CORRECTED simulations
+            cov_block = np.cov(block_sims_corrected, ddof=1)
+            
+            # Add noise covariance if available
+            if block_noise_sims_corrected is not None:
+                print("  Adding noise covariance term...")
+                cov_noise = np.cov(block_noise_sims_corrected, ddof=1)
+                cov_block += cov_noise
+            
+            print(f"  Covariance computed from corrected simulations.")
+        # -----------------------------------------------------------------
+        
+        # Fill diagonal for missing data
+        for i in range(n_block):
+            if cov_block[i, i] == 0:
+                global_idx_i = idx_11_13[i]
+                cov_block[i, i] = yerr_all[global_idx_i]**2
+        
+        # Invert the block and insert into main matrix
+        print(f"  Inverting {n_block}x{n_block} covariance block...")
+        try:
+            # Add small regularization
+            reg = 1e-12 * np.max(np.diag(cov_block))
+            cov_block_reg = cov_block + reg * np.eye(n_block)
+            cov_block_inv = np.linalg.inv(cov_block_reg)
+            
+            # Insert into main inverse matrix
+            for i, idx_i in enumerate(idx_11_13):
+                for j, idx_j in enumerate(idx_11_13):
+                    cov_inv[idx_i, idx_j] = cov_block_inv[i, j]
+            
+            print(f"Block inverted and inserted")
+        except np.linalg.LinAlgError:
+            print(f"Failed to invert block, keeping diagonal")
+    
+    # Process QUIJOTE 17-19 block
+    print("\nProcessing QUIJOTE 17-19 covariance block...")
+    idx_17_19, info_17_19 = get_indices_for_bands(quijote_bands_17_19, modes)
+    
+    if len(idx_17_19) > 0:
+        print(f"  Found {len(idx_17_19)} data points involving bands {quijote_bands_17_19}")
+        print(f"  Pairs: {[d['pair'] for d in info_17_19]}")
+        
+        # Build covariance sub-matrix for this block
+        n_block = len(idx_17_19)
+        cov_block = np.zeros((n_block, n_block))
+        
+        # Create mapping from global index to (dataset_info, local_bin_index)
+        idx_to_dataset_map = {}
+        for ds_info in info_17_19:
+            for local_bin, global_idx in enumerate(ds_info['indices']):
+                idx_to_dataset_map[global_idx] = (ds_info, local_bin)
+        
+        # Gather all simulation data for this block (vectorized approach)
+        # sim_key = f"{modes[0]}__SIMS" # <-- OLD, wrong for joint analysis
+        n_sims_actual = None
+        block_sims = np.zeros((n_block, n_sims))
+        block_noise_sims = None
+        if noise_sims_dict is not None:
+            block_noise_sims = np.zeros((n_block, n_sims))
+        
+        for i in range(n_block):
+            global_idx_i = idx_17_19[i]
+            info_i, local_bin_i = idx_to_dataset_map[global_idx_i]
+            pair_i = info_i['pair']
+            mode_i = info_i['mode']
+            sim_key = f"{mode_i}__SIMS"
+            
+            if pair_i in sims_dict and sim_key in sims_dict[pair_i]:
+                sims_data = sims_dict[pair_i][sim_key]
+                if n_sims_actual is None:
+                    n_sims_actual = sims_data.shape[0]
+                    if n_sims_actual != n_sims:
+                         block_sims = np.zeros((n_block, n_sims_actual))
+                         if block_noise_sims is not None:
+                             block_noise_sims = np.zeros((n_block, n_sims_actual))
+                
+                block_sims[i, :] = sims_data[:, local_bin_i]
+                
+                # Also gather noise sims if available
+                if block_noise_sims is not None and pair_i in noise_sims_dict and sim_key in noise_sims_dict[pair_i]:
+                     noise_data = noise_sims_dict[pair_i][sim_key]
+                     n_noise_sims = noise_data.shape[0]
+                     limit = min(n_sims_actual, n_noise_sims)
+                     block_noise_sims[i, :limit] = noise_data[:, local_bin_i][:limit]
+            else:
+                # If no sims, use zero (will fall back to diagonal)
+                if n_sims_actual is None:
+                    n_sims_actual = n_sims
+                    block_sims = np.zeros((n_block, n_sims_actual))
+                    if block_noise_sims is not None:
+                        block_noise_sims = np.zeros((n_block, n_sims_actual))
+        
+        # -----------------------------------------------------------------
+        # APPLY CORRECTIONS TO EACH SIMULATION BEFORE COMPUTING COVARIANCE
+        # -----------------------------------------------------------------
+        # This ensures the diagonal of the covariance matrix matches yerr_all exactly
+        if n_sims_actual is not None and n_sims_actual > 1:
+            print("  Applying corrections to each simulation...")
+            
+            # For each data point in the block, get the correction factors
+            correction_factors = np.ones(n_block)
+            
+            for i in range(n_block):
+                global_idx = idx_17_19[i]
+                # Get correction factor from the ratio of corrected to raw std
+                std_raw_i = np.std(block_sims[i, :], ddof=1)
+                if std_raw_i > 0:
+                    correction_factors[i] = yerr_all[global_idx] / std_raw_i
+                else:
+                    correction_factors[i] = 1.0
+            
+            # Apply corrections to each simulation
+            block_sims_corrected = block_sims * correction_factors[:, np.newaxis]
+            
+            # Also correct noise sims if available
+            block_noise_sims_corrected = None
+            if block_noise_sims is not None:
+                block_noise_sims_corrected = block_noise_sims * correction_factors[:, np.newaxis]
+            
+            # Now compute covariance from CORRECTED simulations
+            cov_block = np.cov(block_sims_corrected, ddof=1)
+            
+            # Add noise covariance if available
+            if block_noise_sims_corrected is not None:
+                print("  Adding noise covariance term...")
+                cov_noise = np.cov(block_noise_sims_corrected, ddof=1)
+                cov_block += cov_noise
+            
+            print(f"  Covariance computed from corrected simulations.")
+        # -----------------------------------------------------------------
+        
+        # Fill diagonal for missing data
+        for i in range(n_block):
+            if cov_block[i, i] == 0:
+                global_idx_i = idx_17_19[i]
+                cov_block[i, i] = yerr_all[global_idx_i]**2
+        
+        # Invert the block and insert into main matrix
+        print(f"  Inverting {n_block}x{n_block} covariance block...")
+        try:
+            reg = 1e-12 * np.max(np.diag(cov_block))
+            cov_block_reg = cov_block + reg * np.eye(n_block)
+            cov_block_inv = np.linalg.inv(cov_block_reg)
+            
+            for i, idx_i in enumerate(idx_17_19):
+                for j, idx_j in enumerate(idx_17_19):
+                    cov_inv[idx_i, idx_j] = cov_block_inv[i, j]
+            
+            print(f"  ✓ Block inverted and inserted")
+        except np.linalg.LinAlgError:
+            print(f"  ✗ Failed to invert block, keeping diagonal")
+    
+    print(f"  Block-diagonal inverse covariance matrix built")
+    print(f"  Total size: {n_data} x {n_data}")
+    print(f"  QUIJOTE 11-13 block: {len(idx_11_13)} x {len(idx_11_13)}")
+    print(f"  QUIJOTE 17-19 block: {len(idx_17_19)} x {len(idx_17_19)}")
+    print(f"  Diagonal elements: {n_data - len(idx_11_13) - len(idx_17_19)}")
+    
+    # Pre-extract the covariance blocks to avoid repeated slicing in likelihood
+    cov_inv_11_13 = None
+    cov_inv_17_19 = None
+    
+    if len(idx_11_13) > 0:
+        cov_inv_11_13 = cov_inv[np.ix_(idx_11_13, idx_11_13)]
+    
+    if len(idx_17_19) > 0:
+        cov_inv_17_19 = cov_inv[np.ix_(idx_17_19, idx_17_19)]
+    
+    # Return block information for efficient chi-squared computation
+    block_info = {
+        'indices_11_13': np.array(idx_11_13, dtype=int),  # Convert to numpy array
+        'indices_17_19': np.array(idx_17_19, dtype=int),
+        'cov_inv_11_13': cov_inv_11_13,  # Pre-extracted block
+        'cov_inv_17_19': cov_inv_17_19,  # Pre-extracted block
+        # 'cov_inv': cov_inv  # Keep full matrix for reference
+    }
+    
+    return block_info
+
+
+def _with_suffix_before_fits(path, suffix):
+    """Insert `suffix` before .fits or .fits.gz (case-insensitive).
+
+    Examples
+    --------
+    a.fits    -> a{suffix}.fits
+    a.fits.gz -> a{suffix}.fits.gz
+    """
+    p = str(path)
+    pl = p.lower()
+    if pl.endswith('.fits.gz'):
+        return p[:-len('.fits.gz')] + f"{suffix}.fits.gz"
+    if pl.endswith('.fits'):
+        return p[:-len('.fits')] + f"{suffix}.fits"
+    base, ext = os.path.splitext(p)
+    return f"{base}{suffix}{ext}"
+
+
+def save_sims_to_fits(
+    avg_std_dict=None,
+    band_list=None,
+    out_file=None,
+    use_white_noise=False,
+    sims_npz=None,
+    avg_std_out_file=None,
+    dtype='float32',
+    sims_layout='vector',
+    hdu_grouping='by_cl',
+):
     """
     Save per-simulation spectra into a new FITS file.
 
@@ -2051,8 +2718,11 @@ def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_whit
       - or a compressed NPZ file (`sims_npz`) with keys like '11_11__EE'
         containing arrays shape (n_sim, n_bins).
 
-    The output FITS will contain one BinTableHDU per (band_pair, cl_key, subkey)
-    with columns: ELL1, ELL2, ELL_EFF, SIM_1 ... SIM_N.
+        The output FITS can be written in two layouts:
+            - hdu_grouping='by_cl' (default): one BinTableHDU per (band_pair, cl_key, subkey)
+            - hdu_grouping='by_bandpair': one BinTableHDU per (band_pair, subkey) with
+                columns TT/EE/BB/TE/TB/EB, each storing all simulations as a fixed-length
+                vector per bin. This significantly reduces FITS header overhead.
 
     Parameters
     ----------
@@ -2063,7 +2733,15 @@ def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_whit
     out_file : str
         Output FITS filename (same naming convention as save_avg_std_to_fits).
     use_white_noise : bool
-        If True, append '_wn' before '.fits' in the filename.
+        If True, append '_wn' before '.fits' (or '.fits.gz') in the filename.
+            dtype : {'float32','float64'} or numpy dtype
+                    Numeric dtype used for per-simulation spectra. Using float32 typically halves file size.
+                sims_layout : {'vector','columns'}
+                    - 'vector': store all simulations in a single fixed-length vector column named 'SIMS'
+                      with shape (n_bins, n_sim). This is much more compact than one column per simulation.
+                    - 'columns': legacy layout with columns SIM_1 ... SIM_N.
+                hdu_grouping : {'by_cl','by_bandpair'}
+                    Choose the HDU grouping strategy. 'by_bandpair' requires sims_layout='vector'.
     sims_npz : str or None
         Path to an external compressed NPZ with per-sim arrays. If provided, data
         will be read from this NPZ and saved into the FITS. If None, the function
@@ -2079,15 +2757,33 @@ def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_whit
     if band_list is None:
         raise ValueError("band_list must be provided")
 
+    sims_layout = str(sims_layout).lower().strip()
+    if sims_layout not in ('vector', 'columns'):
+        raise ValueError("sims_layout must be 'vector' or 'columns'")
+
+    hdu_grouping = str(hdu_grouping).lower().strip()
+    if hdu_grouping not in ('by_cl', 'by_bandpair'):
+        raise ValueError("hdu_grouping must be 'by_cl' or 'by_bandpair'")
+    if hdu_grouping == 'by_bandpair' and sims_layout != 'vector':
+        raise ValueError("hdu_grouping='by_bandpair' requires sims_layout='vector'")
+
+    dt = np.dtype(dtype)
+    if dt not in (np.dtype('float32'), np.dtype('float64')):
+        raise ValueError("dtype must be float32 or float64")
+    fmt_char = 'E' if dt == np.dtype('float32') else 'D'
+
     # Adjust filename for white-noise convention
     if use_white_noise:
-        base, ext = os.path.splitext(out_file)
-        if ext.lower() != ".fits":
-            ext = ".fits"
-        out_file = f"{base}_wn{ext}"
+        out_file = _with_suffix_before_fits(out_file, '_wn')
 
     # Ensure directory exists
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
+
+    # Optionally also write the avg+std file if requested and available
+    if avg_std_out_file is not None:
+        if avg_std_dict is None:
+            raise ValueError("avg_std_out_file was provided, but avg_std_dict is None")
+        save_avg_std_to_fits(avg_std_dict, band_list, out_file=avg_std_out_file, use_white_noise=use_white_noise)
 
     # Prepare a mapping of per-sim arrays: key -> (cl_key, subkey, array)
     sims_map = {}
@@ -2104,7 +2800,7 @@ def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_whit
                 subkey = parts[2] if len(parts) > 2 else 'SIMS'
             else:
                 continue
-            arr = np.asarray(npz[k], dtype=float)
+            arr = np.asarray(npz[k], dtype=dt)
             if arr.ndim != 2:
                 continue
             sims_map.setdefault(band_pair, []).append((cl_key, subkey, arr))
@@ -2124,51 +2820,121 @@ def save_sims_to_fits(avg_std_dict=None, band_list=None, out_file=None, use_whit
                         if subk in ('MEAN', 'STD'):
                             continue
                         try:
-                            arr = np.asarray(subv, dtype=float)
+                            arr = np.asarray(subv, dtype=dt)
                         except Exception:
                             continue
                         if arr.ndim != 2:
                             continue
                         sims_map.setdefault(band_pair, []).append((cl_key, subk, arr))
 
-    # Write FITS: one HDU per (band_pair, cl_key, subkey)
+    # If nothing was discovered, fail fast to avoid writing empty FITS
+    if len(sims_map) == 0:
+        raise ValueError(
+            "No per-simulation arrays found for save_sims_to_fits. "
+            "Pass a valid sims_npz, or include 2D per-sim arrays under non-MEAN/STD keys in avg_std_dict."
+        )
+
+    # Write FITS
     hdu_list = fits.HDUList()
     hdu_list.append(fits.PrimaryHDU())
 
-    for band_pair, entries in sims_map.items():
-        for cl_key, subkey, arr in entries:
-            n_sim, n_bins = arr.shape
+    def _get_ell_arrays(band_pair, n_bins):
+        ell1 = ell2 = ell_eff = None
+        if avg_std_dict is not None and band_pair in avg_std_dict:
+            spec = avg_std_dict[band_pair]
+            ell1 = spec.get('ell1', {}).get('MEAN', None)
+            ell2 = spec.get('ell2', {}).get('MEAN', None)
+            ell_eff = spec.get('ell_eff', {}).get('MEAN', None)
+        if ell1 is None:
+            ell1 = np.arange(n_bins)
+        if ell2 is None:
+            ell2 = np.arange(n_bins)
+        if ell_eff is None:
+            ell_eff = np.arange(n_bins)
+        return (
+            np.asarray(ell1, dtype=np.int32),
+            np.asarray(ell2, dtype=np.int32),
+            np.asarray(ell_eff, dtype=dt),
+        )
 
-            # Try to get ell arrays from avg_std_dict if available
-            ell1 = None; ell2 = None; ell_eff = None
-            if avg_std_dict is not None and band_pair in avg_std_dict:
-                spec = avg_std_dict[band_pair]
-                ell1 = spec.get('ell1', {}).get('MEAN', None)
-                ell2 = spec.get('ell2', {}).get('MEAN', None)
-                ell_eff = spec.get('ell_eff', {}).get('MEAN', None)
+    if hdu_grouping == 'by_cl':
+        for band_pair, entries in sims_map.items():
+            for cl_key, subkey, arr in entries:
+                n_sim, n_bins = arr.shape
+                ell1, ell2, ell_eff = _get_ell_arrays(band_pair, n_bins)
+                arr = np.asarray(arr, dtype=dt)
 
-            if ell1 is None:
-                ell1 = np.arange(n_bins)
-            if ell2 is None:
-                ell2 = np.arange(n_bins)
-            if ell_eff is None:
-                ell_eff = np.arange(n_bins)
+                cols = [
+                    fits.Column(name='ELL1', format='J', array=ell1),
+                    fits.Column(name='ELL2', format='J', array=ell2),
+                    fits.Column(name='ELL_EFF', format=fmt_char, array=ell_eff),
+                ]
 
-            cols = [fits.Column(name='ELL1', format='D', array=ell1),
-                    fits.Column(name='ELL2', format='D', array=ell2),
-                    fits.Column(name='ELL_EFF', format='D', array=ell_eff)]
+                if sims_layout == 'vector':
+                    sims_by_bin = arr.T  # (n_bins, n_sim)
+                    cols.append(fits.Column(name='SIMS', format=f"{n_sim}{fmt_char}", array=sims_by_bin))
+                else:
+                    for s in range(n_sim):
+                        cols.append(fits.Column(name=f"SIM_{s+1}", format=fmt_char, array=arr[s]))
 
-            for s in range(n_sim):
-                cols.append(fits.Column(name=f"SIM_{s+1}", format='D', array=arr[s]))
+                hdu = fits.BinTableHDU.from_columns(cols)
+                bi, bj = band_pair.split('_') if '_' in band_pair else (band_pair, '')
+                hdu.header['BAND_I'] = bi
+                hdu.header['BAND_J'] = bj
+                hdu.header['CLKEY'] = cl_key
+                hdu.header['SIMKEY'] = subkey
+                hdu.header['SDTYPE'] = 'F32' if dt == np.dtype('float32') else 'F64'
+                hdu.header['SLAYOUT'] = sims_layout.upper()
+                hdu.name = f"{band_pair}__{cl_key}__{subkey}_SIMS"
+                hdu_list.append(hdu)
+    else:
+        preferred_order = ['TT', 'EE', 'BB', 'TE', 'TB', 'EB']
+        for band_pair, entries in sims_map.items():
+            # group by subkey
+            by_subkey = {}
+            for cl_key, subkey, arr in entries:
+                by_subkey.setdefault(subkey, []).append((cl_key, arr))
 
-            hdu = fits.BinTableHDU.from_columns(cols)
-            bi, bj = band_pair.split('_') if '_' in band_pair else (band_pair, '')
-            hdu.header['BAND_I'] = bi
-            hdu.header['BAND_J'] = bj
-            hdu.header['CLKEY'] = cl_key
-            hdu.header['SIMKEY'] = subkey
-            hdu.name = f"{band_pair}__{cl_key}__{subkey}_SIMS"
-            hdu_list.append(hdu)
+            for subkey, cl_entries in by_subkey.items():
+                # reference shape
+                ref_arr = None
+                for _, a in cl_entries:
+                    a = np.asarray(a)
+                    if a.ndim == 2:
+                        ref_arr = a
+                        break
+                if ref_arr is None:
+                    continue
+                n_sim, n_bins = ref_arr.shape
+                ell1, ell2, ell_eff = _get_ell_arrays(band_pair, n_bins)
+
+                cols = [
+                    fits.Column(name='ELL1', format='J', array=ell1),
+                    fits.Column(name='ELL2', format='J', array=ell2),
+                    fits.Column(name='ELL_EFF', format=fmt_char, array=ell_eff),
+                ]
+
+                cl_map = {k: np.asarray(v, dtype=dt) for k, v in cl_entries if np.asarray(v).ndim == 2}
+                ordered_keys = [k for k in preferred_order if k in cl_map] + [k for k in sorted(cl_map) if k not in preferred_order]
+                for cl_key in ordered_keys:
+                    a = cl_map[cl_key]
+                    if a.shape != (n_sim, n_bins):
+                        continue
+                    cols.append(
+                        fits.Column(name=str(cl_key), format=f"{n_sim}{fmt_char}", array=a.T)
+                    )
+
+                hdu = fits.BinTableHDU.from_columns(cols)
+                bi, bj = band_pair.split('_') if '_' in band_pair else (band_pair, '')
+                hdu.header['BAND_I'] = bi
+                hdu.header['BAND_J'] = bj
+                hdu.header['CLKEY'] = 'MULTI'
+                hdu.header['SIMKEY'] = subkey
+                hdu.header['SDTYPE'] = 'F32' if dt == np.dtype('float32') else 'F64'
+                hdu.header['SLAYOUT'] = sims_layout.upper()
+                hdu.header['SGROUP'] = 'BANDPAIR'
+                hdu.name = f"{band_pair}__{subkey}_SIMS"
+                hdu_list.append(hdu)
 
     # Write to disk
     hdu_list.writeto(out_file, overwrite=True)
@@ -3238,7 +4004,7 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
             cc_s2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
         else:
             cc_s1 = cc_s2 = 1.0
-        Cl = A_s * ell_scale * (scale_f1/cc_s1) * (scale_f2/cc_s2)
+        Cl = A_s * ell_scale * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
         if fit_c_terms and (f1 == f2):
             i = freq_to_idx[f1]
             Cl = Cl + c_terms[i]
@@ -3316,7 +4082,7 @@ def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
             cc_s1 = cc_s2 = 1.0
         
         # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
-        Cl = A_s * ell_scale * (scale_f1/cc_s1) * (scale_f2/cc_s2)
+        Cl = A_s * ell_scale * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
         
         # Add constant term for auto-spectra if requested
         if fit_c_terms and (f1 == f2):
@@ -3387,7 +4153,7 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
             cc_d2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
         else:
             cc_d1 = cc_d2 = 1.0
-        Cl = A_d * ell_scale * (s1/cc_d1) * (s2/cc_d2)
+        Cl = A_d * ell_scale * (s1 * cc_d1) * (s2 * cc_d2)
         if fit_c_terms and (f1 == f2):
             i = freq_to_idx[f1]
             Cl = Cl + c_terms[i]
@@ -3472,7 +4238,7 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
             cc_d1 = cc_d2 = 1.0
         
         # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
-        Cl = A_d * ell_scale * (s1/cc_d1) * (s2/cc_d2)
+        Cl = A_d * ell_scale * (s1 * cc_d1) * (s2 * cc_d2)
         
         # Add constant term for auto-spectra if requested
         if fit_c_terms and (f1 == f2):
@@ -3552,7 +4318,7 @@ def model_cross(theta, datasets, ell,
             cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
         else:
             cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
-        mix = ( (s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1) )
+        mix = ( (s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1) )
         C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
@@ -3641,7 +4407,7 @@ def model_cross_joint(theta, datasets, ell, mode,
         
         # Cross term: rho × sqrt(A_s × A_d) × (s1×d2 + s2×d1) × ell_scale
         # This represents the correlation between synchrotron and dust
-        mix = ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
+        mix = ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
         C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
@@ -3761,7 +4527,7 @@ def loglik_wishart(C_hat, C_model, nu, drop_const=True, jitter=0.0):
 
 def lnlike(theta_full, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-           cc_dict=None):
+           cc_dict=None, cov_matrix=None):
     """
     Compute the log-likelihood (-0.5 chi^2) for the model given data.
 
@@ -3776,11 +4542,16 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
     y_all : array
         Observed spectra concatenated.
     yerr_all : array
-        Errors associated with y_all.
+        Errors associated with y_all (used if cov_matrix is None).
     fit_c_terms : bool
         Whether to fit constant c terms.
     fit_components : tuple
         Components to include ('sync','dust','cross').
+    cov_matrix : dict, optional
+        Dictionary with keys 'indices_11_13', 'indices_17_19', 'cov_inv'.
+        Uses block-diagonal covariance ONLY for QUIJOTE blocks,
+        diagonal (1/sigma^2) for all others (FAST!).
+        If None, uses diagonal covariance: chi^2 = sum((data - model)^2 / sigma^2).
 
     Returns
     -------
@@ -3814,7 +4585,35 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
         y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
                                datasets, ell, cc_dict=cc_dict)
 
-    chi2 = np.sum(((y_all - y_model) / yerr_all) ** 2)
+    residual = y_all - y_model
+    
+    if cov_matrix is not None:
+        # FAST block-diagonal approach: only use covariance for QUIJOTE blocks
+        idx_11_13 = cov_matrix['indices_11_13']
+        idx_17_19 = cov_matrix['indices_17_19']
+        cov_inv_11_13 = cov_matrix['cov_inv_11_13']
+        cov_inv_17_19 = cov_matrix['cov_inv_17_19']
+        
+        # Start with diagonal chi-squared for ALL points
+        chi2 = np.sum((residual / yerr_all) ** 2)
+        
+        # Subtract diagonal contribution for QUIJOTE blocks and add covariance
+        # (do indexing only once per block)
+        if len(idx_11_13) > 0:
+            res_block = residual[idx_11_13]
+            yerr_block = yerr_all[idx_11_13]
+            chi2 -= np.sum((res_block / yerr_block) ** 2)  # Subtract diagonal
+            chi2 += res_block @ cov_inv_11_13 @ res_block  # Add covariance
+        
+        if len(idx_17_19) > 0:
+            res_block = residual[idx_17_19]
+            yerr_block = yerr_all[idx_17_19]
+            chi2 -= np.sum((res_block / yerr_block) ** 2)  # Subtract diagonal
+            chi2 += res_block @ cov_inv_17_19 @ res_block  # Add covariance
+    else:
+        # Use diagonal covariance: chi^2 = sum((residual / sigma)^2)
+        chi2 = np.sum((residual / yerr_all) ** 2)
+    
     return -0.5 * chi2
 
 
@@ -3822,7 +4621,7 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
 def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell, 
                  y_EE, yerr_EE, y_BB, yerr_BB,
                  fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                 cc_dict=None):
+                 cc_dict=None, cov_matrix=None):
     """
     Compute the log-likelihood for joint EE-BB analysis.
 
@@ -3841,17 +4640,22 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
     y_EE : array
         Observed EE spectra concatenated.
     yerr_EE : array
-        Errors for EE spectra.
+        Errors for EE spectra (used if cov_matrix is None).
     y_BB : array
         Observed BB spectra concatenated.
     yerr_BB : array
-        Errors for BB spectra.
+        Errors for BB spectra (used if cov_matrix is None).
     fit_c_terms : bool
         Whether to fit constant c terms.
     fit_components : tuple
         Components to include ('sync','dust','cross').
     cc_dict : dict, optional
         Color correction polynomials.
+    cov_matrix : dict, optional
+        Dictionary with keys 'indices_11_13', 'indices_17_19', 'cov_inv'.
+        Uses block-diagonal covariance ONLY for QUIJOTE blocks,
+        diagonal (1/sigma^2) for all others (FAST!).
+        If None, uses diagonal covariance separately for EE and BB.
 
     Returns
     -------
@@ -3946,9 +4750,38 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
     # =========================================================================
     # Compute combined chi-squared
     # =========================================================================
-    chi2_EE = np.sum(((y_EE - y_model_EE) / yerr_EE) ** 2)
-    chi2_BB = np.sum(((y_BB - y_model_BB) / yerr_BB) ** 2)
-    chi2_total = chi2_EE + chi2_BB
+    if cov_matrix is not None:
+        # FAST block-diagonal approach for joint EE+BB
+        idx_11_13 = cov_matrix['indices_11_13']
+        idx_17_19 = cov_matrix['indices_17_19']
+        cov_inv_11_13 = cov_matrix['cov_inv_11_13']
+        cov_inv_17_19 = cov_matrix['cov_inv_17_19']
+        
+        # Concatenate EE and BB residuals and errors
+        residual_combined = np.concatenate([y_EE - y_model_EE, y_BB - y_model_BB])
+        yerr_combined = np.concatenate([yerr_EE, yerr_BB])
+        
+        # Start with diagonal chi-squared for ALL points
+        chi2_total = np.sum((residual_combined / yerr_combined) ** 2)
+        
+        # Subtract diagonal contribution for QUIJOTE blocks and add covariance
+        # (do indexing only once per block)
+        if len(idx_11_13) > 0:
+            res_block = residual_combined[idx_11_13]
+            yerr_block = yerr_combined[idx_11_13]
+            chi2_total -= np.sum((res_block / yerr_block) ** 2)  # Subtract diagonal
+            chi2_total += res_block @ cov_inv_11_13 @ res_block  # Add covariance
+        
+        if len(idx_17_19) > 0:
+            res_block = residual_combined[idx_17_19]
+            yerr_block = yerr_combined[idx_17_19]
+            chi2_total -= np.sum((res_block / yerr_block) ** 2)  # Subtract diagonal
+            chi2_total += res_block @ cov_inv_17_19 @ res_block  # Add covariance
+    else:
+        # Use diagonal covariance (separate for EE and BB)
+        chi2_EE = np.sum(((y_EE - y_model_EE) / yerr_EE) ** 2)
+        chi2_BB = np.sum(((y_BB - y_model_BB) / yerr_BB) ** 2)
+        chi2_total = chi2_EE + chi2_BB
     
     return -0.5 * chi2_total
 
@@ -4363,7 +5196,7 @@ def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust',
 
 def lnprob(theta_free, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-           param_map=None, fixed_values=None, cc_dict=None):
+           param_map=None, fixed_values=None, cc_dict=None, cov_matrix=None):
     """
     Reconstruct full parameter vector from free parameters and fixed values,
     then compute log-posterior (lnprior + lnlike).
@@ -4376,6 +5209,8 @@ def lnprob(theta_free, datasets, ell, y_all, yerr_all,
         List of (name, is_free) for each parameter in full vector.
     fixed_values : dict
         Values for parameters that are fixed.
+    cov_matrix : ndarray, optional
+        Full covariance matrix to use in likelihood calculation.
 
     Returns
     -------
@@ -4396,14 +5231,14 @@ def lnprob(theta_free, datasets, ell, y_all, yerr_all,
         return -np.inf
     ll = lnlike(theta_full, datasets, ell, y_all, yerr_all,
                 fit_c_terms=fit_c_terms, fit_components=fit_components,
-                cc_dict=cc_dict)
+                cc_dict=cc_dict, cov_matrix=cov_matrix)
     return lp + ll
 
 
 def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
                 y_EE, yerr_EE, y_BB, yerr_BB,
                 fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                cc_dict=None):
+                cc_dict=None, cov_matrix=None):
     """
     Compute log-posterior for joint EE-BB analysis (prior + likelihood).
 
@@ -4420,17 +5255,19 @@ def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
     y_EE : array
         Observed EE spectra.
     yerr_EE : array
-        Errors for EE spectra.
+        Errors for EE spectra (used if cov_matrix is None).
     y_BB : array
         Observed BB spectra.
     yerr_BB : array
-        Errors for BB spectra.
+        Errors for BB spectra (used if cov_matrix is None).
     fit_c_terms : bool
         Whether c terms are fitted.
     fit_components : tuple
         Components included.
     cc_dict : dict, optional
         Color correction polynomials.
+    cov_matrix : ndarray, optional
+        Full covariance matrix for joint EE+BB data.
 
     Returns
     -------
@@ -4444,7 +5281,7 @@ def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
     ll = lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
                      y_EE, yerr_EE, y_BB, yerr_BB,
                      fit_c_terms=fit_c_terms, fit_components=fit_components,
-                     cc_dict=cc_dict)
+                     cc_dict=cc_dict, cov_matrix=cov_matrix)
     
     return lp + ll
 
@@ -4453,7 +5290,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
             fit_c_terms=False, nwalkers=100, ninter=5000,
             discard_fraction=0.5, verbose=True,
             fit_mode='power-law', color_correction=False,
-            joint_analysis=False):
+            joint_analysis=False, cov_matrix=None):
     """
     Run MCMC fit with optional joint EE-BB analysis.
 
@@ -4514,7 +5351,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
         return _run_mcmc_joint(
             fit_data, fit_components, fit_c_terms,
             nwalkers, ninter, discard_fraction, verbose,
-            color_correction
+            color_correction, cov_matrix
         )
     
     # Standard analysis (single mode or separate EE/BB)
@@ -4522,7 +5359,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
         return _run_mcmc_powerlaw(
             fit_data, fit_components, fit_c_terms,
             nwalkers, ninter, discard_fraction, verbose,
-            color_correction
+            color_correction, cov_matrix
         )
     elif fit_mode == 'bin-to-bin':
         return _run_mcmc_bin_to_bin(
@@ -4535,7 +5372,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
 
 def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
                    nwalkers, ninter, discard_fraction, verbose,
-                   color_correction):
+                   color_correction, cov_matrix=None):
     """
     Run MCMC for joint EE-BB analysis.
 
@@ -4677,7 +5514,7 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
         sampler = emcee.EnsembleSampler(
             nwalkers, ndim, lnprob_joint,
             args=(datasets_EE, datasets_BB, ell, y_EE, yerr_EE, y_BB, yerr_BB,
-                  fit_c_terms, fit_components, cc_dict),
+                  fit_c_terms, fit_components, cc_dict, cov_matrix),
             pool=pool
         )
         sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
@@ -4708,7 +5545,7 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
 
 
 def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
-                       color_correction):
+                       color_correction, cov_matrix=None):
     # Load color-correction polynomials dict if requested
     cc_dict = None
     if color_correction:
@@ -4801,7 +5638,7 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     with mp.Pool(processes=available_cores) as pool:
         sampler = emcee.EnsembleSampler(
             nwalkers, ndim, lnprob,
-            args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components, param_map, fixed_values, cc_dict),
+            args=(datasets, ell, y_all, yerr_all, fit_c_terms, fit_components, param_map, fixed_values, cc_dict, cov_matrix),
             pool=pool
         )
         if verbose:
@@ -5129,7 +5966,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
                 cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_s1 = cc_s2 = 1.0
-            model_val += A_s * (scale_f1/cc_s1) * (scale_f2/cc_s2)
+            model_val += A_s * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
         
         if 'dust' in fit_components:
             # Dust: A_d * mbb_scaling
@@ -5145,7 +5982,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
                 cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_d1 = cc_d2 = 1.0
-            model_val += A_d * (scale_f1/cc_d1) * (scale_f2/cc_d2)
+            model_val += A_d * (scale_f1 * cc_d1) * (scale_f2 * cc_d2)
         
         if 'cross' in fit_components:
             # Cross term: rho * sqrt(A_s * A_d) * (sync_scale1 * dust_scale2 + sync_scale2 * dust_scale1)
@@ -5172,7 +6009,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
             else:
                 cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
 
-            model_val += rho * np.sqrt(A_s * A_d) * ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
         
         y_model[idx] = model_val
     
@@ -5213,7 +6050,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
                 cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_s1 = cc_s2 = 1.0
-            model_val += A_s * (scale_f1/cc_s1) * (scale_f2/cc_s2)
+            model_val += A_s * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
         
         if 'dust' in fit_components:
             freq_ref_dust = 353.0
@@ -5229,7 +6066,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
                 cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_d1 = cc_d2 = 1.0
-            model_val += A_d * (scale_f1/cc_d1) * (scale_f2/cc_d2)
+            model_val += A_d * (scale_f1 * cc_d1) * (scale_f2 * cc_d2)
         
         if 'cross' in fit_components:
             freq_ref_sync = 11.1
@@ -5255,7 +6092,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
             else:
                 cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
 
-            model_val += rho * np.sqrt(A_s * A_d) * ((s1/cc_s1) * (d2/cc_d2) + (s2/cc_s2) * (d1/cc_d1))
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
         
         y_model[idx] = model_val
     

@@ -284,7 +284,7 @@ cmap = None
 if USE_PLANCK_CMAP:
     # Load Planck CMB colormap
     colombi1_cmap = ListedColormap(
-        np.loadtxt('/home/pablo/Desktop/Fisica/TFG/txts/Planck_Parchment_RGB.txt') / 255.
+        np.loadtxt('/home/pablo/Desktop/master/tfm/Planck_Parchment_RGB.txt') / 255.
     )
     colombi1_cmap.set_bad('gray')  # Color for missing pixels
     colombi1_cmap.set_under("white")  # Background color

@@ -81,8 +81,8 @@ ws_band_list = ['11', '23', '30']
 fit_mode = 'BB'
 
 # Save path of the figure
-save_path = f'/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/corner/corner_sync_{fit_mode}_WS.pdf'
-# save_path = None
+# save_path = f'/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/corner/corner_sync_{fit_mode}_WS.pdf'
+save_path = None
 
 ws_fit_data = functions.prepare_mcmc_data(
     ws_spectra,
@@ -92,17 +92,22 @@ ws_fit_data = functions.prepare_mcmc_data(
     ell_max=200,
     band_pairs='all'
 )
-
-ws_mcmc_sampler, ws_samples_full, ws_samples_free, ws_param_map = functions.run_mcmc(
+ws_mcmc_sampler, ws_samples_full, ws_samples_free, ws_param_map, chi2_reduced = functions.run_mcmc(
     ws_fit_data,
     fit_components=('sync'), 
     fit_c_terms=True,
     nwalkers=200,
     ninter=5000,  
     discard_fraction=0.5,
-    verbose=True,
+    verbose=True,  # Show progress bar
+    fit_mode='power-law',
+    color_correction=True,
+    cov_matrix=None,
+    n_processes=18,
 )
 
 
 # Plot and save the corner plot
 fig = functions.plot_corner(ws_samples_free, ws_param_map, save_path=save_path, title=f'WS, {fit_mode} mode')
+
+

@@ -28,6 +28,7 @@ for ii in range(len(galcuts)):
         error_cross[ii,jj] = np.loadtxt('/home/pablo/Desktop/Paper/1_wide_survey/data/errorbars/errorbar_cross_' + freq_cross[jj] + 'ghz_galcut' + galcuts[ii] + '.txt', skiprows=1)
 
 
+
 # Bands to use
 quijote_bands = ['11']
 wmap_bands = ['23', '33', '41', '61', '94']
@@ -35,7 +36,7 @@ planck_bands = ['30', '44', '70', '30', '143', '217', '217']
 
 band_list = quijote_bands + wmap_bands + planck_bands
 
-mask_select = masks['quijote_galcut']['galcut10']
+mask_select = masks['QUIJOTE_galcut']['galcut10']
 mask_name = mask_select['name']
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 
@@ -43,6 +44,7 @@ out_path = '/home/pablo/Desktop/master/tfm/spectra/'
 path_corrected_spectra_old = os.path.join(out_path, f'corrected_power_spectra_{mask_name}.fits')
 # Load new corrected spectra from notebook (with _11_23_30 suffix)
 path_corrected_spectra_new = os.path.join(out_path, f'corrected_power_spectra_{mask_name}_11_23_30.fits')
+# path_corrected_spectra_new = os.path.join(out_path, f'corrected_power_spectra_{mask_name}_full_bin_20-199.fits')
 
 save_path = '/home/pablo/Desktop/master/tfm/figures/spectra_test/'
 
@@ -87,13 +89,13 @@ def plot_auto_sim(ell, cl_auto_ii, error_auto_ii, cl_sim_old, cl_sim_new, bands,
                        color=colors[j], alpha=0.8, label=rf'Sim $C_{{\ell}}$ {b} GHz')
 
     # Data (triangles without fill)  
-    # for j, b in enumerate(bands):
-    #     key = f"{b}_{b}"
-    #     if key in cl_sim_new:
-    #         sim = cl_sim_new[key]['EE']['SPECTRUM']
-    #         simerr = cl_sim_new[key]['EE']['ERROR'] * 0
-    #         ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
-    #                    color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {b} GHz')
+    for j, b in enumerate(bands):
+        key = f"{b}_{b}"
+        if key in cl_sim_new:
+            sim = cl_sim_new[key]['EE']['SPECTRUM']
+            simerr = cl_sim_new[key]['EE']['ERROR'] * 0
+            ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
+                       color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {b} GHz')
 
     ax.set_yscale('log')
     ax.set_xlim(20, 210)
@@ -122,13 +124,13 @@ def plot_auto_sim(ell, cl_auto_ii, error_auto_ii, cl_sim_old, cl_sim_new, bands,
                        color=colors[j], alpha=0.8, label=rf'Sim $C_{{\ell}}$ {b} GHz')
 
     # Data (triangles without fill)
-    # for j, b in enumerate(bands):
-    #     key = f"{b}_{b}"
-    #     if key in cl_sim_new:
-    #         sim = cl_sim_new[key]['BB']['SPECTRUM']
-    #         simerr = cl_sim_new[key]['BB']['ERROR'] * 0
-    #         ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
-    #                    color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {b} GHz')
+    for j, b in enumerate(bands):
+        key = f"{b}_{b}"
+        if key in cl_sim_new:
+            sim = cl_sim_new[key]['BB']['SPECTRUM']
+            simerr = cl_sim_new[key]['BB']['ERROR'] * 0
+            ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
+                       color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {b} GHz')
 
     ax.set_yscale('log')
     ax.set_xlim(20, 210)
@@ -141,7 +143,7 @@ def plot_auto_sim(ell, cl_auto_ii, error_auto_ii, cl_sim_old, cl_sim_new, bands,
     axes[1].legend(loc='upper left', bbox_to_anchor=(1.02, 1), frameon=False, fontsize=14)
     plt.tight_layout()
     plt.show()
-    fig.savefig('/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/spectra/autos_11_23_30_WS_Sim.pdf')
+    fig.savefig('/home/pablo/Desktop/master/tfm/figures/spectra/autos_11_23_30_WS_Sim.pdf')
 
 
 
@@ -170,12 +172,12 @@ def plot_cross_sim(ell, cl_cross_ii, error_cross_ii, cl_sim_old, cl_sim_new, cro
                        color=colors[j], alpha=0.8, label=rf'Sim $C_{{\ell}}$ {key.replace("_","-")} GHz')
 
     # Data (triangles without fill)
-    # for j, key in enumerate(cross_keys):
-    #     if key in cl_sim_new:
-    #         sim = cl_sim_new[key]['EE']['SPECTRUM']
-    #         simerr = cl_sim_new[key]['EE']['ERROR'] * 0
-    #         ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
-    #                    color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {key.replace("_","-")} GHz')
+    for j, key in enumerate(cross_keys):
+        if key in cl_sim_new:
+            sim = cl_sim_new[key]['EE']['SPECTRUM']
+            simerr = cl_sim_new[key]['EE']['ERROR'] * 0
+            ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
+                       color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {key.replace("_","-")} GHz')
 
     ax.set_yscale('log')
     ax.set_xlim(20, 210)
@@ -203,12 +205,12 @@ def plot_cross_sim(ell, cl_cross_ii, error_cross_ii, cl_sim_old, cl_sim_new, cro
                        color=colors[j], alpha=0.8, label=rf'Sim $C_{{\ell}}$ {key.replace("_","-")} GHz')
 
     # Data (triangles without fill)
-    # for j, key in enumerate(cross_keys):
-    #     if key in cl_sim_new:
-    #         sim = cl_sim_new[key]['BB']['SPECTRUM']
-    #         simerr = cl_sim_new[key]['BB']['ERROR'] * 0
-    #         ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
-    #                    color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {key.replace("_","-")} GHz')
+    for j, key in enumerate(cross_keys):
+        if key in cl_sim_new:
+            sim = cl_sim_new[key]['BB']['SPECTRUM']
+            simerr = cl_sim_new[key]['BB']['ERROR'] * 0
+            ax.errorbar(ell, sim, yerr=np.abs(simerr), fmt='^', ms=6, fillstyle='none',
+                       color=colors[j], alpha=0.8, label=rf'$C_{{\ell}}$ {key.replace("_","-")} GHz')
 
     ax.set_yscale('log')
     ax.set_xlim(20, 210)
@@ -220,7 +222,7 @@ def plot_cross_sim(ell, cl_cross_ii, error_cross_ii, cl_sim_old, cl_sim_new, cro
     axes[1].legend(loc='upper left', bbox_to_anchor=(1.02, 1), frameon=False, fontsize=14)
     plt.tight_layout()
     plt.show()
-    fig.savefig('/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/spectra/cross_11_23_30_WS_Sim.pdf')
+    fig.savefig('/home/pablo/Desktop/master/tfm/figures/spectra/cross_11_23_30_WS_Sim.pdf')
 
 
 
@@ -368,7 +370,7 @@ def plot_auto_uncorrected_with_noise(ell, cl_auto_ii, error_auto_ii, cl_uncorr_o
     axes[1].legend(loc='upper left', bbox_to_anchor=(1.02, 1), frameon=False, fontsize=12)
     plt.tight_layout()
     plt.show()
-    fig.savefig('/home/pablo/Desktop/master/tfm/figures/1-methodology_tests/spectra/spectra_noise_sim_new.pdf')
+    fig.savefig('/home/pablo/Desktop/master/tfm/figures/spectra/spectra_noise_sim_new.pdf')
 
 
 

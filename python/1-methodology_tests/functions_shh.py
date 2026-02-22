@@ -9,7 +9,7 @@ except Exception:
 import healpy as hp
 from astropy import units as u
 import os
-from data import data, color_corrections
+from data_ssh import data, color_corrections
 from tqdm import tqdm 
 import pymaster as nmt
 from astropy.io import fits
@@ -2313,88 +2313,6 @@ def extract_covariance_for_mcmc(
     return cov_mcmc
 
 
-def _compute_physical_correction_factor(pair, cl_key, ell_eff, data_dict, nside):
-    """
-    Compute the per-ell-bin physical correction factor that maps a raw
-    simulation C_l (beam-convolved, mK²_CMB) into the corrected domain
-    (beam-deconvolved, K²_RJ) used by the MCMC.
-
-    factor = unit_factor / phys_factor
-
-    where phys_factor = beam1 * beam2 * wpix1 * wpix2
-    and   unit_factor = uc1 * uc2  (K_CMB -> K_RJ conversion per band).
-
-    Parameters
-    ----------
-    pair : str
-        Band pair string, e.g. '11_13'.
-    cl_key : str
-        Spectrum type, e.g. 'EE', 'BB'.
-    ell_eff : array
-        Effective multipoles.
-    data_dict : dict
-        The full data dictionary with beam/freq information per experiment/band.
-    nside : int
-        HEALPix NSIDE of the maps.
-
-    Returns
-    -------
-    factor : ndarray
-        Correction factor array with the same length as ell_eff.
-    """
-    band1, band2 = pair.split('_')
-
-    # Beam transfer functions
-    beam1 = get_beam_for_band(band1, data_dict, ell_eff)
-    beam2 = get_beam_for_band(band2, data_dict, ell_eff)
-
-    comp_map = {
-        'TT': ('T', 'T'), 'EE': ('E', 'E'), 'BB': ('B', 'B'),
-        'TE': ('T', 'E'), 'TB': ('T', 'B'), 'EB': ('E', 'B'),
-    }
-    c1, c2 = comp_map.get(cl_key, ('T', 'T'))
-    bl1 = np.asarray(beam1[c1], dtype=float)
-    bl2 = np.asarray(beam2[c2], dtype=float)
-
-    # Pixel window
-    wpix = hp.pixwin(nside)
-    wp = np.interp(ell_eff, np.arange(len(wpix)), wpix)
-
-    phys_factor = bl1 * bl2 * wp * wp
-    # Protect against zeros / negatives
-    phys_factor = np.where(phys_factor > 0, phys_factor, np.nan)
-
-    # Unit conversion (K_CMB -> K_RJ) per band
-    def _get_uc(band):
-        for exp in data_dict:
-            if band in data_dict[exp]:
-                freq = data_dict[exp][band].get('freq')
-                try:
-                    nuGHz = freq.to('GHz').value
-                except Exception:
-                    nuGHz = float(freq)
-                # Use HFI-specific conversion for Planck HFI bands
-                is_planck = str(exp).lower() == 'planck'
-                hfi_band_set = {'100', '143', '217', '353', '545', '857'}
-                if is_planck and str(band) in hfi_band_set:
-                    try:
-                        uc_hfi = planck_uc_hfi(use_bps=True)
-                        hfi_order = [100, 143, 217, 353, 545, 857]
-                        idx = hfi_order.index(int(float(band)))
-                        return float(uc_hfi[idx])
-                    except Exception:
-                        return float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
-                else:
-                    return float(cmb_unit_conversion(nuGHz, 'KCMB2KRJ'))
-        raise ValueError(f"Band '{band}' not found in data_dict.")
-
-    uc1 = _get_uc(band1)
-    uc2 = _get_uc(band2)
-    unit_factor = uc1 * uc2
-
-    return unit_factor / phys_factor
-
-
 def build_block_diagonal_cov_inv(
     path_sims_fits,
     fit_data,
@@ -2402,23 +2320,16 @@ def build_block_diagonal_cov_inv(
     quijote_bands_11_13=['11', '13'],
     quijote_bands_17_19=['17', '19'],
     n_sims=100,
-    path_noise_sims=None,
-    data_dict=None,
-    nside=512
+    path_noise_sims=None
 ):
     """
     Build block-diagonal inverse covariance matrix for MCMC.
-
-    Only QUIJOTE 11-13 and 17-19 get full covariance blocks (off-diagonal
-    correlations from shared-horn noise).  Everything else uses diagonal
-    errors (1/error²).
-
-    The per-simulation spectra stored on disk are *raw* (beam-convolved,
-    mK²_CMB).  Before computing the covariance, each simulation is
-    transformed to the corrected domain (beam-deconvolved, K²_RJ) using
-    the same physical factors applied in ``correct_power_spectra``.  This
-    ensures the off-diagonal correlation coefficients are correct.
-
+    
+    Only QUIJOTE 11-13 and 17-19 get covariance blocks.
+    Everything else uses diagonal errors (1/error²).
+    
+    This is MUCH faster than full covariance inversion!
+    
     Parameters
     ----------
     path_sims_fits : str
@@ -2437,58 +2348,50 @@ def build_block_diagonal_cov_inv(
         Path to noise-only simulation FITS file.
         If provided, noise covariance will be added to the sky+noise covariance:
         Cov_total = Cov(Sky+Noise) + Cov(Noise)
-        This matches the error propagation in correct_power_spectra for
-        auto-spectra and correlated cross-spectra.
-    data_dict : dict, optional
-        The full data dictionary with beam/freq info per experiment/band.
-        Required for applying physical corrections to each simulation.
-        If None, falls back to the (less accurate) scalar rescaling.
-    nside : int, optional
-        HEALPix NSIDE of the maps (default: 512).
-
+        This matches the error propagation in correct_power_spectra.
+    
     Returns
     -------
-    block_info : dict
-        Dictionary with keys:
-        - 'indices_11_13', 'indices_17_19': global indices in y_all
-        - 'cov_inv_11_13', 'cov_inv_17_19': pre-extracted inverse covariance blocks
-        Can be passed directly to run_mcmc(..., cov_matrix=block_info).
+    cov_inv : ndarray
+        Block-diagonal inverse covariance matrix.
+        Can be passed directly to run_mcmc(..., cov_matrix=cov_inv).
     """
     # Read simulations
     print("Reading simulations (Sky + Noise)...")
     sims_dict = read_sims_from_fits(path_sims_fits)
-
+    
     noise_sims_dict = None
     if path_noise_sims is not None:
         print("Reading simulations (Noise only)...")
         noise_sims_dict = read_sims_from_fits(path_noise_sims)
-
+    
     datasets = fit_data['datasets']
     y_all = fit_data['y_all']
     yerr_all = fit_data['yerr_all']
-    ell_eff = fit_data['ell_eff']
     n_data = len(y_all)
-
+    
     # Initialize as diagonal (1/error²)
     print(f"Building block-diagonal inverse covariance matrix ({n_data} x {n_data})...")
     cov_inv = np.diag(1.0 / yerr_all**2)
-
-    # Helper: get indices for band pairs where BOTH bands are in band_list
+    
+    # Helper: get indices for simple band pairs and mode
     def get_indices_for_bands(band_list, allowed_modes):
         """Get data indices for pairs where BOTH bands are in band_list and mode is allowed."""
         indices = []
         dataset_info = []
-
+        
+        # Handle single mode or list of modes
         if isinstance(allowed_modes, str):
             allowed_modes = [allowed_modes]
-
+        
         for i, dataset in enumerate(datasets):
             pair = dataset.get('pair', f"{dataset.get('band_i', '')}_{dataset.get('band_j', '')}")
             ds_mode = dataset.get('mode', dataset.get('cl_key', ''))
-
+            
             if ds_mode not in allowed_modes:
                 continue
-
+            
+            # Check if BOTH bands in the pair are in the correlated band list
             try:
                 b1, b2 = pair.split('_')
                 if b1 in band_list and b2 in band_list:
@@ -2501,204 +2404,278 @@ def build_block_diagonal_cov_inv(
                         'dataset_idx': i,
                         'mode': ds_mode
                     })
-            except Exception:
+            except:
                 continue
-
+        
         return indices, dataset_info
-
-    # ------------------------------------------------------------------
-    # Helper: build and invert one covariance block
-    # ------------------------------------------------------------------
-    def _process_block(block_label, quijote_bands):
-        """Build covariance block, invert it, and return (indices, cov_inv_block)."""
-        idx_list, info_list = get_indices_for_bands(quijote_bands, modes)
-
-        if len(idx_list) == 0:
-            print(f"\n  {block_label}: no matching data points found.")
-            return np.array([], dtype=int), None
-
-        print(f"\nProcessing {block_label} covariance block...")
-        print(f"  Found {len(idx_list)} data points involving bands {quijote_bands}")
-        print(f"  Pairs: {[d['pair'] for d in info_list]}")
-
-        n_block = len(idx_list)
-
-        # Create mapping: global index -> (dataset_info, local_bin_index)
+    
+    # Process QUIJOTE 11-13 block
+    print("\nProcessing QUIJOTE 11-13 covariance block...")
+    idx_11_13, info_11_13 = get_indices_for_bands(quijote_bands_11_13, modes)
+    
+    if len(idx_11_13) > 0:
+        print(f"  Found {len(idx_11_13)} data points involving bands {quijote_bands_11_13}")
+        print(f"  Pairs: {[d['pair'] for d in info_11_13]}")
+        
+        # Build covariance sub-matrix for this block
+        n_block = len(idx_11_13)
+        cov_block = np.zeros((n_block, n_block))
+        
+        # Create mapping from global index to (dataset_info, local_bin_index)
         idx_to_dataset_map = {}
-        for ds_info in info_list:
+        for ds_info in info_11_13:
             for local_bin, global_idx in enumerate(ds_info['indices']):
                 idx_to_dataset_map[global_idx] = (ds_info, local_bin)
-
-        # ----- Gather raw simulation data for this block -----
+        
+        # Gather all simulation data for this block (vectorized approach)
+        # sim_key = f"{modes[0]}__SIMS" # <-- OLD, wrong for joint analysis
         n_sims_actual = None
         block_sims = np.zeros((n_block, n_sims))
         block_noise_sims = None
         if noise_sims_dict is not None:
             block_noise_sims = np.zeros((n_block, n_sims))
-
+        
         for i in range(n_block):
-            global_idx_i = idx_list[i]
+            global_idx_i = idx_11_13[i]
             info_i, local_bin_i = idx_to_dataset_map[global_idx_i]
             pair_i = info_i['pair']
             mode_i = info_i['mode']
             sim_key = f"{mode_i}__SIMS"
-
+            
             if pair_i in sims_dict and sim_key in sims_dict[pair_i]:
                 sims_data = sims_dict[pair_i][sim_key]
                 if n_sims_actual is None:
                     n_sims_actual = sims_data.shape[0]
+                    # Check if number of simulations matches expectation
                     if n_sims_actual != n_sims:
-                        block_sims = np.zeros((n_block, n_sims_actual))
-                        if block_noise_sims is not None:
-                            block_noise_sims = np.zeros((n_block, n_sims_actual))
+                        # Resize if needed (e.g. fewer sims available)
+                         block_sims = np.zeros((n_block, n_sims_actual))
+                         if block_noise_sims is not None:
+                             block_noise_sims = np.zeros((n_block, n_sims_actual))
 
                 block_sims[i, :] = sims_data[:, local_bin_i]
+                
+                # Also gather noise sims if available
+                if block_noise_sims is not None and pair_i in noise_sims_dict and sim_key in noise_sims_dict[pair_i]:
+                     noise_data = noise_sims_dict[pair_i][sim_key]
+                     # Assuming noise sims have same shape/count, or we take min
+                     n_noise_sims = noise_data.shape[0]
+                     limit = min(n_sims_actual, n_noise_sims)
+                     block_noise_sims[i, :limit] = noise_data[:, local_bin_i][:limit]
 
-                if (block_noise_sims is not None
-                        and pair_i in noise_sims_dict
-                        and sim_key in noise_sims_dict[pair_i]):
-                    noise_data = noise_sims_dict[pair_i][sim_key]
-                    n_noise_sims = noise_data.shape[0]
-                    limit = min(n_sims_actual, n_noise_sims)
-                    block_noise_sims[i, :limit] = noise_data[:limit, local_bin_i]
             else:
+                # If no sims, use zero (will fall back to diagonal)
                 if n_sims_actual is None:
                     n_sims_actual = n_sims
                     block_sims = np.zeros((n_block, n_sims_actual))
                     if block_noise_sims is not None:
                         block_noise_sims = np.zeros((n_block, n_sims_actual))
-
-        if n_sims_actual is None or n_sims_actual < 2:
-            print(f"  Not enough simulations ({n_sims_actual}), keeping diagonal.")
-            return np.array(idx_list, dtype=int), None
-
-        # ----- Apply physical corrections to each simulation -----
-        # The raw sims are in mK²_CMB, beam-convolved.  We need to
-        # transform them to K²_RJ, beam-deconvolved — the same domain
-        # as y_all and yerr_all.
-        #
-        # For each data point i belonging to (pair, mode, ell_bin), the
-        # correction factor is:
-        #     f_i = (uc_band1 * uc_band2) / (beam1 * beam2 * wpix1 * wpix2)
-        # evaluated at that ell_bin.
-        #
-        # Then corrected_sim[i, s] = raw_sim[i, s] * f_i
-        # and   Cov_corrected = diag(f) @ Cov_raw @ diag(f)
-
-        if data_dict is not None:
-            print("  Applying physical corrections (beam, pixel, unit) to simulations...")
-            # Pre-compute correction factors per (pair, mode) to avoid redundant I/O
-            _phys_cache = {}
-            correction_vector = np.ones(n_block)
+        
+        # -----------------------------------------------------------------
+        # APPLY CORRECTIONS TO EACH SIMULATION BEFORE COMPUTING COVARIANCE
+        # -----------------------------------------------------------------
+        # This ensures the diagonal of the covariance matrix matches yerr_all exactly
+        if n_sims_actual is not None and n_sims_actual > 1:
+            print("  Applying corrections to each simulation...")
+            
+            # For each data point in the block, get the correction factors
+            correction_factors = np.ones(n_block)
+            
             for i in range(n_block):
-                global_idx_i = idx_list[i]
-                info_i, local_bin_i = idx_to_dataset_map[global_idx_i]
-                pair_i = info_i['pair']
-                mode_i = info_i['mode']
-                cache_key = (pair_i, mode_i)
-                if cache_key not in _phys_cache:
-                    _phys_cache[cache_key] = _compute_physical_correction_factor(
-                        pair_i, mode_i, ell_eff, data_dict, nside
-                    )
-                correction_vector[i] = _phys_cache[cache_key][local_bin_i]
-        else:
-            # Fallback: use yerr_all / std_raw ratio (less accurate — does
-            # not correctly separate sky+noise and noise contributions)
-            print("  WARNING: data_dict not provided; falling back to scalar rescaling.")
-            print("           Pass data_dict and nside for exact physical corrections.")
-            correction_vector = np.ones(n_block)
-            for i in range(n_block):
-                global_idx = idx_list[i]
+                global_idx = idx_11_13[i]
+                # Get correction factor from the ratio of corrected to raw std
                 std_raw_i = np.std(block_sims[i, :], ddof=1)
                 if std_raw_i > 0:
-                    correction_vector[i] = yerr_all[global_idx] / std_raw_i
+                    correction_factors[i] = yerr_all[global_idx] / std_raw_i
                 else:
-                    correction_vector[i] = 1.0
-
-        # Apply correction factors
-        block_sims_corr = block_sims * correction_vector[:, np.newaxis]
-        block_noise_sims_corr = None
-        if block_noise_sims is not None:
-            block_noise_sims_corr = block_noise_sims * correction_vector[:, np.newaxis]
-
-        # ----- Compute covariance in the corrected domain -----
-        cov_block = np.cov(block_sims_corr, ddof=1)
-        if block_noise_sims_corr is not None:
-            print("  Adding noise covariance term...")
-            cov_noise = np.cov(block_noise_sims_corr, ddof=1)
-            cov_block = cov_block + cov_noise
-
-        # ----- Diagnostic: compare diagonal to yerr_all² -----
-        print("  Diagonal consistency check (sqrt(cov_ii) vs yerr_all):")
-        for i in range(min(n_block, 6)):
-            global_idx = idx_list[i]
-            cov_diag_i = np.sqrt(cov_block[i, i]) if cov_block[i, i] > 0 else 0.0
-            ratio = cov_diag_i / yerr_all[global_idx] if yerr_all[global_idx] > 0 else np.nan
-            info_i, local_bin_i = idx_to_dataset_map[global_idx]
-            print(f"    [{info_i['pair']}, bin {local_bin_i}]  "
-                  f"sqrt(Cov_ii)={cov_diag_i:.4e}  yerr={yerr_all[global_idx]:.4e}  "
-                  f"ratio={ratio:.4f}")
-        if n_block > 6:
-            print(f"    ... ({n_block - 6} more entries)")
-
-        # Fill diagonal for any zero entries (missing sims)
+                    correction_factors[i] = 1.0
+            
+            # Apply corrections to each simulation
+            block_sims_corrected = block_sims * correction_factors[:, np.newaxis]
+            
+            # Also correct noise sims if available
+            block_noise_sims_corrected = None
+            if block_noise_sims is not None:
+                block_noise_sims_corrected = block_noise_sims * correction_factors[:, np.newaxis]
+            
+            # Now compute covariance from CORRECTED simulations
+            cov_block = np.cov(block_sims_corrected, ddof=1)
+            
+            # Add noise covariance if available
+            if block_noise_sims_corrected is not None:
+                print("  Adding noise covariance term...")
+                cov_noise = np.cov(block_noise_sims_corrected, ddof=1)
+                cov_block += cov_noise
+            
+            print(f"  Covariance computed from corrected simulations.")
+        # -----------------------------------------------------------------
+        
+        # Fill diagonal for missing data
         for i in range(n_block):
             if cov_block[i, i] == 0:
-                global_idx_i = idx_list[i]
+                global_idx_i = idx_11_13[i]
                 cov_block[i, i] = yerr_all[global_idx_i]**2
-
-        # ----- Hartlap correction for finite-simulation bias -----
-        # The inverse of a sample covariance estimated from N_sim
-        # simulations is biased.  The Hartlap factor corrects this:
-        #     C^{-1}_unbiased = (N_sim - n_block - 2) / (N_sim - 1) * C^{-1}_sample
-        hartlap = (n_sims_actual - n_block - 2) / (n_sims_actual - 1)
-        if hartlap <= 0:
-            print(f"  WARNING: Hartlap factor <= 0 ({hartlap:.3f}). "
-                  f"n_sims={n_sims_actual} too small for n_block={n_block}! "
-                  f"Keeping diagonal for this block.")
-            return np.array(idx_list, dtype=int), None
-        print(f"  Hartlap correction factor: {hartlap:.4f} "
-              f"(n_sims={n_sims_actual}, n_block={n_block})")
-
-        # ----- Invert block -----
+        
+        # Invert the block and insert into main matrix
+        print(f"  Inverting {n_block}x{n_block} covariance block...")
+        try:
+            # Add small regularization
+            reg = 1e-12 * np.max(np.diag(cov_block))
+            cov_block_reg = cov_block + reg * np.eye(n_block)
+            cov_block_inv = np.linalg.inv(cov_block_reg)
+            
+            # Insert into main inverse matrix
+            for i, idx_i in enumerate(idx_11_13):
+                for j, idx_j in enumerate(idx_11_13):
+                    cov_inv[idx_i, idx_j] = cov_block_inv[i, j]
+            
+            print(f"Block inverted and inserted")
+        except np.linalg.LinAlgError:
+            print(f"Failed to invert block, keeping diagonal")
+    
+    # Process QUIJOTE 17-19 block
+    print("\nProcessing QUIJOTE 17-19 covariance block...")
+    idx_17_19, info_17_19 = get_indices_for_bands(quijote_bands_17_19, modes)
+    
+    if len(idx_17_19) > 0:
+        print(f"  Found {len(idx_17_19)} data points involving bands {quijote_bands_17_19}")
+        print(f"  Pairs: {[d['pair'] for d in info_17_19]}")
+        
+        # Build covariance sub-matrix for this block
+        n_block = len(idx_17_19)
+        cov_block = np.zeros((n_block, n_block))
+        
+        # Create mapping from global index to (dataset_info, local_bin_index)
+        idx_to_dataset_map = {}
+        for ds_info in info_17_19:
+            for local_bin, global_idx in enumerate(ds_info['indices']):
+                idx_to_dataset_map[global_idx] = (ds_info, local_bin)
+        
+        # Gather all simulation data for this block (vectorized approach)
+        # sim_key = f"{modes[0]}__SIMS" # <-- OLD, wrong for joint analysis
+        n_sims_actual = None
+        block_sims = np.zeros((n_block, n_sims))
+        block_noise_sims = None
+        if noise_sims_dict is not None:
+            block_noise_sims = np.zeros((n_block, n_sims))
+        
+        for i in range(n_block):
+            global_idx_i = idx_17_19[i]
+            info_i, local_bin_i = idx_to_dataset_map[global_idx_i]
+            pair_i = info_i['pair']
+            mode_i = info_i['mode']
+            sim_key = f"{mode_i}__SIMS"
+            
+            if pair_i in sims_dict and sim_key in sims_dict[pair_i]:
+                sims_data = sims_dict[pair_i][sim_key]
+                if n_sims_actual is None:
+                    n_sims_actual = sims_data.shape[0]
+                    if n_sims_actual != n_sims:
+                         block_sims = np.zeros((n_block, n_sims_actual))
+                         if block_noise_sims is not None:
+                             block_noise_sims = np.zeros((n_block, n_sims_actual))
+                
+                block_sims[i, :] = sims_data[:, local_bin_i]
+                
+                # Also gather noise sims if available
+                if block_noise_sims is not None and pair_i in noise_sims_dict and sim_key in noise_sims_dict[pair_i]:
+                     noise_data = noise_sims_dict[pair_i][sim_key]
+                     n_noise_sims = noise_data.shape[0]
+                     limit = min(n_sims_actual, n_noise_sims)
+                     block_noise_sims[i, :limit] = noise_data[:, local_bin_i][:limit]
+            else:
+                # If no sims, use zero (will fall back to diagonal)
+                if n_sims_actual is None:
+                    n_sims_actual = n_sims
+                    block_sims = np.zeros((n_block, n_sims_actual))
+                    if block_noise_sims is not None:
+                        block_noise_sims = np.zeros((n_block, n_sims_actual))
+        
+        # -----------------------------------------------------------------
+        # APPLY CORRECTIONS TO EACH SIMULATION BEFORE COMPUTING COVARIANCE
+        # -----------------------------------------------------------------
+        # This ensures the diagonal of the covariance matrix matches yerr_all exactly
+        if n_sims_actual is not None and n_sims_actual > 1:
+            print("  Applying corrections to each simulation...")
+            
+            # For each data point in the block, get the correction factors
+            correction_factors = np.ones(n_block)
+            
+            for i in range(n_block):
+                global_idx = idx_17_19[i]
+                # Get correction factor from the ratio of corrected to raw std
+                std_raw_i = np.std(block_sims[i, :], ddof=1)
+                if std_raw_i > 0:
+                    correction_factors[i] = yerr_all[global_idx] / std_raw_i
+                else:
+                    correction_factors[i] = 1.0
+            
+            # Apply corrections to each simulation
+            block_sims_corrected = block_sims * correction_factors[:, np.newaxis]
+            
+            # Also correct noise sims if available
+            block_noise_sims_corrected = None
+            if block_noise_sims is not None:
+                block_noise_sims_corrected = block_noise_sims * correction_factors[:, np.newaxis]
+            
+            # Now compute covariance from CORRECTED simulations
+            cov_block = np.cov(block_sims_corrected, ddof=1)
+            
+            # Add noise covariance if available
+            if block_noise_sims_corrected is not None:
+                print("  Adding noise covariance term...")
+                cov_noise = np.cov(block_noise_sims_corrected, ddof=1)
+                cov_block += cov_noise
+            
+            print(f"  Covariance computed from corrected simulations.")
+        # -----------------------------------------------------------------
+        
+        # Fill diagonal for missing data
+        for i in range(n_block):
+            if cov_block[i, i] == 0:
+                global_idx_i = idx_17_19[i]
+                cov_block[i, i] = yerr_all[global_idx_i]**2
+        
+        # Invert the block and insert into main matrix
         print(f"  Inverting {n_block}x{n_block} covariance block...")
         try:
             reg = 1e-12 * np.max(np.diag(cov_block))
             cov_block_reg = cov_block + reg * np.eye(n_block)
-            cov_block_inv = np.linalg.inv(cov_block_reg) * hartlap
-
-            # Insert into main inverse matrix
-            for i, idx_i in enumerate(idx_list):
-                for j, idx_j in enumerate(idx_list):
+            cov_block_inv = np.linalg.inv(cov_block_reg)
+            
+            for i, idx_i in enumerate(idx_17_19):
+                for j, idx_j in enumerate(idx_17_19):
                     cov_inv[idx_i, idx_j] = cov_block_inv[i, j]
-
-            print(f"  ✓ Block inverted and inserted.")
+            
+            print(f"  ✓ Block inverted and inserted")
         except np.linalg.LinAlgError:
-            print(f"  ✗ Failed to invert block, keeping diagonal.")
-            return np.array(idx_list, dtype=int), None
-
-        return np.array(idx_list, dtype=int), cov_block_inv
-
-    # ------------------------------------------------------------------
-    # Process both QUIJOTE blocks
-    # ------------------------------------------------------------------
-    idx_11_13, cov_inv_11_13 = _process_block("QUIJOTE 11-13", quijote_bands_11_13)
-    idx_17_19, cov_inv_17_19 = _process_block("QUIJOTE 17-19", quijote_bands_17_19)
-
-    print(f"\n  Block-diagonal inverse covariance matrix built")
+            print(f"  ✗ Failed to invert block, keeping diagonal")
+    
+    print(f"  Block-diagonal inverse covariance matrix built")
     print(f"  Total size: {n_data} x {n_data}")
     print(f"  QUIJOTE 11-13 block: {len(idx_11_13)} x {len(idx_11_13)}")
     print(f"  QUIJOTE 17-19 block: {len(idx_17_19)} x {len(idx_17_19)}")
     print(f"  Diagonal elements: {n_data - len(idx_11_13) - len(idx_17_19)}")
-
+    
+    # Pre-extract the covariance blocks to avoid repeated slicing in likelihood
+    cov_inv_11_13 = None
+    cov_inv_17_19 = None
+    
+    if len(idx_11_13) > 0:
+        cov_inv_11_13 = cov_inv[np.ix_(idx_11_13, idx_11_13)]
+    
+    if len(idx_17_19) > 0:
+        cov_inv_17_19 = cov_inv[np.ix_(idx_17_19, idx_17_19)]
+    
     # Return block information for efficient chi-squared computation
     block_info = {
-        'indices_11_13': idx_11_13,
-        'indices_17_19': idx_17_19,
-        'cov_inv_11_13': cov_inv_11_13,
-        'cov_inv_17_19': cov_inv_17_19,
+        'indices_11_13': np.array(idx_11_13, dtype=int),  # Convert to numpy array
+        'indices_17_19': np.array(idx_17_19, dtype=int),
+        'cov_inv_11_13': cov_inv_11_13,  # Pre-extracted block
+        'cov_inv_17_19': cov_inv_17_19,  # Pre-extracted block
+        # 'cov_inv': cov_inv  # Keep full matrix for reference
     }
-
+    
     return block_info
 
 
@@ -3238,8 +3215,7 @@ def load_cmb_spectrum_from_file(filepath, ell_values, planck_format=True):
 def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_noise,
                           band_list, data, nside,
                           correct_beam=True, correct_pixel=True,
-                          save=False, path_out_file=None, use_white_noise=False,
-                          use_noise=False,
+                          save=False, path_out_file=None, use_white_noise=False, 
                           path_hmdm_spectra=None, subtract_cmb=False, cmb_spectrum_path=None,
                           correct_unit=True):
     """
@@ -3270,11 +3246,6 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         Output FITS file path. Defaults to "corrected_cls.fits" if not provided.
     use_white_noise : bool, optional
         If True, subtract white noise simulation mean; if False, subtract HMDM spectra.
-    use_noise : bool, optional
-        If True, for QUIJOTE auto-spectra the noise bias is taken as the mean of the
-        pure-noise simulations (avg_std_noise MEAN) instead of the HMDM.  For all
-        other bands HMDM is still used.  Ignored when use_white_noise=True.
-        Default: False.
     path_hmdm_spectra : str, optional
         Path to FITS file containing HMDM spectra. Required when use_white_noise=False.
     subtract_cmb : bool, optional
@@ -3317,9 +3288,6 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
         if path_hmdm_spectra is None:
             raise ValueError("path_hmdm_spectra must be provided when use_white_noise=False")
         hmdm_spectra = read_spectra_from_fits(path_hmdm_spectra, band_list)
-
-    # Collect the set of QUIJOTE band names from the data dictionary
-    quijote_bands = set(data.get('QUIJOTE', {}).keys())
 
     # Effective multipoles from first entry
     first_entry = next(iter(spectra.values()))
@@ -3464,10 +3432,6 @@ def correct_power_spectra(path_spectra, path_avg_std_skyplusnoise, path_avg_std_
                 # For auto-spectra: subtract noise
                 if use_white_noise:
                     Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
-                elif use_noise and band1 in quijote_bands:
-                    # QUIJOTE auto-spectra: use mean of pure-noise simulations
-                    Nl = np.array(avg_std_noise[key][cl_key]['MEAN'])
-                    # print(f"[INFO] QUIJOTE {key} {cl_key}: subtracting mean noise sim (N={Nl.shape})")
                 else:
                     Nl = np.array(hmdm_spectra[key][cl_key])
                 Cl = Cl_raw - Nl  # mK²_CMB, convolved with beams/pixel
@@ -3986,29 +3950,24 @@ def mbb_scaling_KRJ(nu_GHz, nu0_GHz=353.0, beta=1.59, T_d=19.6):
 
 def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
                       cc_dict=None,
-                      freq_ref=23., ell_ref=80.0, freq_max_c=40.0):
+                      freq_ref=11.1, ell_ref=80.0):
     """
     Synchrotron angular power spectrum model.
     
     Parameters
     ----------
     theta : list or array
-        Parameters [A_s, alpha_s, beta_s] (+ c_sync[band] if fit_c_terms,
-        only for bands with freq <= freq_max_c).
+        Parameters [A_s, alpha_s, beta_s] (+ c_sync[band] if fit_c_terms).
     datasets : list of dict
         Prepared datasets with frequency pairs, spectra, and errors.
     ell : array
         Multipoles.
     fit_c_terms : bool
-        Whether to fit constant terms for synchrotron auto-spectra
-        at low frequencies (<= freq_max_c).
+        Whether to fit constant terms for auto-spectra.
     freq_ref : float
         Reference frequency in GHz.
     ell_ref : float
         Reference multipole.
-    freq_max_c : float
-        Maximum frequency (GHz) for which constant terms are fitted.
-        Default: 40.0 (i.e., only synchrotron-dominated bands).
 
     Returns
     -------
@@ -4017,20 +3976,14 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
     """
     A_s, alpha_s, beta_s = theta[:3]
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
 
-    # Only fit c_terms for low-frequency (synchrotron-dominated) bands
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    low_freq_to_idx = {f: i for i, f in enumerate(low_freqs)}
-    N_c = len(low_freqs)
-
-    c_terms = np.zeros(N_c)
+    c_terms = np.zeros(N)
     if fit_c_terms:
-        if len(theta) != 3 + N_c:
-            raise ValueError(
-                f"theta length mismatch for synch c_terms: expected {3 + N_c}, "
-                f"got {len(theta)} (N_c={N_c} bands <= {freq_max_c} GHz)"
-            )
-        c_terms = np.asarray(theta[3:3+N_c])
+        if len(theta) != 3 + N:
+            raise ValueError("theta length mismatch for synch c_terms")
+        c_terms = np.asarray(theta[3:3+N])
 
     model_list = []
 
@@ -4050,28 +4003,24 @@ def model_synchrotron(theta, datasets, ell, fit_c_terms=False,
             cc_s2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
         else:
             cc_s1 = cc_s2 = 1.0
-        # Physical model: power-law + constant term (for auto-spectra only)
-        Cl = A_s * ell_scale * scale_f1 * scale_f2
-        if fit_c_terms and (f1 == f2) and (f1 in low_freq_to_idx):
-            Cl = Cl + c_terms[low_freq_to_idx[f1]]
-        # Divide by color correction: model_obs = model_phys / (cc1 * cc2)
-        # (data is raw/uncorrected, so the model must be divided by cc to match)
-        Cl = Cl / (cc_s1 * cc_s2)
+        Cl = A_s * ell_scale * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
         model_list.append(Cl)
     return np.concatenate(model_list)
 
 
 def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
                            cc_dict=None,
-                           freq_ref=23.0, ell_ref=80.0, freq_max_c=40.0):
+                           freq_ref=11.1, ell_ref=80.0):
     """
     Synchrotron angular power spectrum model for joint EE-BB analysis.
     
     Parameters
     ----------
     theta : list or array
-        Parameters [A_s_EE, A_s_BB, alpha_s, beta_s] (+ c_sync[band] if fit_c_terms,
-        only for bands with freq <= freq_max_c).
+        Parameters [A_s_EE, A_s_BB, alpha_s, beta_s] (+ c_sync[mode][band] if fit_c_terms).
     datasets : list of dict
         Prepared datasets with frequency pairs, spectra, and errors.
     ell : array
@@ -4079,17 +4028,13 @@ def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
     mode : str
         Either 'EE' or 'BB' - determines which amplitude to use.
     fit_c_terms : bool
-        Whether to fit constant terms for synchrotron auto-spectra
-        at low frequencies (<= freq_max_c).
+        Whether to fit constant terms for auto-spectra.
     cc_dict : dict, optional
         Color correction polynomials.
     freq_ref : float
         Reference frequency in GHz.
     ell_ref : float
         Reference multipole.
-    freq_max_c : float
-        Maximum frequency (GHz) for which constant terms are fitted.
-        Default: 40.0 (i.e., only synchrotron-dominated bands).
 
     Returns
     -------
@@ -4102,20 +4047,14 @@ def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
     A_s = A_s_EE if mode == 'EE' else A_s_BB
     
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
+    freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
 
-    # Only fit c_terms for low-frequency (synchrotron-dominated) bands
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    low_freq_to_idx = {f: i for i, f in enumerate(low_freqs)}
-    N_c = len(low_freqs)
-
-    c_terms = np.zeros(N_c)
+    c_terms = np.zeros(N)
     if fit_c_terms:
-        if len(theta) != 4 + N_c:
-            raise ValueError(
-                f"theta length mismatch for synch c_terms in joint analysis: "
-                f"expected {4 + N_c}, got {len(theta)} (N_c={N_c} bands <= {freq_max_c} GHz)"
-            )
-        c_terms = np.asarray(theta[4:4+N_c])
+        if len(theta) != 4 + N:
+            raise ValueError("theta length mismatch for synch c_terms in joint analysis")
+        c_terms = np.asarray(theta[4:4+N])
 
     model_list = []
 
@@ -4141,13 +4080,13 @@ def model_synchrotron_joint(theta, datasets, ell, mode, fit_c_terms=False,
         else:
             cc_s1 = cc_s2 = 1.0
         
-        # Physical model: power-law + constant term (for auto-spectra only)
-        Cl = A_s * ell_scale * scale_f1 * scale_f2
-        if fit_c_terms and (f1 == f2) and (f1 in low_freq_to_idx):
-            Cl = Cl + c_terms[low_freq_to_idx[f1]]
-        # Divide by color correction: model_obs = model_phys / (cc1 * cc2)
-        # (data is raw/uncorrected, so the model must be divided by cc to match)
-        Cl = Cl / (cc_s1 * cc_s2)
+        # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
+        Cl = A_s * ell_scale * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
+        
+        # Add constant term for auto-spectra if requested
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
         
         model_list.append(Cl)
     
@@ -4162,13 +4101,13 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
     Parameters
     ----------
     theta : list or array
-        Parameters [A_d, alpha_d, beta_d]. No constant terms for dust.
+        Parameters [A_d, alpha_d, beta_d] (+ c_dust[band] if fit_c_terms).
     datasets : list of dict
         Prepared datasets.
     ell : array
         Multipoles.
     fit_c_terms : bool
-        Ignored (kept for API compatibility). No c_terms for dust.
+        Whether to fit constant terms for auto-spectra.
     freq_ref : float
         Reference frequency in GHz.
     T_d : float
@@ -4184,6 +4123,13 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
     A_d, alpha_d, beta_d = theta[:3]
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
     freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
+
+    c_terms = np.zeros(N)
+    if fit_c_terms:
+        if len(theta) != 3 + N:
+            raise ValueError("theta length mismatch for dust c_terms")
+        c_terms = np.asarray(theta[3:3+N])
 
     # Precompute per-frequency dust scaling (K_RJ units)
     freqs_all = np.array(unique_freqs)
@@ -4206,7 +4152,10 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
             cc_d2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
         else:
             cc_d1 = cc_d2 = 1.0
-        Cl = A_d * ell_scale * s1 * s2 / (cc_d1 * cc_d2)
+        Cl = A_d * ell_scale * (s1 * cc_d1) * (s2 * cc_d2)
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
         model_list.append(Cl)
     return np.concatenate(model_list)
 
@@ -4222,7 +4171,7 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
     Parameters
     ----------
     theta : list or array
-        Parameters [A_d_EE, A_d_BB, alpha_d, beta_d]. No constant terms for dust.
+        Parameters [A_d_EE, A_d_BB, alpha_d, beta_d] (+ c_dust[mode][band] if fit_c_terms).
     datasets : list of dict
         Prepared datasets.
     ell : array
@@ -4230,7 +4179,7 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
     mode : str
         Either 'EE' or 'BB' - determines which amplitude to use.
     fit_c_terms : bool
-        Ignored (kept for API compatibility). No c_terms for dust.
+        Whether to fit constant terms for auto-spectra.
     cc_dict : dict, optional
         Color correction polynomials.
     freq_ref : float
@@ -4252,6 +4201,13 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
     
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
     freq_to_idx = {f: i for i, f in enumerate(unique_freqs)}
+    N = len(unique_freqs)
+
+    c_terms = np.zeros(N)
+    if fit_c_terms:
+        if len(theta) != 4 + N:
+            raise ValueError("theta length mismatch for dust c_terms in joint analysis")
+        c_terms = np.asarray(theta[4:4+N])
 
     # Precompute per-frequency dust scaling (K_RJ units)
     freqs_all = np.array(unique_freqs)
@@ -4280,8 +4236,13 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
         else:
             cc_d1 = cc_d2 = 1.0
         
-        # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared) / cc
-        Cl = A_d * ell_scale * s1 * s2 / (cc_d1 * cc_d2)
+        # Build model: amplitude (mode-specific) × ell_scale (shared) × freq_scale (shared)
+        Cl = A_d * ell_scale * (s1 * cc_d1) * (s2 * cc_d2)
+        
+        # Add constant term for auto-spectra if requested
+        if fit_c_terms and (f1 == f2):
+            i = freq_to_idx[f1]
+            Cl = Cl + c_terms[i]
         
         model_list.append(Cl)
     
@@ -4290,7 +4251,7 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
 
 def model_cross(theta, datasets, ell,
                 cc_dict=None,
-                ref_sync=23., ref_dust=353.0, T_d=19.6, ell_ref=80.0):
+                ref_sync=11.1, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
     """
     Cross-correlation between synchrotron and dust components.
 
@@ -4356,9 +4317,8 @@ def model_cross(theta, datasets, ell,
             cc_d2 = (dus2[0] + dus2[1]*alpha_d_cc + dus2[2]*(alpha_d_cc**2)) if dus2 is not None else 1.0
         else:
             cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
-        mix = ( (s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1) )
-        As_Ad = A_s * A_d
-        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(np.abs(As_Ad)) * mix * ell_scale_cross
+        mix = ( (s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1) )
+        C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
     return np.concatenate(model_list)
@@ -4367,7 +4327,7 @@ def model_cross(theta, datasets, ell,
 
 def model_cross_joint(theta, datasets, ell, mode,
                      cc_dict=None,
-                     ref_sync=23.0, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
+                     ref_sync=11.1, ref_dust=353.0, T_d=19.6, ell_ref=80.0):
     """
     Cross-correlation between synchrotron and dust components for joint EE-BB analysis.
 
@@ -4444,12 +4404,10 @@ def model_cross_joint(theta, datasets, ell, mode,
         else:
             cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
         
-        # Cross term: rho × sqrt(A_s × A_d) × (s1/cc_s1×d2/cc_d2 + s2/cc_s2×d1/cc_d1) × ell_scale
+        # Cross term: rho × sqrt(A_s × A_d) × (s1×d2 + s2×d1) × ell_scale
         # This represents the correlation between synchrotron and dust
-        # Division by cc because data is raw/uncorrected
-        mix = ((s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1))
-        As_Ad = A_s * A_d
-        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(np.abs(As_Ad)) * mix * ell_scale_cross
+        mix = ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
+        C_sd_ij = rho * np.sqrt(A_s * A_d) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
     
@@ -4568,16 +4526,14 @@ def loglik_wishart(C_hat, C_model, nu, drop_const=True, jitter=0.0):
 
 def lnlike(theta_full, datasets, ell, y_all, yerr_all,
            fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-           cc_dict=None, cov_matrix=None, freq_max_c=40.0):
+           cc_dict=None, cov_matrix=None):
     """
     Compute the log-likelihood (-0.5 chi^2) for the model given data.
 
     Parameters
     ----------
     theta_full : array
-        Full parameter vector:
-        [A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho]
-        (+ c_sync[low-freq bands] if fit_c_terms=True, synchrotron only, freq <= freq_max_c)
+        Full parameter vector.
     datasets : list of dict
         Prepared datasets.
     ell : array
@@ -4587,7 +4543,7 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
     yerr_all : array
         Errors associated with y_all (used if cov_matrix is None).
     fit_c_terms : bool
-        Whether to fit constant c terms (synchrotron only, low-freq bands).
+        Whether to fit constant c terms.
     fit_components : tuple
         Components to include ('sync','dust','cross').
     cov_matrix : dict, optional
@@ -4595,8 +4551,6 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
         Uses block-diagonal covariance ONLY for QUIJOTE blocks,
         diagonal (1/sigma^2) for all others (FAST!).
         If None, uses diagonal covariance: chi^2 = sum((data - model)^2 / sigma^2).
-    freq_max_c : float
-        Maximum frequency (GHz) for synchrotron constant terms. Default: 40.0.
 
     Returns
     -------
@@ -4604,27 +4558,27 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
         Log-likelihood value.
     """
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-    # Only low-frequency bands get c_terms (synchrotron only, no dust)
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
 
     A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
-    c_sync = np.zeros(N_c)
+    c_sync = np.zeros(N)
+    c_dust = np.zeros(N)
     offset = 7
     if fit_c_terms:
-        c_sync = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
+        c_sync = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust = np.asarray(theta_full[offset:offset+N]); offset += N
 
     y_model = np.zeros_like(y_all)
 
     if 'sync' in fit_components:
         y_model += model_synchrotron([A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else
                                      [A_s, alpha_s, beta_s],
-                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-                                     freq_max_c=freq_max_c)
+                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'dust' in fit_components:
-        y_model += model_dust([A_d, alpha_d, beta_d],
-                              datasets, ell, cc_dict=cc_dict)
+        y_model += model_dust([A_d, alpha_d, beta_d, *c_dust] if fit_c_terms else
+                              [A_d, alpha_d, beta_d],
+                              datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'cross' in fit_components:
         y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
@@ -4666,7 +4620,7 @@ def lnlike(theta_full, datasets, ell, y_all, yerr_all,
 def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell, 
                  y_EE, yerr_EE, y_BB, yerr_BB,
                  fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                 cc_dict=None, cov_matrix=None, freq_max_c=40.0):
+                 cc_dict=None, cov_matrix=None):
     """
     Compute the log-likelihood for joint EE-BB analysis.
 
@@ -4674,9 +4628,8 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
     ----------
     theta_full : array
         Full parameter vector:
-        [A_s_EE, A_s_BB, alpha_s, beta_s, A_d_EE, A_d_BB, alpha_d, beta_d, rho]
-        (+ c_sync_EE[low-freq] + c_sync_BB[low-freq] if fit_c_terms=True,
-         synchrotron only, for bands with freq <= freq_max_c)
+        [A_s_EE, A_s_BB, alpha_s, beta_s, A_d_EE, A_d_BB, alpha_d, beta_d, rho, ...]
+        (+ c_terms if fit_c_terms=True)
     datasets_EE : list of dict
         Prepared datasets for EE mode.
     datasets_BB : list of dict
@@ -4692,7 +4645,7 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
     yerr_BB : array
         Errors for BB spectra (used if cov_matrix is None).
     fit_c_terms : bool
-        Whether to fit constant c terms (synchrotron only, low-freq bands).
+        Whether to fit constant c terms.
     fit_components : tuple
         Components to include ('sync','dust','cross').
     cc_dict : dict, optional
@@ -4702,8 +4655,6 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
         Uses block-diagonal covariance ONLY for QUIJOTE blocks,
         diagonal (1/sigma^2) for all others (FAST!).
         If None, uses diagonal covariance separately for EE and BB.
-    freq_max_c : float
-        Maximum frequency (GHz) for synchrotron constant terms. Default: 40.0.
 
     Returns
     -------
@@ -4717,18 +4668,21 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
     alpha_d, beta_d = theta_full[6], theta_full[7]
     rho = theta_full[8]
     
-    # Extract c_terms if present (synchrotron only, low-freq bands only)
+    # Extract c_terms if present
     unique_freqs = sorted({f for d in datasets_EE + datasets_BB for f in d['freqs']})
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
     
-    c_sync_EE = np.zeros(N_c)
-    c_sync_BB = np.zeros(N_c)
+    c_sync_EE = np.zeros(N)
+    c_sync_BB = np.zeros(N)
+    c_dust_EE = np.zeros(N)
+    c_dust_BB = np.zeros(N)
     
     offset = 9
     if fit_c_terms:
-        c_sync_EE = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
-        c_sync_BB = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
+        c_sync_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_sync_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_BB = np.asarray(theta_full[offset:offset+N]); offset += N
     
     # =========================================================================
     # Build model for EE mode
@@ -4741,15 +4695,16 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
             theta_sync.extend(c_sync_EE)
         y_model_EE += model_synchrotron_joint(
             theta_sync, datasets_EE, ell, mode='EE',
-            fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-            freq_max_c=freq_max_c
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'dust' in fit_components:
         theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_EE)
         y_model_EE += model_dust_joint(
             theta_dust, datasets_EE, ell, mode='EE',
-            cc_dict=cc_dict
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'cross' in fit_components:
@@ -4771,15 +4726,16 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
             theta_sync.extend(c_sync_BB)
         y_model_BB += model_synchrotron_joint(
             theta_sync, datasets_BB, ell, mode='BB',
-            fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-            freq_max_c=freq_max_c
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'dust' in fit_components:
         theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_BB)
         y_model_BB += model_dust_joint(
             theta_dust, datasets_BB, ell, mode='BB',
-            cc_dict=cc_dict
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'cross' in fit_components:
@@ -4832,7 +4788,7 @@ def lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
 
 def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all, 
                          fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                         cc_dict=None, freq_max_c=40.0, n_free_params=None):
+                         cc_dict=None):
     """
     Compute the reduced chi-squared for the model given data.
 
@@ -4849,16 +4805,9 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
     yerr_all : array
         Errors associated with y_all.
     fit_c_terms : bool
-        Whether to fit constant c terms (synchrotron only, low-freq bands).
+        Whether to fit constant c terms.
     fit_components : tuple
         Components to include ('sync','dust','cross').
-    freq_max_c : float
-        Maximum frequency (GHz) for synchrotron constant terms. Default: 40.0.
-    n_free_params : int or None, optional
-        Exact number of free parameters actually fitted (from the param_map).
-        When provided this overrides the internal component-based counting,
-        which is necessary when parameters are frozen via ``freeze_params``
-        (e.g., ``beta_s`` frozen → n_free_params should be 2 not 3 for sync-only).
 
     Returns
     -------
@@ -4866,26 +4815,27 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
         Reduced chi-squared value (chi2 / degrees of freedom).
     """
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
 
     A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
-    c_sync = np.zeros(N_c)
+    c_sync = np.zeros(N)
+    c_dust = np.zeros(N)
     offset = 7
     if fit_c_terms:
-        c_sync = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
+        c_sync = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust = np.asarray(theta_full[offset:offset+N]); offset += N
 
     y_model = np.zeros_like(y_all)
 
     if 'sync' in fit_components:
         y_model += model_synchrotron([A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else
                                      [A_s, alpha_s, beta_s],
-                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-                                     freq_max_c=freq_max_c)
+                                     datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'dust' in fit_components:
-        y_model += model_dust([A_d, alpha_d, beta_d],
-                              datasets, ell, cc_dict=cc_dict)
+        y_model += model_dust([A_d, alpha_d, beta_d, *c_dust] if fit_c_terms else
+                              [A_d, alpha_d, beta_d],
+                              datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
 
     if 'cross' in fit_components:
         y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
@@ -4895,26 +4845,26 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
     
     # Calculate degrees of freedom: number of data points - number of free parameters
     n_data = len(y_all)
+    n_params = 0
     
-    if n_free_params is not None:
-        # Use the exact count passed by the caller (accounts for frozen params)
-        n_params = int(n_free_params)
-    else:
-        # Fallback: infer from fit_components (may over-count if params were frozen)
-        n_params = 0
-        if 'sync' in fit_components:
-            n_params += 3  # A_s, alpha_s, beta_s
-            if fit_c_terms:
-                n_params += N_c  # c_sync terms (low-freq only)
-        if 'dust' in fit_components:
-            n_params += 3  # A_d, alpha_d, beta_d
-        if 'cross' in fit_components:
-            n_params += 1  # rho
+    # Count free parameters
+    if 'sync' in fit_components:
+        n_params += 3  # A_s, alpha_s, beta_s
+        if fit_c_terms:
+            n_params += N  # c_sync terms
+    
+    if 'dust' in fit_components:
+        n_params += 3  # A_d, alpha_d, beta_d
+        if fit_c_terms:
+            n_params += N  # c_dust terms
+    
+    if 'cross' in fit_components:
+        n_params += 1  # rho
     
     dof = n_data - n_params
     
     if dof <= 0:
-        return np.inf  # Invalid case: zero or negative degrees of freedom
+        return np.inf  # Invalid case
     
     return chi2 / dof
 
@@ -4922,7 +4872,7 @@ def compute_chi2_reduced(theta_full, datasets, ell, y_all, yerr_all,
 def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
                                y_EE, yerr_EE, y_BB, yerr_BB,
                                fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                               cc_dict=None, freq_max_c=40.0):
+                               cc_dict=None):
     """
     Compute the reduced chi-squared for joint EE-BB analysis.
 
@@ -4945,13 +4895,11 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
     yerr_BB : array
         Errors for BB spectra.
     fit_c_terms : bool
-        Whether constant c terms are fitted (synchrotron only, low-freq bands).
+        Whether constant c terms are fitted.
     fit_components : tuple
         Components included in fit.
     cc_dict : dict, optional
         Color correction polynomials.
-    freq_max_c : float
-        Maximum frequency (GHz) for synchrotron constant terms. Default: 40.0.
 
     Returns
     -------
@@ -4966,16 +4914,19 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
     rho = theta_full[8]
     
     unique_freqs = sorted({f for d in datasets_EE + datasets_BB for f in d['freqs']})
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
     
-    c_sync_EE = np.zeros(N_c)
-    c_sync_BB = np.zeros(N_c)
+    c_sync_EE = np.zeros(N)
+    c_sync_BB = np.zeros(N)
+    c_dust_EE = np.zeros(N)
+    c_dust_BB = np.zeros(N)
     
     offset = 9
     if fit_c_terms:
-        c_sync_EE = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
-        c_sync_BB = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
+        c_sync_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_sync_BB = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_EE = np.asarray(theta_full[offset:offset+N]); offset += N
+        c_dust_BB = np.asarray(theta_full[offset:offset+N]); offset += N
     
     # Build models
     y_model_EE = np.zeros_like(y_EE)
@@ -4987,8 +4938,7 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
             theta_sync.extend(c_sync_EE)
         y_model_EE += model_synchrotron_joint(
             theta_sync, datasets_EE, ell, mode='EE',
-            fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-            freq_max_c=freq_max_c
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
         
         theta_sync_BB = [A_s_EE, A_s_BB, alpha_s, beta_s]
@@ -4996,21 +4946,24 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
             theta_sync_BB.extend(c_sync_BB)
         y_model_BB += model_synchrotron_joint(
             theta_sync_BB, datasets_BB, ell, mode='BB',
-            fit_c_terms=fit_c_terms, cc_dict=cc_dict,
-            freq_max_c=freq_max_c
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'dust' in fit_components:
         theta_dust = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust.extend(c_dust_EE)
         y_model_EE += model_dust_joint(
             theta_dust, datasets_EE, ell, mode='EE',
-            cc_dict=cc_dict
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
         
         theta_dust_BB = [A_d_EE, A_d_BB, alpha_d, beta_d]
+        if fit_c_terms:
+            theta_dust_BB.extend(c_dust_BB)
         y_model_BB += model_dust_joint(
             theta_dust_BB, datasets_BB, ell, mode='BB',
-            cc_dict=cc_dict
+            fit_c_terms=fit_c_terms, cc_dict=cc_dict
         )
     
     if 'cross' in fit_components:
@@ -5035,16 +4988,18 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
     n_params = 9  # Base parameters: A_s_EE, A_s_BB, alpha_s, beta_s, A_d_EE, A_d_BB, alpha_d, beta_d, rho
     
     if fit_c_terms:
-        # 2 sets of N_c c-terms (c_sync_EE, c_sync_BB) - synchrotron only, low-freq only
-        n_params += 2 * N_c
+        # 4 sets of N c-terms (c_sync_EE, c_sync_BB, c_dust_EE, c_dust_BB)
+        n_params += 4 * N
     
     # Adjust for components not being fitted
     if 'sync' not in fit_components:
         n_params -= 4  # A_s_EE, A_s_BB, alpha_s, beta_s
         if fit_c_terms:
-            n_params -= 2 * N_c  # c_sync_EE, c_sync_BB
+            n_params -= 2 * N  # c_sync_EE, c_sync_BB
     if 'dust' not in fit_components:
         n_params -= 4  # A_d_EE, A_d_BB, alpha_d, beta_d
+        if fit_c_terms:
+            n_params -= 2 * N  # c_dust_EE, c_dust_BB
     if 'cross' not in fit_components:
         n_params -= 1  # rho
     
@@ -5056,45 +5011,43 @@ def compute_chi2_reduced_joint(theta_full, datasets_EE, datasets_BB, ell,
     return chi2_total / dof
 
 
-def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-            freq_max_c=40.0):
+def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
     """
     Apply priors on parameters.
 
     Returns -np.inf if any prior is violated.
     """
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-    # Only low-frequency bands get c_terms (synchrotron only)
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
 
     A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
 
     if 'sync' in fit_components:
-        if A_s <= 0: return -np.inf                  # amplitude must be positive
+        if not (A_s >= 0.0): return -np.inf
         if not (-6 <= alpha_s <= 0): return -np.inf
         if not (-6 <= beta_s <= 0): return -np.inf
 
     if 'dust' in fit_components:
+        if not (A_d >= 0.0): return -np.inf
         if not (-6 <= alpha_d <= 0): return -np.inf
         if not (0 <= beta_d <= 6): return -np.inf
 
     if 'cross' in fit_components:
         if not (-1 <= rho <= 1): return -np.inf
 
-    # Add optional Gaussian priors
-    lp = 0.0
-
     if fit_c_terms:
         offset = 7
         if 'sync' in fit_components:
-            c_sync = np.asarray(theta_full[offset:offset+N_c]); offset += N_c
-            if not np.all(np.isfinite(c_sync)):
+            c_sync = np.asarray(theta_full[offset:offset+N]); offset += N
+            if not (np.all(np.isfinite(c_sync)) and np.all(np.abs(c_sync) <= 1e6)):
                 return -np.inf
-            # Gaussian prior on each c_sync centred at 0 with scale = typical |A_s|
-            # This prevents walkers from drifting to ±∞ on the flat likelihood surface.
-            sigma_c = abs(A_s) if A_s > 0 else 1.0
-            lp += -0.5 * np.sum((c_sync / sigma_c) ** 2)
+        if 'dust' in fit_components:
+            c_dust = np.asarray(theta_full[offset:offset+N]); offset += N
+            if not (np.all(np.isfinite(c_dust)) and np.all(np.abs(c_dust) <= 1e6)):
+                return -np.inf
+
+    # Add optional Gaussian priors
+    lp = 0.0
     try:
         if 'beta_s' in _GAUSSIAN_PRIORS:
             mu, sig = _GAUSSIAN_PRIORS['beta_s']
@@ -5131,8 +5084,7 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
     return lp
 
 
-def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                  n_c_terms=0):
+def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust', 'cross')):
     """
     Apply priors on parameters for joint EE-BB analysis.
 
@@ -5141,11 +5093,9 @@ def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust',
     theta_full : array
         Full parameter vector.
     fit_c_terms : bool
-        Whether c terms are included (synchrotron only, low-freq bands).
+        Whether c terms are included.
     fit_components : tuple
         Components included in fit.
-    n_c_terms : int
-        Number of low-frequency bands with c_terms (per mode).
 
     Returns
     -------
@@ -5160,11 +5110,15 @@ def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust',
     
     # Apply bounds for synchrotron parameters
     if 'sync' in fit_components:
+        if not (A_s_EE >= 0.0): return -np.inf
+        if not (A_s_BB >= 0.0): return -np.inf
         if not (-6 <= alpha_s <= 0): return -np.inf
         if not (-6 <= beta_s <= 0): return -np.inf
     
     # Apply bounds for dust parameters
     if 'dust' in fit_components:
+        if not (A_d_EE >= 0.0): return -np.inf
+        if not (A_d_BB >= 0.0): return -np.inf
         if not (-6 <= alpha_d <= 0): return -np.inf
         if not (0 <= beta_d <= 6): return -np.inf
     
@@ -5172,18 +5126,26 @@ def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust',
     if 'cross' in fit_components:
         if not (-1 <= rho <= 1): return -np.inf
     
-    # Check c_terms if present (synchrotron only, low-freq bands)
-    if fit_c_terms and n_c_terms > 0:
+    # Check c_terms if present
+    if fit_c_terms:
+        unique_freqs_count = len(theta_full[9:]) // 4  # Assumes 4 sets of c_terms
         offset = 9
         
         if 'sync' in fit_components:
-            c_sync_EE = theta_full[offset:offset+n_c_terms]
-            offset += n_c_terms
-            c_sync_BB = theta_full[offset:offset+n_c_terms]
-            offset += n_c_terms
-            if not np.all(np.isfinite(c_sync_EE)):
+            c_sync_EE = theta_full[offset:offset+unique_freqs_count]
+            c_sync_BB = theta_full[offset+unique_freqs_count:offset+2*unique_freqs_count]
+            if not (np.all(np.isfinite(c_sync_EE)) and np.all(np.abs(c_sync_EE) <= 1e6)):
                 return -np.inf
-            if not np.all(np.isfinite(c_sync_BB)):
+            if not (np.all(np.isfinite(c_sync_BB)) and np.all(np.abs(c_sync_BB) <= 1e6)):
+                return -np.inf
+            offset += 2 * unique_freqs_count
+        
+        if 'dust' in fit_components:
+            c_dust_EE = theta_full[offset:offset+unique_freqs_count]
+            c_dust_BB = theta_full[offset+unique_freqs_count:offset+2*unique_freqs_count]
+            if not (np.all(np.isfinite(c_dust_EE)) and np.all(np.abs(c_dust_EE) <= 1e6)):
+                return -np.inf
+            if not (np.all(np.isfinite(c_dust_BB)) and np.all(np.abs(c_dust_BB) <= 1e6)):
                 return -np.inf
     
     # Add optional Gaussian priors
@@ -5275,7 +5237,7 @@ def lnprob(theta_free, datasets, ell, y_all, yerr_all,
 def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
                 y_EE, yerr_EE, y_BB, yerr_BB,
                 fit_c_terms=False, fit_components=('sync', 'dust', 'cross'),
-                cc_dict=None, cov_matrix=None, freq_max_c=40.0):
+                cc_dict=None, cov_matrix=None):
     """
     Compute log-posterior for joint EE-BB analysis (prior + likelihood).
 
@@ -5298,34 +5260,27 @@ def lnprob_joint(theta_full, datasets_EE, datasets_BB, ell,
     yerr_BB : array
         Errors for BB spectra (used if cov_matrix is None).
     fit_c_terms : bool
-        Whether c terms are fitted (synchrotron only, low-freq bands).
+        Whether c terms are fitted.
     fit_components : tuple
         Components included.
     cc_dict : dict, optional
         Color correction polynomials.
     cov_matrix : ndarray, optional
         Full covariance matrix for joint EE+BB data.
-    freq_max_c : float
-        Maximum frequency (GHz) for synchrotron constant terms. Default: 40.0.
 
     Returns
     -------
     lnpost : float
         Log-posterior probability.
     """
-    # Compute N_c for prior
-    unique_freqs = sorted({f for d in datasets_EE + datasets_BB for f in d['freqs']})
-    N_c = len([f for f in unique_freqs if f <= freq_max_c])
-    
-    lp = lnprior_joint(theta_full, fit_c_terms=fit_c_terms, fit_components=fit_components,
-                       n_c_terms=N_c)
+    lp = lnprior_joint(theta_full, fit_c_terms=fit_c_terms, fit_components=fit_components)
     if not np.isfinite(lp):
         return -np.inf
     
     ll = lnlike_joint(theta_full, datasets_EE, datasets_BB, ell,
                      y_EE, yerr_EE, y_BB, yerr_BB,
                      fit_c_terms=fit_c_terms, fit_components=fit_components,
-                     cc_dict=cc_dict, cov_matrix=cov_matrix, freq_max_c=freq_max_c)
+                     cc_dict=cc_dict, cov_matrix=cov_matrix)
     
     return lp + ll
 
@@ -5334,8 +5289,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
             fit_c_terms=False, nwalkers=100, ninter=5000,
             discard_fraction=0.5, verbose=True,
             fit_mode='power-law', color_correction=False,
-            joint_analysis=False, cov_matrix=None, n_processes=None,
-            freeze_params=None, print_residuals=False):
+            joint_analysis=False, cov_matrix=None, n_processes=None):
     """
     Run MCMC fit with optional joint EE-BB analysis.
 
@@ -5367,11 +5321,6 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
         Number of parallel processes to use for MCMC.
         If None, uses min(available_cores, nwalkers//2).
         Set to specific value to limit CPU usage (e.g., n_processes=20 on 50-core machine).
-    freeze_params : dict or None, optional
-        Parameters to freeze at fixed values, overriding the free_mask derived from
-        fit_components. Example: ``freeze_params={'beta_s': 0.0}`` freezes the
-        synchrotron frequency spectral index to 0 (useful for single-band auto-spectrum
-        fits where beta_s is degenerate with A_s). Only supported with fit_mode='power-law'.
 
     Returns
     -------
@@ -5415,8 +5364,7 @@ def run_mcmc(fit_data, fit_components=('sync', 'dust', 'cross'),
         return _run_mcmc_powerlaw(
             fit_data, fit_components, fit_c_terms,
             nwalkers, ninter, discard_fraction, verbose,
-            color_correction, cov_matrix, n_processes,
-            freeze_params=freeze_params, print_residuals=print_residuals
+            color_correction, cov_matrix, n_processes
         )
     elif fit_mode == 'bin-to-bin':
         return _run_mcmc_bin_to_bin(
@@ -5513,17 +5461,18 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
         'rho'                    # Cross-correlation (shared)
     ]
     
-    # Add c_terms if requested (synchrotron only, low-freq bands only)
+    # Add c_terms if requested
     unique_freqs = sorted({f for d in fit_data['datasets'] for f in d['freqs']})
-    FREQ_MAX_C = 40.0
-    low_freqs = sorted({f for f in unique_freqs if f <= FREQ_MAX_C})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
     
     if fit_c_terms:
-        for f in low_freqs:
-            param_names.append(f'c_sync_EE[{int(f)}]')
-        for f in low_freqs:
-            param_names.append(f'c_sync_BB[{int(f)}]')
+        for f in unique_freqs:
+            param_names.extend([
+                f'c_sync_EE[{int(f)}]',
+                f'c_sync_BB[{int(f)}]',
+                f'c_dust_EE[{int(f)}]',
+                f'c_dust_BB[{int(f)}]'
+            ])
     
     ndim = len(param_names)
     
@@ -5548,9 +5497,9 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
         0.05    # rho
     ], dtype=float)
     
-    # Add zeros for c_terms (synchrotron only, low-freq only: N_c per mode × 2 modes)
+    # Add zeros for c_terms
     if fit_c_terms:
-        p0_center = np.concatenate([p0_center, np.zeros(2 * N_c)])
+        p0_center = np.concatenate([p0_center, np.zeros(4 * N)])
     
     p0_walkers = p0_center + 1e-2 * rng.standard_normal((nwalkers, ndim))
     
@@ -5574,7 +5523,7 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
         sampler = emcee.EnsembleSampler(
             nwalkers, ndim, lnprob_joint,
             args=(datasets_EE, datasets_BB, ell, y_EE, yerr_EE, y_BB, yerr_BB,
-                  fit_c_terms, fit_components, cc_dict, cov_matrix, FREQ_MAX_C),
+                  fit_c_terms, fit_components, cc_dict, cov_matrix),
             pool=pool
         )
         sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
@@ -5594,7 +5543,7 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
         best_params, datasets_EE, datasets_BB, ell,
         y_EE, yerr_EE, y_BB, yerr_BB,
         fit_c_terms=fit_c_terms, fit_components=fit_components,
-        cc_dict=cc_dict, freq_max_c=FREQ_MAX_C
+        cc_dict=cc_dict
     )
     
     if verbose:
@@ -5605,8 +5554,7 @@ def _run_mcmc_joint(fit_data, fit_components, fit_c_terms,
 
 
 def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, discard_fraction, verbose,
-                       color_correction, cov_matrix=None, n_processes=None, freeze_params=None,
-                       print_residuals=False):
+                       color_correction, cov_matrix=None, n_processes=None):
     # Load color-correction polynomials dict if requested
     cc_dict = None
     if color_correction:
@@ -5627,13 +5575,12 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     # Parameter mapping
     # -------------------------------
     unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-    FREQ_MAX_C = 40.0
-    low_freqs = sorted({f for f in unique_freqs if f <= FREQ_MAX_C})
-    N_c = len(low_freqs)
+    N = len(unique_freqs)
 
     param_names = ['A_s', 'alpha_s', 'beta_s', 'A_d', 'alpha_d', 'beta_d', 'rho']
     if fit_c_terms:
-        param_names += [f'c_sync[{int(f)}]' for f in low_freqs]
+        param_names += [f'c_sync[{int(f)}]' for f in unique_freqs]
+        param_names += [f'c_dust[{int(f)}]' for f in unique_freqs]
 
     free_mask = {
         'A_s':    ('sync' in fit_components),
@@ -5645,24 +5592,16 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
         'rho':    ('cross' in fit_components)
     }
 
-    # Apply caller-supplied parameter freezes (e.g., freeze beta_s=0 for single-band fits)
-    _freeze = freeze_params or {}
-    _fixed_overrides = {}
-    for pname, pval in _freeze.items():
-        if pname in free_mask:
-            free_mask[pname] = False
-            _fixed_overrides[pname] = float(pval)
-
     param_map = []
     for name in ['A_s','alpha_s','beta_s','A_d','alpha_d','beta_d','rho']:
         param_map.append((name, free_mask[name]))
     if fit_c_terms:
-        for f in low_freqs:
+        for f in unique_freqs:
             param_map.append((f'c_sync[{int(f)}]', True if 'sync' in fit_components else False))
+        for f in unique_freqs:
+            param_map.append((f'c_dust[{int(f)}]', True if 'dust' in fit_components else False))
 
     fixed_values = {name: 0.0 for name, is_free in param_map if not is_free}
-    # Apply caller-supplied frozen values (overrides default 0.0)
-    fixed_values.update(_fixed_overrides)
     ndim = sum(1 for _, is_free in param_map if is_free)
 
     # -------------------------------
@@ -5688,26 +5627,10 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
         elif name == 'rho':
             p0_center.append(0.05)
         else:
-            # c_sync term: initialise at a small fraction of the data scale
-            # (1e-2 is many orders of magnitude off for mK² spectra)
-            p0_center.append(float(np.median(np.abs(y_all))) * 0.1)
+            p0_center.append(0.0)
 
     p0_center = np.array(p0_center, dtype=float)
-    # Per-parameter spread: small absolute value for shape/index parameters
-    # so walkers stay close and linearly independent; relative for amplitudes.
-    p0_scale = []
-    for name, is_free in param_map:
-        if not is_free:
-            continue
-        if name in ('A_s', 'A_d'):
-            p0_scale.append(0.1 * abs(p0_center[len(p0_scale)]))
-        elif name.startswith('c_sync'):
-            p0_scale.append(0.3 * abs(p0_center[len(p0_scale)]) if p0_center[len(p0_scale)] != 0 else float(np.median(np.abs(y_all))) * 0.05)
-        else:
-            # alpha, beta, rho: fixed small absolute spread
-            p0_scale.append(0.1)
-    p0_scale = np.array(p0_scale, dtype=float)
-    p0_walkers = p0_center + p0_scale * rng.standard_normal((nwalkers, ndim))
+    p0_walkers = p0_center + 1e-2 * rng.standard_normal((nwalkers, ndim))
 
     # -------------------------------
     # Run the sampler
@@ -5733,12 +5656,7 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
             pool=pool
         )
         if verbose:
-            print("[run_mcmc] Starting burn-in...")
-        burn = max(100, int(0.2 * ninter))
-        p0_walkers, _, _ = sampler.run_mcmc(p0_walkers, burn, progress=verbose)
-        sampler.reset()
-        if verbose:
-            print("[run_mcmc] Starting production run...")
+            print("[run_mcmc] Starting MCMC...")
         sampler.run_mcmc(p0_walkers, ninter, progress=verbose)
         
 
@@ -5772,75 +5690,12 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     # Calculate reduced chi-squared
     chi2_reduced = compute_chi2_reduced(
         best_params_full, datasets, ell, y_all, yerr_all, 
-        fit_c_terms=fit_c_terms, fit_components=fit_components, cc_dict=cc_dict,
-        n_free_params=ndim  # ndim = actual number of free parameters in the sampler
+        fit_c_terms=fit_c_terms, fit_components=fit_components, cc_dict=cc_dict
     )
 
     if verbose:
         print(f"[run_mcmc] MCMC completed. {samples_free.shape[0]} usable samples after burn-in.")
-        # Additional diagnostics: report data points, free params, dof and total chi2
-        try:
-            n_data = len(y_all)
-            n_free = int(ndim)
-            dof = n_data - n_free
-            if np.isfinite(chi2_reduced):
-                chi2_total = float(chi2_reduced) * float(dof) if dof > 0 else float('nan')
-            else:
-                chi2_total = float('inf')
-            print(f"[run_mcmc] Reduced chi-squared at best fit: {chi2_reduced:.4f}")
-            print(f"[run_mcmc] chi2 diagnostics: n_data={n_data}, n_free_params={n_free}, dof={dof}, chi2_total={chi2_total}")
-        except Exception:
-            # Fallback to minimal reporting
-            print(f"[run_mcmc] Reduced chi-squared at best fit: {chi2_reduced}")
-
-        # If requested, print per-bin residuals for inspection (best-fit model)
-        if print_residuals:
-            try:
-                # Rebuild the model vector at the best-fit parameters
-                y_model = np.zeros_like(y_all)
-                if 'sync' in fit_components:
-                    # Extract sync-related params from best_params_full
-                    # Build theta for model_synchrotron
-                    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-                    low_freqs = sorted({f for f in unique_freqs if f <= 40.0})
-                    N_c = len(low_freqs)
-                    if fit_c_terms:
-                        theta_sync = list(best_params_full[:3]) + list(best_params_full[7:7+N_c])
-                    else:
-                        theta_sync = list(best_params_full[:3])
-                    y_model += model_synchrotron(theta_sync, datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict)
-                if 'dust' in fit_components:
-                    y_model += model_dust(list(best_params_full[3:6]), datasets, ell, cc_dict=cc_dict)
-                if 'cross' in fit_components:
-                    # build theta_cross = [rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d]
-                    theta_cross = [
-                        float(best_params_full[6]),  # rho
-                        float(best_params_full[0]),  # A_s
-                        float(best_params_full[3]),  # A_d
-                        float(best_params_full[1]),  # alpha_s
-                        float(best_params_full[4]),  # alpha_d
-                        float(best_params_full[2]),  # beta_s
-                        float(best_params_full[5])   # beta_d
-                    ]
-                    y_model += model_cross(theta_cross, datasets, ell, cc_dict=cc_dict)
-
-                # Print per-pair/per-bin table of residuals
-                print('\n[run_mcmc] Per-bin residuals (best-fit):')
-                cursor = 0
-                for d in datasets:
-                    start, stop = d['slice']
-                    ell_here = ell[start:stop]
-                    y_here = d['spectrum']
-                    err_here = d['error']
-                    m_here = y_model[start:stop]
-                    res_here = y_here - m_here
-                    chi2_here = np.sum((res_here / err_here) ** 2)
-                    print(f"\n Pair: {d['pair']}  mode: {d['mode']}  chi2_bin={chi2_here:.4e}  n_points={len(ell_here)}")
-                    print(" ell   data    model   err   (res/err)^2")
-                    for e, yy, mm, ee, rr in zip(ell_here, y_here, m_here, err_here, (res_here / err_here) ** 2):
-                        print(f"{int(e):4d}  {yy: .4e}  {mm: .4e}  {ee: .4e}  {rr: .4e}")
-            except Exception as exc:
-                print(f"[run_mcmc] Failed to print per-bin residuals: {exc}")
+        print(f"[run_mcmc] Reduced chi-squared at best fit: {chi2_reduced:.4f}")
 
     return sampler, samples_full, samples_free, param_map, chi2_reduced
 
@@ -6119,9 +5974,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
         
         if 'sync' in fit_components:
             # Synchrotron: A_s * (f1/f_ref)^beta_s * (f2/f_ref)^beta_s
-            # Use 23 GHz as the reference frequency for synchrotron to be
-            # consistent across the codebase.
-            freq_ref_sync = 23.0
+            freq_ref_sync = 11.1
             scale_f1 = (f1 / freq_ref_sync) ** beta_s
             scale_f2 = (f2 / freq_ref_sync) ** beta_s
             if cc_dict is not None:
@@ -6152,7 +6005,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
         
         if 'cross' in fit_components:
             # Cross term: rho * sqrt(A_s * A_d) * (sync_scale1 * dust_scale2 + sync_scale2 * dust_scale1)
-            freq_ref_sync = 23.
+            freq_ref_sync = 11.1
             freq_ref_dust = 353.0
             T_d = 19.6
             
@@ -6204,7 +6057,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
         model_val = 0.0
         
         if 'sync' in fit_components:
-            freq_ref_sync = 23.
+            freq_ref_sync = 11.1
             scale_f1 = (f1 / freq_ref_sync) ** beta_s
             scale_f2 = (f2 / freq_ref_sync) ** beta_s
             if cc_dict is not None:
@@ -6235,7 +6088,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
             model_val += A_d * (scale_f1 * cc_d1) * (scale_f2 * cc_d2)
         
         if 'cross' in fit_components:
-            freq_ref_sync = 23.
+            freq_ref_sync = 11.1
             freq_ref_dust = 353.0
             T_d = 19.6
             
@@ -6339,12 +6192,12 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
     # -------------------------------
     scale_map = {
         # Standard single-mode parameters
-        'A_s': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
+        'A_s': (1e6, r'$\mu\mathrm{K}^2$'),
         'A_d': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
         
         # Joint EE-BB parameters (mode-specific amplitudes)
-        'A_s_EE': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
-        'A_s_BB': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
+        'A_s_EE': (1e6, r'$\mu\mathrm{K}^2$'),
+        'A_s_BB': (1e6, r'$\mu\mathrm{K}^2$'),
         'A_d_EE': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
         'A_d_BB': (1e9, r'$10^{-3}\,\mu\mathrm{K}^2$'),
     }
@@ -6361,7 +6214,7 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
     # -------------------------------
     latex_labels = {
         # Standard single-mode parameters
-        'A_s': r'$A_{\mathrm{s}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
+        'A_s': r'$A_{\mathrm{s}}\,[\mu\mathrm{K}^2]$',
         'alpha_s': r'$\alpha_{\mathrm{s}}$',
         'beta_s': r'$\beta_{\mathrm{s}}$',
         'A_d': r'$A_{\mathrm{d}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
@@ -6370,8 +6223,8 @@ def plot_corner(samples_free, param_map, save_path=None, title=None):
         'rho': r'$\rho$',
         
         # Joint EE-BB parameters (mode-specific amplitudes)
-        'A_s_EE': r'$A_{\mathrm{s}}^{\mathrm{EE}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
-        'A_s_BB': r'$A_{\mathrm{s}}^{\mathrm{BB}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
+        'A_s_EE': r'$A_{\mathrm{s}}^{\mathrm{EE}}\,[\mu\mathrm{K}^2]$',
+        'A_s_BB': r'$A_{\mathrm{s}}^{\mathrm{BB}}\,[\mu\mathrm{K}^2]$',
         'A_d_EE': r'$A_{\mathrm{d}}^{\mathrm{EE}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
         'A_d_BB': r'$A_{\mathrm{d}}^{\mathrm{BB}}\,[10^{-3}\,\mu\mathrm{K}^2]$',
         # Note: alpha_s, alpha_d, beta_s, beta_d, rho are shared (no suffix)
@@ -7656,7 +7509,7 @@ def compute_and_plot_spectra(experiment, band, mask_path, lmax=1535, target_nsid
     """
     
     # Import data dictionary
-    from data import data
+    from data_ssh import data
     
     # Get map_info from experiment and band
     try:
@@ -8366,442 +8219,3 @@ def plot_auto_cross_spectra(bands, spectra_dict, save=False, save_path=None, fig
     plt.show()
     
     return fig
-
-
-def plot_spectra_with_bestfit(fit_data, results_entry, fit_components, fit_c_terms,
-                              bands_to_plot=('11', '23', '30'),
-                              color_correction=True,
-                              save_path=None, title=None):
-    """
-    Plot auto-spectra data points with error bars for selected bands,
-    overlaid with the best-fit synchrotron model curves, for both EE and BB
-    in a single figure (two panels side-by-side).
-
-    Parameters
-    ----------
-    fit_data : dict
-        Dictionary with two keys, ``'EE'`` and ``'BB'``, each being the
-        output of :func:`prepare_mcmc_data` for the respective mode.
-    results_entry : dict
-        Dictionary with two keys, ``'EE'`` and ``'BB'``, each being the
-        result dict stored in *results_list* (must contain
-        ``'samples_free'``, ``'param_map'``, ``'chi2_reduced'``).
-    fit_components : tuple
-        Components that were fit, e.g. ``('sync', 'dust', 'cross')``.
-    fit_c_terms : bool
-        Whether constant terms were fitted.
-    bands_to_plot : tuple of str
-        Band identifiers whose **auto-spectra** will be plotted.
-    color_correction : bool
-        Whether to apply color-correction polynomials to the model curves.
-    save_path : str, optional
-        If given, figure is saved to this path.
-    title : str, optional
-        Super-title for the figure.
-
-    Returns
-    -------
-    fig : matplotlib Figure
-    """
-    import matplotlib.pyplot as plt
-
-    # Load color-correction polynomials if needed
-    cc_dict = None
-    if color_correction:
-        try:
-            cc_dict = load_color_correction_polynomials()
-        except Exception:
-            cc_dict = None
-
-    FREQ_MAX_C = 40.0
-
-    # ---- colour / marker per band
-    band_styles = {
-        '11': dict(color='steelblue', marker='o', label='11 GHz'),
-        '13': dict(color='#ff7f0e', marker='o', label='13 GHz'),
-        '17': dict(color='#2ca02c', marker='o', label='17 GHz'),
-        '19': dict(color='#d62728', marker='o', label='19 GHz'),
-        '23': dict(color='k', marker='o', label='23 GHz'),
-        '30': dict(color='goldenrod', marker='o', label='30 GHz'),
-        '33': dict(color='#e377c2', marker='o', label='33 GHz'),
-    }
-    default_style = dict(color='grey', marker='*', label='?')
-
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
-    mode_list = ['EE', 'BB']
-
-    for ax, mode in zip(axes, mode_list):
-        fd = fit_data[mode]
-        res = results_entry[mode]
-        datasets = fd['datasets']
-        ell = fd['ell_eff']
-        y_all = fd['y_all']
-        yerr_all = fd['yerr_all']
-        samples_free = res['samples_free']
-        param_map = res['param_map']
-
-        # ---- Reconstruct best-fit full parameter vector
-        if len(param_map) > 0 and isinstance(param_map[0], tuple):
-            free_names = [name for name, is_free in param_map if is_free]
-            all_names = [name for name, _ in param_map]
-            free_cols = [i for i, (_, f) in enumerate(param_map) if f]
-            fixed_cols = [i for i, (_, f) in enumerate(param_map) if not f]
-        else:
-            free_names = list(param_map)
-            all_names = free_names
-            free_cols = list(range(len(free_names)))
-            fixed_cols = []
-
-        # Use median of posterior as best-fit
-        best_free = np.median(samples_free, axis=0)
-        best_full = np.zeros(len(all_names))
-        for j, col in enumerate(free_cols):
-            best_full[col] = best_free[j]
-
-        # Extract synchrotron parameters
-        idx_map_names = {name: i for i, name in enumerate(all_names)}
-        A_s = best_full[idx_map_names['A_s']] if 'A_s' in idx_map_names else 0.0
-        alpha_s = best_full[idx_map_names['alpha_s']] if 'alpha_s' in idx_map_names else 0.0
-        beta_s = best_full[idx_map_names['beta_s']] if 'beta_s' in idx_map_names else 0.0
-
-        unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-        low_freqs = sorted({f for f in unique_freqs if f <= FREQ_MAX_C})
-        c_sync = {}
-        for lf in low_freqs:
-            cname = f'c_sync[{int(lf)}]'
-            if cname in idx_map_names:
-                c_sync[lf] = best_full[idx_map_names[cname]]
-            else:
-                c_sync[lf] = 0.0
-
-        freq_ref = 23.
-        ell_ref = 80.0
-
-        # ---- Plot data + model for each requested auto band
-        ell_fine = np.linspace(ell.min() - 5, ell.max() + 5, 200)
-
-        for band in bands_to_plot:
-            pair_name = f'{band}_{band}'
-            style = band_styles.get(band, default_style)
-
-            # Find the dataset for this auto-spectrum
-            ds_match = [d for d in datasets if d['pair'] == pair_name and d['mode'] == mode]
-            if not ds_match:
-                continue
-            d = ds_match[0]
-            s0, s1 = d['slice']
-            spec = y_all[s0:s1] * 1e9   # K² → μK²
-            err = yerr_all[s0:s1] * 1e9
-            f1, f2 = d['freqs']
-
-            # Model curve on fine ell grid
-            scale_f = (f1 / freq_ref) ** beta_s * (f2 / freq_ref) ** beta_s
-            ell_scale = (ell_fine / ell_ref) ** alpha_s
-            model_curve = A_s * ell_scale * scale_f * 1e9  # → μK²
-
-            # Add c_term if applicable
-            if fit_c_terms and f1 in c_sync:
-                model_curve = model_curve + c_sync[f1] * 1e9
-
-            # Apply color correction to model
-            if cc_dict is not None:
-                alpha_cc = 2.0 + float(beta_s)
-                poly1 = (cc_dict.get('synch', {}) or {}).get(str(band))
-                poly2 = (cc_dict.get('synch', {}) or {}).get(str(band))
-                cc_s1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
-                cc_s2 = (poly2[0] + poly2[1]*alpha_cc + poly2[2]*(alpha_cc**2)) if poly2 is not None else 1.0
-                model_curve = model_curve / (cc_s1 * cc_s2)
-
-            # Data points
-            ax.errorbar(ell, spec, yerr=err, fmt=style['marker'],
-                        color=style['color'], markersize=6, capsize=3,
-                        label=f"{style['label']} data", zorder=3)
-            # Model curve
-            ax.plot(ell_fine, model_curve, '-', color=style['color'],
-                    alpha=0.8, linewidth=2.0,
-                    label=f"{style['label']} model", zorder=2)
-
-        ax.set_yscale('log')
-        ax.set_xlim(20, 210)
-        ax.set_ylim(1e-13, 1e-3)
-        ax.set_xlabel(r'$\ell$', fontsize=20)
-        ax.set_ylabel(r'$C_\ell\;[\mu\mathrm{K}^2_\mathrm{RJ}]$', fontsize=20)
-        ax.set_title(f'{mode}', fontsize=20)
-        ax.tick_params(axis='both', labelsize=18)
-        ax.legend(fontsize=12, frameon=False, ncol=2)
-        ax.axhline(0, color='grey', ls='--', lw=0.5)
-
-    if title:
-        fig.suptitle(title, fontsize=18, y=1.02)
-    fig.tight_layout()
-
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, bbox_inches='tight', dpi=300)
-        print(f"[plot_spectra_with_bestfit] Saved to {save_path}")
-
-    plt.show()
-    return fig
-
-
-def _expand_free(theta_free, param_map):
-    """Expand free-parameter vector into full vector using param_map."""
-    if len(param_map) > 0 and isinstance(param_map[0], tuple):
-        all_names = [name for name, _ in param_map]
-        free_cols = [i for i, (_, f) in enumerate(param_map) if f]
-    else:
-        return theta_free
-    full = np.zeros(len(all_names))
-    for j, col in enumerate(free_cols):
-        full[col] = theta_free[j]
-    return full
-
-
-def _model_full(theta_full, datasets, ell, fit_c_terms, fit_components, cc_dict, freq_max_c=40.0):
-    """Evaluate the full model (sync + dust + cross) from a full theta vector."""
-    unique_freqs = sorted({f for d in datasets for f in d['freqs']})
-    low_freqs = sorted({f for f in unique_freqs if f <= freq_max_c})
-    N_c = len(low_freqs)
-
-    A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
-    offset = 7
-    c_sync = np.zeros(N_c)
-    if fit_c_terms:
-        c_sync = np.asarray(theta_full[offset:offset+N_c])
-        offset += N_c
-
-    y_model = np.zeros(sum(d['slice'][1] - d['slice'][0] for d in datasets))
-
-    if 'sync' in fit_components:
-        y_model += model_synchrotron(
-            [A_s, alpha_s, beta_s, *c_sync] if fit_c_terms else [A_s, alpha_s, beta_s],
-            datasets, ell, fit_c_terms=fit_c_terms, cc_dict=cc_dict, freq_max_c=freq_max_c)
-    if 'dust' in fit_components:
-        y_model += model_dust([A_d, alpha_d, beta_d], datasets, ell, cc_dict=cc_dict)
-    if 'cross' in fit_components:
-        y_model += model_cross([rho, A_s, A_d, alpha_s, alpha_d, beta_s, beta_d],
-                               datasets, ell, cc_dict=cc_dict)
-    return y_model
-
-
-def create_fitting_results_table(results_list, save_path=None, 
-                                 caption=None, label='tab:fit_results',
-                                 ell_range='20-120', mask_name='$10^{\\circ}$ Galactic cut',
-                                 include_c_terms=False):
-    """
-    Generate a LaTeX table with posterior constraints from MCMC fitting results.
-    
-    When ``include_c_terms=True`` the constant offset terms
-    (``c_sync[freq]``) are placed in a **separate** companion table whose
-    values are expressed in units of :math:`10^{-3}\\,\\mu\\mathrm{K}^2`.
-    
-    Parameters
-    ----------
-    results_list : list of dict
-        Each dict should contain:
-        - 'data_label': str (e.g., 'WMAP+Planck', 'QUIJOTE+WMAP+Planck')
-        - 'mode': str ('EE' or 'BB')
-        - 'samples_free': ndarray (MCMC samples after burn-in)
-        - 'param_map': list (parameter map from run_mcmc)
-        - 'chi2_reduced': float (optional, reduced chi-squared)
-    save_path : str, optional
-        Path to save the LaTeX table file.  When *include_c_terms* is True a
-        second file with ``_c_terms`` appended to the stem is saved alongside.
-    caption : str, optional
-        Custom caption for the main table. If None, a default is generated.
-    label : str, optional
-        LaTeX label for the table (default: 'tab:fit_results').
-    ell_range : str, optional
-        Multipole range string for caption (default: '20--200').
-    mask_name : str, optional
-        Mask description for caption (default: '$10^{\\circ}$ Galactic cut').
-    include_c_terms : bool, optional
-        If True, produce a second table with the c_sync constant terms
-        in units of :math:`10^{-3}\\,\\mu\\mathrm{K}^2`.  Default: False.
-    
-    Returns
-    -------
-    str
-        LaTeX table code (main table).  When *include_c_terms* is True
-        the returned string contains **both** tables separated by a blank
-        line.
-    """
-    
-    # Generate default caption if not provided
-    if caption is None:
-        caption = (
-            f"Posterior constraints (median and $68\\%$ credible intervals) on the "
-            f"synchrotron and dust amplitudes and spectral indices, and on the "
-            f"synchrotron--dust correlation coefficient $\\rho$, from fits to the "
-            f"$EE$ and $BB$ spectra using the 10º mask "
-            f"(multipole range $\\ell={ell_range}$)."
-        )
-    
-    # -----------------------------------------------------------------
-    # Identify parameters
-    # -----------------------------------------------------------------
-    # Base (physical) parameters – always in the main table
-    base_param_order = ['A_s', 'alpha_s', 'beta_s', 'A_d', 'alpha_d', 'beta_d', 'rho']
-    
-    # Auto-detect c_sync frequencies from all results
-    c_sync_names = []
-    if include_c_terms:
-        c_freq_set = set()
-        for result in results_list:
-            pm = result['param_map']
-            if len(pm) > 0 and isinstance(pm[0], tuple):
-                names = [name for name, is_free in pm if is_free]
-            else:
-                names = list(pm)
-            for n in names:
-                if n.startswith('c_sync['):
-                    c_freq_set.add(n)
-        c_sync_names = sorted(c_freq_set, key=lambda s: int(s.split('[')[1].rstrip(']')))
-    
-    # -----------------------------------------------------------------
-    # LaTeX column names
-    # -----------------------------------------------------------------
-    latex_headers = {
-        'A_s': r'$A_s\,[10^{-3}\,\mu\mathrm{K}^2]$',
-        'alpha_s': r'$\alpha_s$',
-        'beta_s': r'$\beta_s$',
-        'A_d': r'$A_d\,[10^{-3}\,\mu\mathrm{K}^2]$',
-        'alpha_d': r'$\alpha_d$',
-        'beta_d': r'$\beta_d$',
-        'rho': r'$\rho$'
-    }
-    for cname in c_sync_names:
-        freq_str = cname.split('[')[1].rstrip(']')
-        latex_headers[cname] = (
-            f'$c_{{\\mathrm{{sync}}}}^{{{freq_str}}}\\,'
-            r'[10^{-3}\,\mu\mathrm{K}^2]$'
-        )
-    
-    # -----------------------------------------------------------------
-    # Scaling factors
-    # -----------------------------------------------------------------
-    scale_factors = {
-        'A_s': 1e9,      # K² → μK²
-        'A_d': 1e9,      # K² → 10^-3 μK²
-        'alpha_s': 1.0,
-        'beta_s': 1.0,
-        'alpha_d': 1.0,
-        'beta_d': 1.0,
-        'rho': 1.0
-    }
-    # c_sync terms: display in 10^-3 μK²
-    for cname in c_sync_names:
-        scale_factors[cname] = 1e9
-    
-    # -----------------------------------------------------------------
-    # Compute median ± 68 % CI for every parameter in every result
-    # -----------------------------------------------------------------
-    all_param_values = []          # one dict per result
-    for result in results_list:
-        samples_free = result['samples_free']
-        param_map = result['param_map']
-        
-        if len(param_map) > 0 and isinstance(param_map[0], tuple):
-            param_names = [name for name, is_free in param_map if is_free]
-        else:
-            param_names = list(param_map)
-        
-        param_values = {}
-        for i, pname in enumerate(param_names):
-            if i >= samples_free.shape[1]:
-                continue
-            samples = samples_free[:, i]
-            median = np.median(samples)
-            lower = np.percentile(samples, 16)
-            upper = np.percentile(samples, 84)
-            scale = scale_factors.get(pname, 1.0)
-            median *= scale
-            lower *= scale
-            upper *= scale
-            param_values[pname] = {
-                'median': median,
-                'lower': median - lower,
-                'upper': upper - median
-            }
-        all_param_values.append(param_values)
-    
-    # -----------------------------------------------------------------
-    # Helper: format a single value cell
-    # -----------------------------------------------------------------
-    def _fmt(param_values, pname):
-        if pname in param_values:
-            p = param_values[pname]
-            return f"${p['median']:.3f}^{{+{p['upper']:.3f}}}_{{-{p['lower']:.3f}}}$"
-        return '---'
-    
-    # -----------------------------------------------------------------
-    # Helper: build a complete table* environment
-    # -----------------------------------------------------------------
-    def _build_table(param_list, cap, lab, chi2_col=False):
-        lines = []
-        lines.append(r'\begin{table*}[h]')
-        lines.append(r'\centering')
-        lines.append(r'\scriptsize')
-        lines.append(r'\setlength{\tabcolsep}{4pt}')
-        lines.append(f'\\caption{{{cap}}}')
-        lines.append(f'\\label{{{lab}}}')
-        
-        extra = 1 if chi2_col else 0
-        colspec = 'll' + 'c' * (len(param_list) + extra)
-        lines.append(f'\\begin{{tabular}}{{{colspec}}}')
-        lines.append(r'\toprule')
-        
-        header = ['Data', 'Mode'] + [latex_headers[p] for p in param_list]
-        if chi2_col:
-            header.append(r'$\chi^2_\mathrm{red}$')
-        lines.append(' & '.join(header) + r' \\')
-        lines.append(r'\midrule')
-        
-        for idx, result in enumerate(results_list):
-            pv = all_param_values[idx]
-            row = [result['data_label'], result['mode']]
-            for pname in param_list:
-                row.append(_fmt(pv, pname))
-            if chi2_col:
-                chi2 = result.get('chi2_reduced', None)
-                row.append(f'${chi2:.2f}$' if chi2 is not None else '---')
-            lines.append(' & '.join(row) + r' \\')
-        
-        lines.append(r'\bottomrule')
-        lines.append(r'\end{tabular}')
-        lines.append(r'\end{table*}')
-        return '\n'.join(lines)
-    
-    # -----------------------------------------------------------------
-    # Build main table (physical parameters + chi2)
-    # -----------------------------------------------------------------
-    main_table = _build_table(base_param_order, caption, label, chi2_col=True)
-    
-    # -----------------------------------------------------------------
-    # Build c_terms table (if requested)
-    # -----------------------------------------------------------------
-    c_table = ''
-    if include_c_terms and c_sync_names:
-        c_caption = (
-            f"Constant offset terms $c_{{\\mathrm{{sync}}}}$ "
-            f"(in $10^{{-3}}\\,\\mu\\mathrm{{K}}^2$) for the auto-spectra, "
-            f"from the same fits as Table~\\ref{{{label}}} "
-            f"(multipole range $\\ell={ell_range}$)."
-        )
-        c_label = label + '_c_terms'
-        c_table = _build_table(c_sync_names, c_caption, c_label, chi2_col=False)
-    
-    # -----------------------------------------------------------------
-    # Combine and save
-    # -----------------------------------------------------------------
-    if c_table:
-        full_output = main_table + '\n\n' + c_table
-    else:
-        full_output = main_table
-    
-    if save_path:
-        with open(save_path, 'w') as f:
-            f.write(full_output)
-        print(f"LaTeX table saved to {save_path}")
-    
-    return full_output

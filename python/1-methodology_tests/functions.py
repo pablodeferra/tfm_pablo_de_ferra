@@ -5071,7 +5071,7 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
     A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
 
     if 'sync' in fit_components:
-        if A_s <= 0: return -np.inf                  # amplitude must be positive
+        # if A_s <= 0: return -np.inf                  # amplitude must be positive
         if not (-6 <= alpha_s <= 0): return -np.inf
         if not (-6 <= beta_s <= 0): return -np.inf
 
@@ -5696,18 +5696,32 @@ def _run_mcmc_powerlaw(fit_data, fit_components, fit_c_terms, nwalkers, ninter, 
     # Per-parameter spread: small absolute value for shape/index parameters
     # so walkers stay close and linearly independent; relative for amplitudes.
     p0_scale = []
-    for name, is_free in param_map:
-        if not is_free:
-            continue
+    free_names = [name for name, is_free in param_map if is_free]
+    for idx, name in enumerate(free_names):
         if name in ('A_s', 'A_d'):
-            p0_scale.append(0.1 * abs(p0_center[len(p0_scale)]))
+            p0_scale.append(0.1 * abs(p0_center[idx]))
         elif name.startswith('c_sync'):
-            p0_scale.append(0.3 * abs(p0_center[len(p0_scale)]) if p0_center[len(p0_scale)] != 0 else float(np.median(np.abs(y_all))) * 0.05)
+            p0_scale.append(0.3 * abs(p0_center[idx]) if p0_center[idx] != 0 else float(np.median(np.abs(y_all))) * 0.05)
+        elif name == 'rho':
+            # rho must stay in (-1, 1): use a tight spread so no walker starts outside
+            p0_scale.append(0.02)
         else:
-            # alpha, beta, rho: fixed small absolute spread
-            p0_scale.append(0.1)
+            # alpha, beta: fixed small absolute spread
+            p0_scale.append(0.05)
     p0_scale = np.array(p0_scale, dtype=float)
     p0_walkers = p0_center + p0_scale * rng.standard_normal((nwalkers, ndim))
+
+    # Clip walkers to valid prior bounds so none start at -inf log-prob
+    # (prevents large condition-number errors in emcee)
+    for idx, name in enumerate(free_names):
+        if name == 'rho':
+            p0_walkers[:, idx] = np.clip(p0_walkers[:, idx], -0.99, 0.99)
+        elif name in ('A_s', 'A_d'):
+            p0_walkers[:, idx] = np.clip(p0_walkers[:, idx], 1e-6, None)
+        elif name == 'beta_d':
+            p0_walkers[:, idx] = np.clip(p0_walkers[:, idx], 0.5, 3.0)
+        elif name == 'beta_s':
+            p0_walkers[:, idx] = np.clip(p0_walkers[:, idx], -5.0, -0.5)
 
     # -------------------------------
     # Run the sampler
@@ -6066,8 +6080,8 @@ def _lnprior_bin_to_bin(theta, param_names):
     param_dict = {name: theta[i] for i, name in enumerate(param_names)}
     
     # Check bounds
-    if 'A_s' in param_dict and not (0 < param_dict['A_s'] < 1e3):
-        return -np.inf
+    # if 'A_s' in param_dict and not (0 < param_dict['A_s'] < 1e3):
+    #     return -np.inf
     if 'beta_s' in param_dict and not (-10 < param_dict['beta_s'] < 0):
         return -np.inf
     if 'A_d' in param_dict and not (0 < param_dict['A_d'] < 1e3):
@@ -6510,7 +6524,9 @@ def create_bin_to_bin_table(
     ell1, 
     ell2,
     save_path=None,
-    format='latex'
+    format='latex',
+    chi2_reduced_EE=None,
+    chi2_reduced_BB=None,
 ):
     """
     Create a publication-quality table showing bin-to-bin fit results for both EE and BB modes.
@@ -6536,6 +6552,12 @@ def create_bin_to_bin_table(
         If provided, save the table to this path (e.g., 'table.tex' or 'table.txt').
     format : str, default 'latex'
         Output format: 'latex' for LaTeX table, 'ascii' for plain text.
+    chi2_reduced_EE : list of float or None
+        Per-bin reduced chi-squared values for EE mode (from run_mcmc bin-to-bin).
+        If None, the chi2 column is omitted.
+    chi2_reduced_BB : list of float or None
+        Per-bin reduced chi-squared values for BB mode (from run_mcmc bin-to-bin).
+        If None, the chi2 column is omitted.
     
     Returns
     -------
@@ -6636,9 +6658,20 @@ def create_bin_to_bin_table(
                 row_BB[param_name] = f"{median_BB:.2f}"
                 row_BB[f'{param_name}_err'] = f"{std_BB:.2f}"
         
+        # Add per-bin chi2 reduced if provided
+        if chi2_reduced_EE is not None:
+            v = chi2_reduced_EE[i]
+            row_EE['chi2'] = f"{v:.3f}" if np.isfinite(v) else "---"
+        if chi2_reduced_BB is not None:
+            v = chi2_reduced_BB[i]
+            row_BB['chi2'] = f"{v:.3f}" if np.isfinite(v) else "---"
+
         rows_EE.append(row_EE)
         rows_BB.append(row_BB)
     
+    # Whether to include a chi2 column
+    show_chi2 = (chi2_reduced_EE is not None) or (chi2_reduced_BB is not None)
+
     if format == 'latex':
         # Create LaTeX table with EE results on top, BB (absolute amplitudes) below
         table_lines = []
@@ -6647,9 +6680,10 @@ def create_bin_to_bin_table(
         table_lines.append(r"\caption{Bin-to-bin fit results. EE mode (top) and BB mode (bottom).}")
         table_lines.append(r"\label{tab:bin_to_bin_results}")
         
-        # Build column specification: 2 fixed cols + 1 per parameter (value ± error in same column)
+        # Build column specification: 2 fixed cols + 1 per parameter + optional chi2 col
         n_params = len(param_names)
-        col_spec = "c c " + " ".join(["c"] * n_params)
+        n_extra = 1 if show_chi2 else 0
+        col_spec = "c c " + " ".join(["c"] * (n_params + n_extra))
         table_lines.append(r"\begin{tabular}{" + col_spec + "}")
         table_lines.append(r"\hline\hline")
         
@@ -6672,6 +6706,8 @@ def create_bin_to_bin_table(
             
             header_cols.append(latex_name)
         
+        if show_chi2:
+            header_cols.append(r"$\chi^2_\nu$")
         table_lines.append(" & ".join(header_cols) + r" \\")
         table_lines.append(r"\hline")
         
@@ -6682,6 +6718,8 @@ def create_bin_to_bin_table(
                 # Combine value and error in same column
                 val_err = f"{rows_EE[i][param_name]} $\\pm$ {rows_EE[i][f'{param_name}_err']}"
                 row_vals.append(val_err)
+            if show_chi2:
+                row_vals.append(rows_EE[i].get('chi2', '---'))
             table_lines.append(" & ".join(row_vals) + r" \\")
         
         table_lines.append(r"\hline")
@@ -6704,6 +6742,8 @@ def create_bin_to_bin_table(
             
             header_cols_BB.append(latex_name)
         
+        if show_chi2:
+            header_cols_BB.append(r"$\chi^2_\nu$")
         table_lines.append(" & ".join(header_cols_BB) + r" \\")
         table_lines.append(r"\hline")
         
@@ -6714,6 +6754,8 @@ def create_bin_to_bin_table(
                 # Combine value and error in same column
                 val_err = f"{rows_BB[i][param_name]} $\\pm$ {rows_BB[i][f'{param_name}_err']}"
                 row_vals.append(val_err)
+            if show_chi2:
+                row_vals.append(rows_BB[i].get('chi2', '---'))
             table_lines.append(" & ".join(row_vals) + r" \\")
         
         table_lines.append(r"\hline\hline")
@@ -6737,6 +6779,8 @@ def create_bin_to_bin_table(
             # Add EE suffix to parameter names
             label = f"{param_name}_EE"
             header += f" {label:^20} |"
+        if show_chi2:
+            header += f" {'chi2_red_EE':^12} |"
         table_lines.append(header)
         table_lines.append("-" * 150)
         
@@ -6747,6 +6791,8 @@ def create_bin_to_bin_table(
                 val = rows_EE[i][param_name]
                 err = rows_EE[i][f'{param_name}_err']
                 row_str += f" {val:>9} ± {err:<9} |"
+            if show_chi2:
+                row_str += f" {rows_EE[i].get('chi2', '---'):^12} |"
             table_lines.append(row_str)
         
         table_lines.append("=" * 150)
@@ -6761,6 +6807,8 @@ def create_bin_to_bin_table(
             else:
                 label = f"{param_name}_BB"
             header_BB += f" {label:^20} |"
+        if show_chi2:
+            header_BB += f" {'chi2_red_BB':^12} |"
         table_lines.append(header_BB)
         table_lines.append("-" * 150)
         
@@ -6771,6 +6819,8 @@ def create_bin_to_bin_table(
                 val = rows_BB[i][param_name]
                 err = rows_BB[i][f'{param_name}_err']
                 row_str += f" {val:>9} ± {err:<9} |"
+            if show_chi2:
+                row_str += f" {rows_BB[i].get('chi2', '---'):^12} |"
             table_lines.append(row_str)
         
         table_lines.append("=" * 150)

@@ -58,11 +58,13 @@ ninter           = 50000
 discard_fraction = 0.5
 
 # Bands and ell ranges
-fit_bands = ['11', '23', '30', '33']
+# fit_bands = ['11', '23', '30', '33']
+fit_bands = ['11']
+
 
 ELL_RANGES = {
     'full':  (30, 200),   # 9 bins  → dof = 7 (no_c) / 6 (with_c)
-    'short': (30, 120),   # 4 bins  → dof = 2 (no_c) / 1 (with_c)
+    # 'short': (30, 120),   # 4 bins  → dof = 2 (no_c) / 1 (with_c)
 }
 
 quijote_bands = ['11', '13', '17', '19']

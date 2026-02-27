@@ -1,0 +1,35 @@
+\begin{table*}[h]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Posterior constraints from auto-spectra fits (sync+dust model, with constant terms) including the 33\,GHz band. Multipole range $\ell=30$--$200$.}
+\label{tab:fit_results_auto_with33_sync_dust}
+\begin{tabular}{llcccccccc}
+\toprule
+Data & Mode & $A_s\,[10^{-3}\,\mu\mathrm{K}^2]$ & $\alpha_s$ & $\beta_s$ & $A_d\,[10^{-3}\,\mu\mathrm{K}^2]$ & $\alpha_d$ & $\beta_d$ & $\rho$ & $\chi^2_\mathrm{red}$ \\
+\midrule
+QUIJOTE+WMAP+Planck (auto) & EE & $10.210^{+1.787}_{-1.592}$ & $-2.817^{+0.295}_{-0.313}$ & $-3.099^{+0.072}_{-0.073}$ & $3.744^{+0.019}_{-0.020}$ & $-2.246^{+0.009}_{-0.009}$ & $1.534^{+0.009}_{-0.009}$ & --- & $14.29$ \\
+QUIJOTE+WMAP+Planck (auto) & BB & $0.577^{+0.316}_{-0.200}$ & $-5.193^{+0.824}_{-0.565}$ & $-3.526^{+0.214}_{-0.270}$ & $2.878^{+0.013}_{-0.013}$ & $-2.166^{+0.008}_{-0.008}$ & $1.524^{+0.008}_{-0.008}$ & --- & $10.53$ \\
+WMAP+Planck (auto) & EE & $11.644^{+824839377.059}_{-3.317}$ & $-2.500^{+2.500}_{-0.640}$ & $-3.071^{+0.386}_{-2.875}$ & $3.740^{+0.033}_{-0.904}$ & $-2.249^{+0.014}_{-0.407}$ & $1.540^{+3.378}_{-0.012}$ & --- & $16.39$ \\
+WMAP+Planck (auto) & BB & $0.887^{+1.142}_{-0.431}$ & $-3.955^{+1.850}_{-1.362}$ & $-3.955^{+1.149}_{-1.268}$ & $2.878^{+0.012}_{-0.012}$ & $-2.165^{+0.008}_{-0.008}$ & $1.523^{+0.008}_{-0.008}$ & --- & $11.88$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[h]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Constant offset terms $c_{\mathrm{sync}}$ (in $10^{-3}\,\mu\mathrm{K}^2$) for the auto-spectra, from the same fits as Table~\ref{tab:fit_results_auto_with33_sync_dust} (multipole range $\ell=30--200$).}
+\label{tab:fit_results_auto_with33_sync_dust_c_terms}
+\begin{tabular}{llcccc}
+\toprule
+Data & Mode & $c_{\mathrm{sync}}^{11}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{23}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{30}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{33}\,[10^{-3}\,\mu\mathrm{K}^2]$ \\
+\midrule
+QUIJOTE+WMAP+Planck (auto) & EE & $-119.945^{+92.949}_{-102.898}$ & $-2.555^{+1.305}_{-1.409}$ & $0.285^{+0.309}_{-0.323}$ & $-1.007^{+0.554}_{-0.563}$ \\
+QUIJOTE+WMAP+Planck (auto) & BB & $-31.301^{+49.274}_{-50.514}$ & $0.059^{+0.764}_{-0.783}$ & $0.783^{+0.237}_{-0.240}$ & $1.024^{+0.497}_{-0.504}$ \\
+WMAP+Planck (auto) & EE & --- & $-3.568^{+2.450}_{-824839285.108}$ & $-0.071^{+0.529}_{-35739478.754}$ & $-1.566^{+0.843}_{-11578661.229}$ \\
+WMAP+Planck (auto) & BB & --- & $-0.171^{+0.858}_{-1.035}$ & $0.744^{+0.240}_{-0.262}$ & $0.984^{+0.501}_{-0.506}$ \\
+\bottomrule
+\end{tabular}
+\end{table*}

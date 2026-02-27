@@ -133,7 +133,7 @@ for ell_range_key, (ell_min, ell_max) in ELL_RANGES.items():
                 discard_fraction=discard_fraction,
                 verbose=True,
                 fit_mode='power-law',
-                color_correction=True,
+                color_correction=False,
                 joint_analysis=False,
                 cov_matrix=None,
                 # beta_s is degenerate with A_s in a single auto-spectrum:
@@ -220,7 +220,7 @@ def build_latex_table_11ghz(results_11):
 
 
 # ── save table ─────────────────────────────────────────────────────────────
-tex_path = os.path.join(tables_dir, f'sync_11ghz_{mask_name}{name_suffix}.tex')
+tex_path = os.path.join(tables_dir, f'sync_11ghz_{mask_name}{name_suffix}_30-200_nocc.tex')
 table_str = build_latex_table_11ghz(results_11)
 with open(tex_path, 'w') as f:
     f.write(table_str)

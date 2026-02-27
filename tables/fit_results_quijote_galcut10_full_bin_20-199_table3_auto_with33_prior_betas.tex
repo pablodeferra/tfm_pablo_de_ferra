@@ -1,0 +1,35 @@
+\begin{table*}[h]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Same as Table~\ref{tab:fit_results_auto_with33} but with a Gaussian prior $\beta_s \sim \mathcal{N}(-3.1,\,0.3)$.}
+\label{tab:fit_results_auto_with33_prior_betas}
+\begin{tabular}{llcccccccc}
+\toprule
+Data & Mode & $A_s\,[10^{-3}\,\mu\mathrm{K}^2]$ & $\alpha_s$ & $\beta_s$ & $A_d\,[10^{-3}\,\mu\mathrm{K}^2]$ & $\alpha_d$ & $\beta_d$ & $\rho$ & $\chi^2_\mathrm{red}$ \\
+\midrule
+QUIJOTE+WMAP+Planck (auto) & EE & $10.204^{+1.785}_{-1.594}$ & $-2.818^{+0.298}_{-0.315}$ & $-3.100^{+0.071}_{-0.070}$ & $3.744^{+0.020}_{-0.020}$ & $-2.246^{+0.009}_{-0.009}$ & $1.533^{+0.009}_{-0.009}$ & --- & $14.29$ \\
+QUIJOTE+WMAP+Planck (auto) & BB & $0.678^{+0.338}_{-0.193}$ & $-5.206^{+0.809}_{-0.557}$ & $-3.369^{+0.163}_{-0.170}$ & $2.878^{+0.012}_{-0.012}$ & $-2.166^{+0.008}_{-0.008}$ & $1.523^{+0.008}_{-0.008}$ & --- & $10.53$ \\
+WMAP+Planck (auto) & EE & $10.144^{+2.711}_{-2.231}$ & $-2.783^{+0.450}_{-0.477}$ & $-2.974^{+0.206}_{-0.225}$ & $3.744^{+0.020}_{-0.020}$ & $-2.246^{+0.009}_{-0.010}$ & $1.534^{+0.009}_{-0.009}$ & --- & $16.39$ \\
+WMAP+Planck (auto) & BB & $0.891^{+1.124}_{-0.421}$ & $-4.029^{+1.872}_{-1.314}$ & $-3.129^{+0.289}_{-0.289}$ & $2.878^{+0.013}_{-0.012}$ & $-2.165^{+0.008}_{-0.008}$ & $1.523^{+0.008}_{-0.008}$ & --- & $11.88$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[h]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\caption{Constant offset terms $c_{\mathrm{sync}}$ (in $10^{-3}\,\mu\mathrm{K}^2$) for the auto-spectra, from the same fits as Table~\ref{tab:fit_results_auto_with33_prior_betas} (multipole range $\ell=30--200$).}
+\label{tab:fit_results_auto_with33_prior_betas_c_terms}
+\begin{tabular}{llcccc}
+\toprule
+Data & Mode & $c_{\mathrm{sync}}^{11}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{23}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{30}\,[10^{-3}\,\mu\mathrm{K}^2]$ & $c_{\mathrm{sync}}^{33}\,[10^{-3}\,\mu\mathrm{K}^2]$ \\
+\midrule
+QUIJOTE+WMAP+Planck (auto) & EE & $-120.126^{+92.858}_{-103.602}$ & $-2.557^{+1.294}_{-1.403}$ & $0.285^{+0.304}_{-0.320}$ & $-1.014^{+0.559}_{-0.561}$ \\
+QUIJOTE+WMAP+Planck (auto) & BB & $-25.726^{+49.119}_{-49.458}$ & $-0.109^{+0.752}_{-0.755}$ & $0.770^{+0.237}_{-0.234}$ & $1.002^{+0.504}_{-0.506}$ \\
+WMAP+Planck (auto) & EE & --- & $-2.476^{+1.641}_{-1.997}$ & $0.219^{+0.350}_{-0.404}$ & $-1.107^{+0.585}_{-0.615}$ \\
+WMAP+Planck (auto) & BB & --- & $-0.130^{+0.881}_{-1.067}$ & $0.727^{+0.256}_{-0.285}$ & $0.962^{+0.521}_{-0.539}$ \\
+\bottomrule
+\end{tabular}
+\end{table*}

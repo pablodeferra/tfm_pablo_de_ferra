@@ -572,6 +572,11 @@ masks = {
             'fsky': 0.2968,
             'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut10_0mk_apodC2_5.fits'
         },
+        'galcut15': {
+            'name': 'quijote_galcut15',
+            'fsky': 0.2643,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut15_0mk_apodC2_5.fits'
+        },
         'galcut20': {
             'name': 'quijote_galcut20',
             'fsky': 0.2332,

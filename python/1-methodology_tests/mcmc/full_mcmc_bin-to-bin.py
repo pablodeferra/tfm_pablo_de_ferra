@@ -11,7 +11,16 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import sys
-sys.path.append('../')
+# Ensure imports work no matter what working directory the job was launched from.
+# Instead of relying on a relative path from the CWD, compute the script's
+# directory and add its parent (project `python/`) to sys.path.
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, '..'))
+if project_root not in sys.path:
+    # Insert at front so our local `functions` shadows any other package named
+    # `functions` that might be installed in the environment.
+    sys.path.insert(0, project_root)
+
 import functions
 from data import data, masks
 import numpy as np
@@ -28,7 +37,7 @@ n_sim = 100
 
 name_suffix = '_full_bin_20-199'
 
-mask_select = masks['QUIJOTE_galcut']['galcut10']
+mask_select = masks['QUIJOTE_galcut']['galcut20']
 mask_name = mask_select['name']
 
 out_path = '/home/pablo/Desktop/master/tfm/spectra/'
@@ -47,7 +56,7 @@ fitting_mode = 'bin-to-bin'
 
 # Sampler configuration
 nwalkers = 100
-ninter   = 50
+ninter   = 5000
 discard_fraction = 0.5
 
 # Components: sync + dust + cross, no constant terms
@@ -117,7 +126,7 @@ ell_ranges = [
      [39, 59, 79, 99, 119, 139, 159, 179, 199]),
 ]
 
-table_dir = '/home/pablo/Desktop/master/tfm/tables/final/'
+table_dir = '/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/'
 os.makedirs(table_dir, exist_ok=True)
 
 # =====================================================================
@@ -204,7 +213,7 @@ for ell_min, ell_max, ell_1, ell_2 in ell_ranges:
 
             save_latex = (
                 f'{table_dir}btb_{mask_name}_ell{ell_min}-{ell_max}'
-                f'_{strategy_label}_{config_short}__TEST__.tex'
+                f'_{strategy_label}_{config_short}.tex'
             )
             save_ascii = save_latex.replace('.tex', '.txt')
 

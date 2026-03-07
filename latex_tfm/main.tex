@@ -1,0 +1,95 @@
+\documentclass[times, 12pt]{thesisMDH}
+\usepackage[ddmmyyyy]{datetime}
+\usepackage[pdfborder={0 0 0},colorlinks=true,urlcolor=blue,citecolor=blue,bookmarks=false]{hyperref}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs} 
+\usepackage{float} 
+\usepackage{geometry}
+\usepackage{adjustbox}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{graphicx}
+\graphicspath{{/home/pablo/Desktop/master/tfm/figures/}}
+\usepackage{amsmath}
+\usepackage{natbib}
+
+
+\newcommand{\mnras}{MNRAS}
+\newcommand{\apj}{ApJ}
+\newcommand{\apjl}{ApJL}
+\newcommand{\apjs}{ApJS}
+\newcommand{\aap}{A\&A}
+\newcommand{\aj}{AJ}
+\newcommand{\araa}{ARA\&A}
+\newcommand{\pasp}{PASP}
+\newcommand{\pasj}{PASJ}
+\newcommand{\nat}{Nature}
+\newcommand{\sci}{Science}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+}
+
+% \geometry{
+%     % top=2cm,
+%     % bottom=2cm,
+%     left=2cm,
+%     right=2cm 
+% }
+
+% Titulo
+
+\university{Universidad de La Laguna \\ Instituto de Astrofísica de Canarias}
+
+\fancyHeader{}{}
+\subject{Trabajo fin de Master}
+\thesisTitle{Spectral properties of polarized synchrotron and thermal dust emission from power spectrum analyses with QUIJOTE, WMAP and Planck data}
+\authorOne{Pablo de Ferra Chermaz}{}
+\authorTwo{José Alberto Rubiño Martín (IAC)}{}
+
+
+\theDate{} 
+% Fin titulo
+\begin{document}
+\titlePage
+
+
+\input{sections/0_resumen.tex}
+
+\clearpage
+\renewcommand{\contentsname}{CONTENTS}
+{\hypersetup{linkcolor=black}\tableofcontents}
+\clearpage
+
+\input{sections/1_introduction.tex}
+
+\input{sections/2_objectives.tex}
+
+\input{sections/3_data.tex}
+
+\input{sections/4_methodology.tex}
+
+\input{sections/5_results.tex}
+
+\input{sections/6_conclusions.tex}
+
+\renewcommand{\bibname}{REFERENCES}
+\bibliographystyle{mnras}
+\bibliography{references.bib}
+
+\clearpage
+
+\appendix
+
+\input{sections/A1_cross-only.tex}
+
+\end{document}

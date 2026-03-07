@@ -1,0 +1,294 @@
+\section{METHODOLOGY}
+\label{sec:methodology}
+
+In this section we describe the methodology followed to characterise Galactic foreground emission using multi-frequency angular power spectrum analysis. The approach relies entirely on harmonic-space statistics, avoiding the complications of real-space fitting, and exploits the broad frequency coverage provided by the combination of QUIJOTE, WMAP, and Planck datasets. We first introduce the mathematical framework of angular power spectrum analysis (Section \ref{sec:power_spectrum}), then describe the construction of the analysis masks (Section \ref{sec:masks}), the data processing steps (beam in Section \ref{sec:beam_correction}, unit corrections in Section \ref{sec:unit_conversion}, noise in Section \ref{sec:noise_correction}, and color corrections in Section \ref{sec:color_corrections}), the simulations used to estimate uncertainties (Section \ref{sec:simulations}), the foreground models (Section \ref{sec:foreground_model}), and finally, the Bayesian parameter inference (Section \ref{sec:mcmc}).
+
+% ---------------------------------------------------------------
+\subsection{Angular power spectrum (APS) analysis}
+\label{sec:power_spectrum}
+% ---------------------------------------------------------------
+
+The APS is a statistical tool that describes the distribution of signal power as a function of angular scale on the sky. It is a particularly powerful instrument for studying the statistical properties of diffuse emission, since it allows one to separate contributions from different physical processes through their characteristic frequency and multipole dependencies. Rather than working directly in pixel space, all analyses presented in this work are carried out in harmonic space, where the APS constitutes the fundamental observable.
+
+The APS is expressed in terms of the spherical harmonic coefficients $a_{\ell m}$, which encode the sky signal at each multipole $\ell$ and azimuthal order $m$. The multipole $\ell$ is inversely proportional to the angular scale $\theta \sim 180^\circ / \ell$, so that large angular scales correspond to low-$\ell$ values, and small angular scales to high-$\ell$ values. For reference, $\ell = 200$ corresponds to approximately $1^\circ$, which is comparable to the angular resolution of the QUIJOTE-MFI instrument. The cross-power spectrum between two frequency maps $X$ and $Y$ is defined as:
+
+\begin{equation}
+    \label{eq:cl_cross}
+    C_{\ell}^{X \times Y} = \left\langle \frac{\sum_{m} a_{\ell m}^{X} (a_{\ell m}^{Y})^{*}}{2\ell + 1} \right\rangle,
+\end{equation}
+
+where $X$ and $Y$ denote the two frequency bands. When $X = Y$ this reduces to the auto-power spectrum. Cross-spectra probe the signal component common to two independent observations, suppressing the contribution of uncorrelated noise. By combining auto- and cross-spectra from 14 frequency bands (2 QUIJOTE, 5 WMAP and 7 Planck channels), we form a total of 105 spectra (14 auto and 91 cross), greatly improving the constraining power on the foreground model parameters.
+
+All power spectra in this work are computed using the \namaster\ \python\ library\footnote{\url{https://namaster.readthedocs.io/en/latest/}} \citep{Namaster}, which implements the pseudo-$C_\ell$ method with an analytical treatment of the mode-coupling matrix induced by the sky mask. In particular, the E- and B-mode polarization fields are treated with B-mode purification \citep{Smith_2006}, which suppresses E-to-B leakage arising from the application of a partial sky mask. The power spectra are computed in nine multipole bins of width $\Delta\ell = 20$ over the range $20 \leq \ell \leq 199$, with bin edges defined as
+
+\begin{equation}
+    \ell_{\rm bin}^{(k)} \in [\ell_1^{(k)},\, \ell_2^{(k)}] = [20 + 20(k-1),\, 39 + 20(k-1)], \quad k = 1, \ldots, 9.
+\end{equation}
+
+The effective multipole $\ell_{\rm eff}$ reported for each bin is computed by \namaster\ as the weighted average of the individual multipoles within the bin:
+
+\begin{equation}
+    \ell_{\rm eff}^{(k)} = \frac{\sum_{\ell \in \rm bin\,k} w_\ell\, \ell}{\sum_{\ell \in \rm bin\,k} w_\ell},
+\end{equation}
+
+where $w_\ell$ are the per-multipole weights assigned to the bandpower. In this work uniform weights are used, so $\ell_{\rm eff}^{(k)}$ reduces to the arithmetic mean of all integer multipoles in the $k$-th bin, yielding $\ell_{\rm eff} = 29, 49, 69, \ldots, 189$ for the nine bins.
+
+
+% ---------------------------------------------------------------
+\subsection{Masks}
+\label{sec:masks}
+
+The analysis is restricted to the sky region accessible to the QUIJOTE-MFI telescope (Section \ref{sec:data_quijote}), which operates from the Teide Observatory and therefore covers a declination band of approximately $-30^\circ < \delta < +90^\circ$. To mitigate contamination from the bright Galactic plane, three analysis masks are constructed by combining the QUIJOTE low-declination survey footprint \citep{QUIJOTE_IV} with Galactic latitude cuts at $|b| > 10^\circ$, $|b| > 15^\circ$, and $|b| > 20^\circ$. Each binary mask is apodized using the C2 scheme of \namaster\ with an apodization scale of $5^\circ$, which tapers the mask smoothly to zero at its edges and suppresses ringing effects in harmonic space. The three masks are shown in Figure~\ref{fig:masks}. The effective sky fractions after apodization are approximately $f_{\rm sky} \approx 0.30$, $0.26$, and $0.23$ for the 10, 15, and 20 degree cuts, respectively. The masks are defined on a \healpix\ grid at $N_{\rm side} = 512$ and are identical for all frequency bands.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{masks/mask_quijote_galcut10_cbar.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{masks/mask_quijote_galcut15_cbar.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{masks/mask_quijote_galcut20_cbar.pdf}
+    \end{minipage}
+
+    \caption{Analysis masks combining the QUIJOTE low-declination survey footprint with Galactic latitude cuts of $|b| > 10^{\circ}$ (left), $|b| > 15^{\circ}$ (middle), and $|b| > 20^{\circ}$ (right), after C2 apodisation with a $5^{\circ}$ border.}
+    \label{fig:masks}
+\end{figure}
+
+% ---------------------------------------------------------------
+\subsection{Data corrections}
+\label{sec:corrections}
+% ---------------------------------------------------------------
+
+The raw power spectra computed from the observed maps contain systematic contributions from instrumental effects that must be accounted for before a physical interpretation can be drawn. In the ideal case, the measured $C_\ell$ coefficients would be proportional to the square of the theoretical spherical harmonic coefficients, $|a_{\ell m}^{\rm theo}|^2$. In practice, several multiplicative and additive corrections are applied, as described below.
+
+\subsubsection{Beam and pixel window functions}
+\label{sec:beam_correction}
+
+The finite angular resolution of each instrument and the pixelization of the \healpix\ maps \citep{Gorski_2005} introduce multiplicative window functions that suppress power at high multipoles. The pixel window function, $w_\ell$, arises from the averaging of the sky signal over each pixel and depends solely on $N_{\rm side}$; for $N_{\rm side} = 512$ this correction is small but non-negligible at $\ell > 500$. The instrumental beam is characterised by the window function $B_\ell$, which captures the effective angular resolution of the experiment and causes an exponential suppression of power above the beam scale.
+
+For each frequency band, the beam window function $B_\ell$ is loaded from the official data products of each experiment and interpolated to the effective multipoles of the binning scheme. For QUIJOTE-MFI, the beam is provided as a tabulated array per frequency channel in a FITS file. For WMAP, it is provided as a normalised ASCII table. For Planck LFI and HFI bands, the beam window functions are taken from the respective official FITS products, with separate T, E, and B transfer functions for HFI channels.
+
+\paragraph{}
+
+Both cases — auto- and cross-spectra — are handled by a single correction formula. Defining the effective transfer function for band $i$ as $\mathcal{W}_\ell^i \equiv w_\ell\, B_\ell^i$, where $w_\ell$ is the \healpix\ pixel window function (common to all bands at fixed $N_{\rm side}$) and $B_\ell^i$ is the instrumental beam window function of band $i$, the corrected spectrum between bands $i$ and $j$ is:
+
+\begin{equation}
+    \label{eq:corrected_cl}
+    C_{\ell}^{i \times j,\,\rm corr} = \frac{C_{\ell}^{i \times j,\,\rm sky} - \delta_{ij}\,N_{\ell}^{i}}{\mathcal{W}_\ell^i\,\mathcal{W}_\ell^j},
+\end{equation}
+
+where $\delta_{ij}$ is the Kronecker delta, $N_\ell^i$ is the noise power spectrum of band $i$ (see Section~\ref{sec:noise_correction}), and the denominator deconvolves the combined effect of the pixel window and the beam of each band. The Kronecker delta ensures that the noise bias is subtracted only for auto-spectra ($i = j$); for cross-spectra between different frequency bands the noise contributions of the two detectors are statistically independent and thus average to zero in the cross-correlation, so no noise subtraction is required.
+
+
+\subsubsection{Unit conversion}
+\label{sec:unit_conversion}
+
+All sky maps are converted to a common unit of $\mathrm{K}_{\rm RJ}$ (Rayleigh--Jeans brightness temperature) before computing the power spectra. The unit conversion factor from thermodynamic CMB temperature $\mathrm{K}_{\rm CMB}$ to $\mathrm{K}_{\rm RJ}$ is:
+
+\begin{equation}
+    u(\nu) = \frac{c^2}{2 k_B \nu^2} \left.\frac{\partial B_\nu}{\partial T}\right|_{T_{\rm CMB}},
+\end{equation}
+
+where $B_\nu$ is the Planck function, $k_B$ is the Boltzmann constant, $c$ the speed of light, and $T_{\rm CMB} = 2.725$~K. For Planck HFI bands (100--353~GHz), the conversion uses the official bandpass-averaged unit conversion coefficients from the Planck 2018 data release \citep{Planck_2018III}, accounting for the instrumental bandpass shape. For all remaining bands the conversion is evaluated analytically at the effective band-centre frequency. The resulting unit conversion factor applied to a power spectrum of the pair $(i,j)$ is $u(\nu_i) \times u(\nu_j)$, where $i = j$ for auto-spectra and $i \neq j$ for cross-spectra.
+
+
+\subsubsection{Noise power spectrum}
+\label{sec:noise_correction}
+
+The instrumental noise contributes an additive bias to the auto-power spectrum that must be estimated and removed (Equation~\ref{eq:corrected_cl}). The noise estimation strategy is specific to each experiment.
+
+For QUIJOTE-MFI and Planck, the noise power spectrum for each auto-spectrum is estimated from the half mission difference map (HMDM). The HMDM is constructed from two independent half-mission data subsets, $h_1$ and $h_2$, and their associated weight maps, $w_1$ and $w_2$, as \citep{QUIJOTE_IV}:
+
+\begin{equation}
+    \label{eq:hmdm}
+    n = \frac{h_1 - h_2}{\sqrt{(w_1 + w_2)(w_1^{-1} + w_2^{-1})}},
+\end{equation}
+
+where $w_i = 1/\sigma_i^2$. This construction ensures that the difference map retains the noise level of the combined weighted-sum map while containing no sky signal \citep{Planck_2014II, Planck_2016VIII}. For WMAP, no half-mission maps are available; the noise power spectrum is instead estimated as the mean over 100 noise realisations (see Section~\ref{sec:noise_simulations}):
+
+\begin{equation}
+    N_\ell = \left\langle C_\ell^{\rm noise,\, sim} \right\rangle_{100\,\rm sims}.
+\end{equation}
+
+\subsubsection{color corrections}
+\label{sec:color_corrections}
+
+color corrections account for the mismatch between the spectral shape of the foreground emission and the spectral response of the instrument bandpass. Following the procedure described in \citet{Planck_2020LVII}, color correction factors are evaluated as a function of the foreground spectral index and incorporated in the MCMC fitting stage. The correction coefficients for each band and component (synchrotron and thermal dust) are computed using the \fastcc\ \python\ and \IDL\ code\footnote{\url{https://github.com/mpeel/fastcc}} \citep{Fastcc}, which evaluates the bandpass-weighted ratio between the assumed foreground SED and a flat (Rayleigh--Jeans) reference spectrum.
+
+The color correction factors are represented as second-order polynomials in the relevant spectral index $\alpha$:
+
+\begin{equation}
+    \mathrm{CC}(\alpha) = a_0 + a_1\, \alpha + a_2\, \alpha^2,
+\end{equation}
+
+where $\alpha = \beta_s + 2$ for synchrotron and $\alpha = \beta_d + 2$ for dust in Rayleigh-Jeans units. These polynomial coefficients are pre-computed using \fastcc\ and stored in a FITS file loaded at runtime. Corrections are applied in a self-consistent iterative procedure: a first MCMC pass is performed without color corrections to obtain initial spectral index estimates; these are then used to evaluate the correction factors, which are incorporated in a second MCMC pass. In the spectral model, the color correction enters as a divisive factor for each band:
+
+\begin{equation}
+    C_\ell^{\rm sync, CC}(\nu_i, \nu_j) = \frac{A_s \left(\ell/\ell_{\rm ref}\right)^{\alpha_s} \left(\nu_i/\nu_{\rm ref}\right)^{\beta_s} \left(\nu_j/\nu_{\rm ref}\right)^{\beta_s}}{\mathrm{CC}_s(\nu_i)\,\mathrm{CC}_s(\nu_j)},
+\end{equation}
+
+and analogously for the dust and synchrotron-dust cross-correlation terms.
+
+% ---------------------------------------------------------------
+\subsection{Simulations}
+\label{sec:simulations}
+% ---------------------------------------------------------------
+
+The statistical uncertainties on the measured power spectra are estimated from Monte Carlo simulations. The error budget for the auto-spectrum has two independent contributions: the variance of the sky-signal spectra across realisations, and the variance of the noise spectra. These are estimated from two independent sets of $N_{\rm sim} = 100$ simulations, and the total uncertainty is obtained as their quadrature sum:
+
+\begin{equation}
+    \sigma_\ell = \sqrt{\sigma_\ell^{2,\,\rm sky+noise} + \sigma_\ell^{2,\,\rm noise}}.
+\end{equation}
+
+For cross-spectra, where no noise correction is applied, only the sky-plus-noise simulation variance is used as the error estimate.
+
+\subsubsection{Sky signal simulations}
+\label{sec:sky_simulations}
+
+Realistic simulated polarisation sky maps for each frequency band and experiment are generated using the Python Sky Model (\pysm) package\footnote{\url{https://pysm3.readthedocs.io/en/latest/}} \citep{Pysm}. \pysm\ is a widely used \python\ library for sky emission modelling in CMB analyses (e.g.\ \citealt{Planck_2020LVII, Martire_2022}).
+
+The simulation includes both polarised and intensity foreground components. The polarised foreground components are: synchrotron emission modelled as a power law with a spatially constant spectral index (\textbf{s1}); thermal dust emission described as a single-component modified blackbody (\textbf{d1}); and a lensed CMB polarisation realisation (\textbf{c1}), computed using the Taylens code \citep{Taylens} with unlensed $C_\ell$ produced by CAMB\footnote{\url{https://www.camb.info/}}. Intensity foreground components are also included: spinning dust (AME) modelled as a sum of two spinning dust populations (\textbf{a1}; \citealt{Planck_2015X}), and free-free emission following the analytic Commander model (\textbf{f1}).
+
+Simulations are produced independently for all 14 frequency bands. The sky emission at each band-centre frequency is obtained from \pysm, converted to thermodynamic CMB temperature units ($\mu\mathrm{K}_{\rm CMB}$), and subsequently convolved in harmonic space with the instrumental beam window function of the corresponding experiment. Each simulated map is stored in \healpix\ format at $N_{\rm side} = 512$, in units of mK for QUIJOTE and WMAP and K for Planck.
+
+\subsubsection{Noise simulations}
+\label{sec:noise_simulations}
+
+Noise simulations are produced independently for each frequency band and experiment, reflecting the distinct noise properties of each instrument.
+
+\paragraph{QUIJOTE-MFI.} The noise in the QUIJOTE-MFI maps is spatially correlated and anisotropic, and the two channels within each MFI horn (e.g.\ 11 and 17~GHz) exhibit significant noise correlations both in intensity ($\sim 60$--$80\%$) and in polarisation ($\sim 20\%$; \citealt{QUIJOTE_IV}). The QUIJOTE noise simulations used in this work are those described in \citet{QUIJOTE_IV}, which account for the measured anisotropy, spatial correlations, and inter-channel covariance structure. These simulations are also used to construct the block-diagonal covariance matrix for the MCMC likelihood (see Section~\ref{sec:mcmc}).
+
+\paragraph{WMAP.} WMAP data are not affected by $1/f$ noise, so the noise is well described by a per-pixel Gaussian model. Following \citet{WMAP_maps}, $N_{\rm sim} = 100$ noise realisation maps are generated as independent Gaussian random fields with zero mean and pixel-dependent standard deviation derived from the per-pixel noise sensitivity $\sigma_0$ and the effective number of observations $N_{\rm obs}$:
+
+\begin{equation}
+    \label{eq:wmap_noise}
+    \sigma_{\rm pix} = \frac{\sigma_0}{\sqrt{N_{\rm obs}}}.
+\end{equation}
+
+The Q and U polarisation components are generated independently with their respective per-pixel noise levels. The mean of the 100 noise simulation spectra is used as the noise bias subtracted from the WMAP auto-spectra.
+
+\paragraph{Planck.} For Planck LFI and HFI bands, $N_{\rm sim} = 100$ per-band noise simulations are downloaded from the Planck Legacy Archive \citep{Planck_2020LVII, Planck_2018I}. These simulations are generated using an MCMC-based noise estimation procedure \citep{Planck_2014II} that characterises the noise power spectrum including contributions from the $1/f$ noise component of the detectors, and each simulation map is processed identically to the data in the analysis pipeline.
+
+% ---------------------------------------------------------------
+\subsection{Foreground emission model}
+\label{sec:foreground_model}
+% ---------------------------------------------------------------
+
+The measured power spectra over the frequency range 11--353~GHz are dominated by two Galactic emission components in polarisation: synchrotron radiation and thermal dust emission. A cross-correlation term between the two components is included to account for any spatial correlation along the line of sight. The total model power spectrum between frequencies $\nu_i$ and $\nu_j$ is:
+
+\begin{equation}
+C_\ell(\nu_i, \nu_j) = C_\ell^{\rm sync}(\nu_i, \nu_j) + C_\ell^{\rm dust}(\nu_i, \nu_j) + C_\ell^{\rm corr}(\nu_i, \nu_j).
+\end{equation}
+
+\subsubsection{Synchrotron emission}
+
+Synchrotron radiation is the dominant polarised foreground at frequencies below $\sim$70~GHz. Its angular power spectrum is well described by a power law in $\ell$:
+
+\begin{equation}
+C_\ell^{\rm sync}(\nu_i, \nu_j) = A_s \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_s}
+\left(\frac{\nu_i}{\nu_{\rm ref}}\right)^{\beta_s} \left(\frac{\nu_j}{\nu_{\rm ref}}\right)^{\beta_s},
+\end{equation}
+
+where $A_s$ is the synchrotron amplitude at the reference multipole $\ell_{\rm ref} = 80$ and reference frequency $\nu_{\rm ref} = 23.0$~GHz; $\alpha_s$ is the angular power spectral index; and $\beta_s$ is the frequency spectral index in Rayleigh-Jeans units. The EE and BB modes are fitted separately.
+
+\subsubsection{Thermal dust emission}
+
+Thermal dust emission dominates polarised foreground emission above $\sim$70~GHz, with a SED following a modified blackbody (MBB) law. In Rayleigh-Jeans brightness temperature units, the MBB scaling relative to the dust reference frequency $\nu_0 = 353$~GHz is:
+
+\begin{equation}
+S_d(\nu) = \left(\frac{\nu}{\nu_0}\right)^{\beta_d} \frac{B_\nu(\nu, T_d)}{B_\nu(\nu_0, T_d)},
+\end{equation}
+
+where $B_\nu$ is the Planck function and $T_d = 19.6$~K is the dust temperature, fixed in accordance with Planck measurements \citep{Planck_2015X}. The dust model power spectrum is:
+
+\begin{equation}
+C_\ell^{\rm dust}(\nu_i, \nu_j) = A_d \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_d}
+S_d(\nu_i)\, S_d(\nu_j),
+\end{equation}
+
+where $A_d$ is the dust amplitude at $\ell_{\rm ref} = 80$ and $\nu_0 = 353$~GHz; $\alpha_d$ is the angular power spectral index; and $\beta_d$ is the MBB frequency spectral index.
+
+\subsubsection{Synchrotron-dust cross-correlation}
+
+A non-zero spatial correlation between synchrotron and thermal dust emission can arise when the Galactic magnetic field aligns the polarisation angle of both components along the line of sight \citep{Choi_2015}. Following \citet{Planck_2016XXX}, the cross-correlation term is modelled as:
+
+\begin{equation}
+\begin{split}
+C_\ell^{\rm corr}(\nu_i, \nu_j) = \rho \sqrt{A_s A_d}\,
+\Big[ S_s(\nu_i)\, S_d(\nu_j) + S_s(\nu_j)\, S_d(\nu_i) \Big]
+\left(\frac{\ell}{\ell_{\rm ref}}\right)^{(\alpha_s + \alpha_d)/2},
+\end{split}
+\end{equation}
+
+where $S_s(\nu) = (\nu/\nu_{\rm ref})^{\beta_s}$ is the synchrotron frequency scaling, and $\rho \in [-1, 1]$ is the synchrotron-dust correlation coefficient. When color corrections are applied, each per-band scaling factor is divided by its corresponding color correction polynomial, as described in Section~\ref{sec:color_corrections}.
+
+\subsubsection{CMB subtraction}
+
+Before fitting the foreground model, the CMB contribution is subtracted from the observed power spectra. We use the best-fit theoretical $\Lambda$CDM power spectrum from Planck 2018 \citep{Planck_2018VI}, obtained from the combined Plik TTTEEE likelihood with low-multipole (lowE) and gravitational lensing constraints. Both $C_\ell^{EE}$ and $C_\ell^{BB}$ are subtracted; for BB only the lensing contribution is included, since primordial tensor B-modes have not yet been detected. The CMB spectrum is interpolated to the effective multipoles of the binning scheme before subtraction.
+
+% ---------------------------------------------------------------
+\subsection{Bayesian inference and MCMC fitting}
+\label{sec:mcmc}
+% ---------------------------------------------------------------
+
+We adopt a Bayesian framework to constrain the foreground model parameters from the measured power spectra. The full parameter vector for the power-law fitting is $\boldsymbol{\theta} = \{A_s, \alpha_s, \beta_s, A_d, \alpha_d, \beta_d, \rho\}$, where the EE and BB modes may be fitted separately or jointly. The posterior distribution is:
+
+\begin{equation}
+p(\boldsymbol{\theta} \mid \mathbf{D}) \propto \mathcal{L}(\mathbf{D} \mid \boldsymbol{\theta})\, p(\boldsymbol{\theta}),
+\end{equation}
+
+where $\mathcal{L}$ is the likelihood and $p(\boldsymbol{\theta})$ is the prior.
+
+\subsubsection{Likelihood}
+
+The likelihood is constructed assuming that residuals between the measured and model power spectra are Gaussian distributed. The data vector $\mathbf{D}$ consists of the measured spectra $\hat{C}_\ell(\nu_i, \nu_j)$ concatenated over all frequency pairs and multipole bins, with corresponding uncertainties $\sigma_\ell(\nu_i, \nu_j)$:
+
+\begin{equation}
+\ln \mathcal{L} = -\frac{1}{2} \sum_{i,j,\ell} \frac{[\hat{C}_\ell(\nu_i, \nu_j) - C_\ell(\nu_i, \nu_j;\boldsymbol{\theta})]^2}{\sigma^2_\ell(\nu_i, \nu_j)}.
+\end{equation}
+
+For QUIJOTE-MFI band pairs involving channels within the same horn (11+13~GHz and 17+19~GHz), the noise is partially correlated between the two channels. In this case, a block-diagonal covariance matrix is constructed from the ensemble of 100 sky-plus-noise simulations: the off-diagonal covariance blocks for the QUIJOTE intra-horn pairs are estimated from the simulation scatter, while all remaining entries are treated as diagonal ($1/\sigma^2$). The covariance is estimated in the corrected domain (beam-deconvolved, $\mathrm{K}_{\rm RJ}^2$ units) to ensure consistency with the MCMC model. This block-diagonal inverse covariance matrix replaces the diagonal weighting for QUIJOTE correlated entries in the likelihood.
+
+\subsubsection{Priors}
+
+For the power-law fitting, uniform (flat) priors are adopted within physically motivated bounds:
+
+\begin{gather*}
+A_s > 0, \quad A_d > 0, \quad \rho \in [-1,\, 1],
+\end{gather*}
+
+with broad flat ranges for the spectral indices and no additional constraint on amplitudes or slopes.
+
+For the bin-to-bin analysis, a Gaussian prior on the synchrotron frequency spectral index regularises the fit in multipole bins where the synchrotron signal is weak:
+
+\begin{equation}
+\beta_s \sim \mathcal{N}(-3.1,\; 0.30^2),
+\end{equation}
+
+consistent with published WMAP and Planck results \citep{Planck_2016XXX}. All remaining parameters retain flat priors.
+
+\subsubsection{Sampler}
+
+Posterior sampling is performed with the \emcee\ affine-invariant ensemble sampler \citep{Emcee}, implemented in the \emcee\ \python\ package. For the power-law fits, $N_{\rm walkers} = 200$ walkers are evolved for $N_{\rm iter} = 25\,000$ iterations, discarding the first $50\%$ as burn-in. For the bin-to-bin fits, $N_{\rm walkers} = 100$ walkers are run for $N_{\rm iter} = 15\,000$ iterations with the same burn-in fraction. Convergence is assessed through visual inspection of the chain traces and by verifying that the integrated autocorrelation time is small compared to the effective chain length. Posterior summaries are reported as the median and the 16th/84th percentile credible intervals.
+
+% ---------------------------------------------------------------
+\subsection{Fitting approaches}
+\label{sec:fitting_methods}
+% ---------------------------------------------------------------
+
+Two complementary fitting approaches are applied to the corrected power spectra over the range $20 \leq \ell \leq 199$, using data from all 14 frequency bands (QUIJOTE-MFI 11 and 17~GHz; WMAP 23, 33, 41, 61, and 94~GHz; Planck 30, 44, 70, 100, 143, 217, and 353~GHz). Both auto- and cross-spectra are included, yielding 105 independent spectra.
+
+\paragraph{Power-law fitting.}
+In this approach all nine multipole bins are fitted simultaneously by the global power-law foreground model of Section~\ref{sec:foreground_model}. The MCMC samples the full parameter vector $\boldsymbol{\theta} = \{A_s, \alpha_s, \beta_s, A_d, \alpha_d, \beta_d, \rho\}$ over all frequencies and multipoles. Three fitting configurations are explored: EE only, BB only, and a joint EE+BB analysis in which the frequency spectral indices ($\beta_s$, $\beta_d$) and the correlation coefficient ($\rho$) are shared between the two polarisation modes, while the amplitudes ($A_s$, $A_d$) and multipole spectral indices ($\alpha_s$, $\alpha_d$) are fitted independently per mode.
+
+\paragraph{Bin-to-bin analysis.}
+In this approach each multipole bin is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$; the multipole spectral indices ($\alpha_s$, $\alpha_d$) are unconstrained in a single-bin analysis. This method allows the identification of scale-dependent behaviour and local deviations from the global power-law model assumption. Results are presented as the evolution of fitted parameters as a function of effective multipole $\ell_{\rm eff}$.
+
+

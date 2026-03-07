@@ -101,11 +101,6 @@ mask_fan_nside8[fan_pixels] = 1
 mask_south_nside8[south_pixels] = 1
 mask_north_nside8[north_pixels] = 1
 
-
-# ============================================================================
-# SMOOTH MASKS AND UPGRADE TO FINAL RESOLUTION
-# ============================================================================
-
 # ============================================================================
 # SMOOTH MASKS AND UPGRADE TO FINAL RESOLUTION
 # ============================================================================
@@ -344,3 +339,20 @@ plt.tight_layout()
 plt.savefig(f'{output_dir}/mask_lowdec_satband_galcut0_0mk_combined_apodC2_0.pdf', dpi=300, bbox_inches='tight')
 plt.show()
 
+#%%
+
+# Figure 7: Combined Masks transparent
+fig6 = plt.figure(figsize=(10, 8))
+hp.mollview(mask_rgb, cmap='viridis_r', cbar=False, min=-1, max=5, title=None, bgcolor='None')
+hp.graticule(dmer=40, color='w')
+
+# Add labels for each region
+hp.projtext(150, -2.5, 'Fan', lonlat=True, fontsize=16, color='w')
+hp.projtext(90, -2.5, 'Cygnus', lonlat=True, fontsize=16, color='w')
+hp.projtext(40, 40, 'NPS', lonlat=True, fontsize=16, color='w')
+hp.projtext(90, 30, 'North', lonlat=True, fontsize=16, color='w')
+hp.projtext(140, -32, 'South', lonlat=True, fontsize=16, color='w')
+
+plt.tight_layout()
+plt.savefig(f'{output_dir}/mask_lowdec_satband_galcut0_0mk_combined_apodC2_0_transparent.png', dpi=800, transparent=True, bbox_inches='tight')
+plt.show()

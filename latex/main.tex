@@ -14,7 +14,18 @@
 \usepackage{amsmath}
 \usepackage{natbib}
 
+
+\newcommand{\mnras}{MNRAS}
+\newcommand{\apj}{ApJ}
+\newcommand{\apjl}{ApJL}
+\newcommand{\apjs}{ApJS}
 \newcommand{\aap}{A\&A}
+\newcommand{\aj}{AJ}
+\newcommand{\araa}{ARA\&A}
+\newcommand{\pasp}{PASP}
+\newcommand{\pasj}{PASJ}
+\newcommand{\nat}{Nature}
+\newcommand{\sci}{Science}
 
 \usepackage{float}
 \usepackage{caption}
@@ -29,12 +40,35 @@
 
 \usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
 
-
 \begin{document}
 
-\input{sections/1_mask.tex}
+\begin{strip}
+\centering
+{\LARGE Spectral properties of polarized synchrotron and thermal dust emission from power spectrum analyses with QUIJOTE, WMAP and Planck data} \\[0.5cm]
+
+{\large Pablo de Ferra Chermaz} \\[0.2cm]
+{\large Supervisor: José Alberto Rubiño Martín} \\[0.6cm]
+
+\hrule
+\vspace{0.25cm}
+
+{\large ABSTRACT} \\[0.3cm]
+
+\begin{minipage}{0.9\textwidth}
+\small
+
+\input{sections/0_abstract.tex}
+
+\end{minipage}
+
+\vspace{0.25cm}
+\hrule
+\vspace{0.8cm}
+\end{strip}
+
+\input{sections/1_introduction.tex}
 \input{sections/2_data.tex}
-\input{sections/3_error_estimation.tex}
+\input{sections/3_methodology.tex}
 \input{sections/4_mcmc.tex}
 \input{sections/5_results.tex}
 

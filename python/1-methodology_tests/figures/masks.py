@@ -4,10 +4,13 @@ import healpy as hp
 import sys
 sys.path.append('../')
 import matplotlib.pyplot as plt
+# Increase title fontsize for map plots (adjust as needed)
+plt.rcParams['axes.titlesize'] = 20
 from data import data, masks
 
 save_path = '/home/pablo/Desktop/master/tfm/figures/masks/'
 
+#%%
 mask_dict = masks['QUIJOTE_galcut']['galcut15']
 mask_name = mask_dict['name']
 
@@ -44,4 +47,101 @@ hp.graticule(dmer=40)
 # plt.suptitle('Fan', fontsize=16, color='w')
 # hp.projtext(150, -5, 'Fan', lonlat=True, fontsize=16, color='w')
 
-fig0.savefig('/home/pablo/Desktop/master/tfm/figures/masks/mask_nps_wmap_s.png', dpi=800, transparent=True)
+# fig0.savefig('/home/pablo/Desktop/master/tfm/figures/masks/mask_nps_wmap_s.png', dpi=800, transparent=True)
+
+
+#%%
+
+from data import data, masks
+
+save_path = '/home/pablo/Desktop/master/tfm/figures/masks/'
+
+mask_10_path = masks['QUIJOTE_galcut']['galcut10_noapod']['path']
+mask_15_path = masks['QUIJOTE_galcut']['galcut15_noapod']['path']
+mask_20_path = masks['QUIJOTE_galcut']['galcut20_noapod']['path']
+
+
+mask_10 = hp.read_map(mask_10_path)
+mask_15 = hp.read_map(mask_15_path)
+mask_20 = hp.read_map(mask_20_path)
+
+
+mask_sum = mask_10 + mask_15 + mask_20
+
+# Choose exact colors for the 4 discrete mask values (0..3).
+# Edit MASK_COLORS to pick your desired colors (hex codes or matplotlib names).
+# The list must contain 4 entries corresponding to values 0,1,2,3 in `mask_sum`.
+MASK_COLORS = ['#440154', '#31688e', '#35b765', '#fde725']
+from matplotlib.colors import ListedColormap
+mask_cmap = ListedColormap(MASK_COLORS)
+
+hp.mollview(mask_sum, cmap=mask_cmap, title='', min=0, max=3, cbar=False)
+plt.savefig(save_path + 'masks_sum_galcut_10-15-20.pdf')
+
+#%%
+
+mask_10_dict = masks['QUIJOTE_galcut']['galcut10']
+mask_15_dict = masks['QUIJOTE_galcut']['galcut15']
+mask_20_dict = masks['QUIJOTE_galcut']['galcut20']
+
+mask_10_path = mask_10_dict['path']
+mask_15_path = mask_15_dict['path']
+mask_20_path = mask_20_dict['path']
+
+mask_10_name = mask_10_dict['name']
+mask_15_name = mask_15_dict['name']
+mask_20_name = mask_20_dict['name']
+
+mask_10 = hp.read_map(mask_10_path)
+mask_15 = hp.read_map(mask_15_path)
+mask_20 = hp.read_map(mask_20_path)
+
+
+hp.mollview(mask_10, title=r'$b > |10^{\circ}|$', cbar=True)
+try:
+    cax = plt.gcf().axes[-1]
+    pos = cax.get_position()
+    extra = pos.width * 1
+    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+    cax.set_position(new_pos)
+    cax.tick_params(labelsize=12)
+    try:
+        cax.set_yticklabels(['0', '1'])
+    except Exception:
+        pass
+except Exception:
+    pass
+plt.savefig(save_path + f'mask_{mask_10_name}_cbar.pdf')
+
+hp.mollview(mask_15, title=r'$b > |15^{\circ}|$', cbar=True)
+try:
+    cax = plt.gcf().axes[-1]
+    pos = cax.get_position()
+    extra = pos.width * 1
+    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+    cax.set_position(new_pos)
+    cax.tick_params(labelsize=12)
+    try:
+        cax.set_yticklabels(['0', '1'])
+    except Exception:
+        pass
+except Exception:
+    pass
+plt.savefig(save_path + f'mask_{mask_15_name}_cbar.pdf')
+
+hp.mollview(mask_20, title=r'$b > |20^{\circ}|$', cbar=True)
+try:
+    cax = plt.gcf().axes[-1]
+    pos = cax.get_position()
+    # expand width slightly to make the colorbar larger (tweak as needed)
+    extra = pos.width * 1
+    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+    cax.set_position(new_pos)
+    cax.tick_params(labelsize=20)
+    try:
+        cax.set_yticklabels(['0', '1'])
+    except Exception:
+        pass
+except Exception:
+    pass
+plt.savefig(save_path + f'mask_{mask_20_name}_cbar.pdf')

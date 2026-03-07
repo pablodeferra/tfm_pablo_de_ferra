@@ -1,8 +1,71 @@
 \begin{thebibliography}{}
 
+\bibitem[{Adak} et~al., 2025]{QUIJOTE_XIX}
+{Adak}, D., {Rubi{\~n}o-Mart{\'\i}n}, J.~A., {G{\'e}nova-Santos}, R.~T.,
+  {Remazeilles}, M., {Almeida}, A., {Aryan}, K., {Ashdown}, M., {Barreiro},
+  R.~B., {Bose}, U., {Cepeda-Arroita}, R., {Casas}, J.~M.,
+  {Fern{\'a}ndez-Torreiro}, M., {Mart{\'\i}nez-Gonzalez}, E., {Poidevin}, F.,
+  {Rebolo}, R., and {Vielva}, P. (2025).
+\newblock {QUIJOTE scientific results XIX. New constraints on the synchrotron
+  spectral index using a semi-blind component separation method}.
+\newblock {\em arXiv eprints}, page arXiv:2510.17761.
+
+\bibitem[{Casas} et~al., 2025]{casas_2025}
+{Casas}, J.~M., {Bonavera}, L., {Gonz{\'a}lez-Nuevo}, J.,
+  {Rubi{\~n}o-Mart{\'\i}n}, J.~A., {G{\'e}nova-Santos}, R.~T., {Barreiro},
+  R.~B., {Cueli}, M.~M., {Crespo}, D., {Fern{\'a}ndez-Fern{\'a}ndez}, R., and
+  {Cano}, J.~A. (2025).
+\newblock {Spatial Variations of Polarized Synchrotron Emission in the QUIJOTE
+  MFI Data}.
+\newblock {\em arXiv eprints}, page arXiv:2510.12860.
+
+\bibitem[{Fern{\'a}ndez-Torreiro} et~al., 2023]{QUIJOTE_X}
+{Fern{\'a}ndez-Torreiro}, M., {Rubi{\~n}o-Mart{\'\i}n}, J.~A.,
+  {L{\'o}pez-Caraballo}, C.~H., {G{\'e}nova-Santos}, R.~T., {Peel}, M.~W.,
+  {Guidi}, F., {Harper}, S.~E., {Artal}, E., {Ashdown}, M., {Barreiro}, R.~B.,
+  {Casas}, F.~J., {de la Hoz}, E., {Herranz}, D., {Hoyland}, R., {Lasenby}, A.,
+  {Mart{\'\i}nez-Gonzalez}, E., {Piccirillo}, L., {Poidevin}, F., {Rebolo}, R.,
+  {Ruiz-Granados}, B., {Tramonte}, D., {Vansyngel}, F., {Vielva}, P., and
+  {Watson}, R.~A. (2023).
+\newblock {QUIJOTE scientific results - X. Spatial variations of Anomalous
+  Microwave Emission along the Galactic plane}.
+\newblock {\em \mnras}, 526(1):1343--1366.
+
+\bibitem[{Gonz{\'a}lez-Gonz{\'a}lez} et~al., 2025]{QUIJOTE_XVIII}
+{Gonz{\'a}lez-Gonz{\'a}lez}, R., {G{\'e}nova-Santos}, R.~T.,
+  {Rubi{\~n}o-Mart{\'\i}n}, J.~A., {Peel}, M.~W., {Guidi}, F.,
+  {L{\'o}pez-Caraballo}, C.~H., {Fern{\'a}ndez-Torreiro}, M., {Rebolo}, R.,
+  {Hern{\'a}ndez-Monteagudo}, C., {Adak}, D., {Artal}, E., {Ashdown}, M.,
+  {Barreiro}, R.~B., {Casas}, F.~J., {Cepeda-Arroita}, R., {de la Hoz}, E.,
+  {Fasano}, A., {Herranz}, D., {Hoyland}, R.~J., {Mart{\'\i}nez-Gonzalez}, E.,
+  {Pascual-Cisneros}, G., {Piccirillo}, L., {Poidevin}, F., {Ruiz-Granados},
+  B., {Tramonte}, D., {Vansyngel}, F., {Vielva}, P., and {Watson}, R.~A.
+  (2025).
+\newblock {QUIJOTE scientific results: XVIII. New constraints on the
+  polarisation of the anomalous microwave emission in bright Galactic regions:
+  {\ensuremath{\rho}} Ophiuchi, Perseus, and W43}.
+\newblock {\em \aap}, 695:A245.
+
 \bibitem[{Planck Collaboration}, 2020]{Planck_2018vi}
 {Planck Collaboration} (2020).
 \newblock {Planck 2018 results. VI. Cosmological parameters}.
 \newblock {\em \aap}, 641:A6.
+
+\bibitem[{Rubi{\~n}o-Mart{\'\i}n} et~al., 2023]{QUIJOTE_IV}
+{Rubi{\~n}o-Mart{\'\i}n}, J.~A., {Guidi}, F., {G{\'e}nova-Santos}, R.~T.,
+  {Harper}, S.~E., {Herranz}, D., {Hoyland}, R.~J., {Lasenby}, A.~N.,
+  {Poidevin}, F., {Rebolo}, R., {Ruiz-Granados}, B., {Vansyngel}, F., {Vielva},
+  P., {Watson}, R.~A., {Artal}, E., {Ashdown}, M., {Barreiro}, R.~B.,
+  {Bilbao-Ahedo}, J.~D., {Casas}, F.~J., {Casaponsa}, B., {Cepeda-Arroita}, R.,
+  {de la Hoz}, E., {Dickinson}, C., {Fern{\'a}ndez-Cobos}, R.,
+  {Fern{\'a}ndez-Torreiro}, M., {Gonz{\'a}lez-Gonz{\'a}lez}, R.,
+  {Hern{\'a}ndez-Monteagudo}, C., {L{\'o}pez-Caniego}, M.,
+  {L{\'o}pez-Caraballo}, C., {Mart{\'\i}nez-Gonz{\'a}lez}, E., {Peel}, M.~W.,
+  {Pel{\'a}ez-Santos}, A.~E., {Perrott}, Y., {Piccirillo}, L., {Razavi-Ghods},
+  N., {Scott}, P., {Titterington}, D., {Tramonte}, D., and {Vignaga}, R.
+  (2023).
+\newblock {QUIJOTE scientific results - IV. A northern sky survey in intensity
+  and polarization at 10-20 GHz with the multifrequency instrument}.
+\newblock {\em \mnras}, 519(3):3383--3431.
 
 \end{thebibliography}

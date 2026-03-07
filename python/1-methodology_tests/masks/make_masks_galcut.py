@@ -147,9 +147,9 @@ def create_galactic_cut_masks():
     # ========================================================================
     # CONFIGURATION PARAMETERS
     # ========================================================================
-    galactic_cut_threshold = 10.      # Galactic latitude cut in degrees
-    intensity_threshold_mk = 10.       # Intensity threshold in mK (None = no threshold)
-    apod_scale_deg = 5.                # Apodization scale in degrees
+    galactic_cut_threshold = 20.      # Galactic latitude cut in degrees
+    intensity_threshold_mk = None       # Intensity threshold in mK (None = no threshold)
+    apod_scale_deg = 5.              # Apodization scale in degrees
     
     # ========================================================================
     # LOAD QUIJOTE DATA

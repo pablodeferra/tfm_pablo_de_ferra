@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2022/dev/Debian)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: build/main.aux
+The style file: mnras.bst
+Database file #1: references.bib
+Warning--I didn't find a database entry for "Planck_XI"
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--empty publisher in Rybicki_1979
+You've used 44 entries,
+            2881 wiz_defined-function locations,
+            1101 strings with 53808 characters,
+and the built_in function-call counts, 20052 in all, are:
+= -- 1958
+> -- 1107
+< -- 74
++ -- 518
+- -- 108
+* -- 2460
+:= -- 2897
+add.period$ -- 0
+call.type$ -- 44
+change.case$ -- 88
+chr.to.int$ -- 40
+cite$ -- 45
+duplicate$ -- 1021
+empty$ -- 1015
+format.name$ -- 270
+if$ -- 3611
+int.to.chr$ -- 5
+int.to.str$ -- 0
+missing$ -- 44
+newline$ -- 145
+num.names$ -- 246
+pop$ -- 209
+preamble$ -- 1
+purify$ -- 176
+quote$ -- 0
+skip$ -- 652
+stack$ -- 0
+substring$ -- 1581
+swap$ -- 416
+text.length$ -- 178
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 393
+warning$ -- 1
+while$ -- 298
+width$ -- 0
+write$ -- 451
+(There were 2 warnings)

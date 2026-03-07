@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  23 FEB 2026 10:49
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  6 MAR 2026 13:14
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -439,62 +439,32 @@ File: l3backend-pdftex.def 2022-01-12 L3 backend support: PDF output (pdfTeX)
 \l__pdf_internal_box=\box113
 ) (build/main.aux
 
-LaTeX Warning: Label `tab:fit_all_pairs_ell30-120' multiply defined.
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
 
 
-LaTeX Warning: Label `tab:fit_no_QQ_autos_ell30-120' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_cross_only_ell30-120' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_all_pairs_ell30-200' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_no_QQ_autos_ell30-200' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_cross_only_ell30-200' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_all_pairs_ell30-120' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_no_QQ_autos_ell30-120' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_cross_only_ell30-120' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_all_pairs_ell30-200' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_no_QQ_autos_ell30-200' multiply defined.
-
-
-LaTeX Warning: Label `tab:fit_cross_only_ell30-200' multiply defined.
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
 
 )
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 33.
-LaTeX Font Info:    ... okay on input line 33.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 43.
+LaTeX Font Info:    ... okay on input line 43.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -552,7 +522,7 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring ON on input line 33.
+Package hyperref Info: Link coloring ON on input line 43.
  (/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
  (/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty
@@ -562,294 +532,185 @@ Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
 )
 \c@section@level=\count318
 )
-LaTeX Info: Redefining \ref on input line 33.
-LaTeX Info: Redefining \pageref on input line 33.
-LaTeX Info: Redefining \nameref on input line 33.
+LaTeX Info: Redefining \ref on input line 43.
+LaTeX Info: Redefining \pageref on input line 43.
+LaTeX Info: Redefining \nameref on input line 43.
  (build/main.out) (build/main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
- (./sections/1_mask.tex
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf, id=52, 614.295pt x 390.25798pt>
-File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf  used on input line 6.
-(pdftex.def)             Requested size: 251.07481pt x 159.50659pt.
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf, id=53, 614.295pt x 390.25798pt>
-File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf  used on input line 13.
-(pdftex.def)             Requested size: 251.07481pt x 159.50659pt.
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20.pdf, id=54, 614.295pt x 390.25798pt>
-File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20.pdf Graphic file (type pdf)
-<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20.pdf  used on input line 20.
-(pdftex.def)             Requested size: 251.07481pt x 159.50659pt.
-) (./sections/2_data.tex
-Underfull \hbox (badness 10000) in paragraph at lines 4--5
-\OT1/cmr/m/n/12 Our anal-y-sis em-ploys two com-ple-men-tary
+ (./sections/0_abstract.tex)
+CUTED [- LAST -]
+Extra skip:0.0pt
+Left:0.0pt/0.0pt
+Right:0.0pt/0.0pt
+Split: 0.0pt
+Output:0.0pt
+Pageshrink: 0.0pt
+Pagestretch: 0.0pt
+@colht:759.6886pt
+CUTED [output]: 0.0pt
+CUTED [leftcolumn badness]: 0
+CUTED [rightcolumn badness]: 0
+ (./sections/1_introduction.tex) (./sections/2_data.tex
+Underfull \hbox (badness 1789) in paragraph at lines 8--8
+[]\OT1/cmr/bx/n/14.4 Q-U-I Joint Tener-ife (QUI-
  []
 
 
-Underfull \hbox (badness 6758) in paragraph at lines 4--5
-\OT1/cmr/m/n/12 in-cor-po-rates all ma-jor Galac-tic fore-ground
+Underfull \hbox (badness 10000) in paragraph at lines 10--11
+\OT1/cmr/m/n/12 The QUI-JOTE ex-per-i-ment ([][]Rubi~no-Mart^^S^^Pn
  []
 
 
-Underfull \hbox (badness 5741) in paragraph at lines 4--5
-\OT1/cmr/m/n/12 ex-per-i-ment to en-sure re-al-is-tic in-stru-men-tal
- []
-
-) (./sections/3_error_estimation.tex) (./sections/4_mcmc.tex
-Underfull \hbox (badness 3579) in paragraph at lines 4--1
-\OT1/cmr/m/n/12 Power spec-trum un-cer-tain-ties are es-ti-mated
+Underfull \hbox (badness 1194) in paragraph at lines 10--11
+\OT1/cmr/m/n/12 po-lari-met-ric in-stru-ments: the Mul-ti-fre-quency
  []
 
 
-Underfull \hbox (badness 4391) in paragraph at lines 4--1
-\OT1/cmr/m/n/12 through Monte Carlo sim-u-la-tions for both
+Underfull \hbox (badness 10000) in paragraph at lines 12--12
+[][][][][]$\OT1/cmtt/m/n/10 https : / / lambda . gsfc . nasa . gov / product /
  []
 
 
-Overfull \hbox (3.69727pt too wide) detected at line 8
-[][]\OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) = \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) + \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) + \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 )\OML/cmm/m/it/12 ;
+Underfull \hbox (badness 10000) in paragraph at lines 14--14
+[]\OT1/cmr/bx/n/14.4 Wilkinson Mi-crowave
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 17--17
+[][][][][]$\OT1/cmtt/m/n/10 https : / / lambda . gsfc . nasa . gov / product / wmap /
  []
 
 [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20.pdf>]
-Underfull \hbox (badness 2564) in paragraph at lines 39--40
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+Underfull \hbox (badness 3386) in paragraph at lines 29--30
+[]\OT1/cmr/m/n/12 Our anal-y-sis em-ploys two com-ple-men-tary
+ []
+
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf, id=137, 614.295pt x 390.25798pt>
+File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf  used on input line 59.
+(pdftex.def)             Requested size: 238.5203pt x 151.53305pt.
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf, id=138, 614.295pt x 390.25798pt>
+File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf  used on input line 65.
+(pdftex.def)             Requested size: 238.5203pt x 151.53305pt.
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf, id=139, 614.295pt x 390.25798pt>
+File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf Graphic file (type pdf)
+<use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf  used on input line 71.
+(pdftex.def)             Requested size: 238.5203pt x 151.53305pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+) (./sections/3_methodology.tex
+Underfull \hbox (badness 3579) in paragraph at lines 10--11
+\OT1/cmr/m/n/12 Power spec-trum un-cer-tain-ties are es-ti-mated
+ []
+
+
+Underfull \hbox (badness 4391) in paragraph at lines 10--11
+\OT1/cmr/m/n/12 through Monte Carlo sim-u-la-tions for both
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [2 </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf>]
+Overfull \hbox (3.69727pt too wide) detected at line 21
+[][]\OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) = \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) + \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 ) + \OML/cmm/m/it/12 C[]\OT1/cmr/m/n/12 (\OML/cmm/m/it/12 ^^W[]; ^^W[]\OT1/cmr/m/n/12 )\OML/cmm/m/it/12 ;
+ []
+
+
+Underfull \hbox (badness 2564) in paragraph at lines 55--56
 \OT1/cmr/m/n/12 We per-form a Markov Chain Monte Carlo
  []
 
-) (./sections/5_results.tex [2] [3
-
-]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 17.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 17.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\circ' on input line 17.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 17.
-
-(/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+[3]) (./sections/4_mcmc.tex) (./sections/5_results.tex (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell20-200_cross_only.tex
+Overfull \hbox (22.80084pt too wide) in paragraph at lines 18--19
  [][] 
  []
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell20-200_cross_only.tex
+Overfull \hbox (22.80084pt too wide) in paragraph at lines 18--19
  [][] 
  []
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell20-200_cross_only.tex
+Overfull \hbox (22.80084pt too wide) in paragraph at lines 18--19
  [][] 
  []
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
  [][] 
  []
 
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
  [][] 
  []
 
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
+) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
  [][] 
  []
 
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) [4
-
-
-] [5] [6]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 38.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 38.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\circ' on input line 38.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 38.
-
-(/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
+)) (build/main.bbl
+Underfull \hbox (badness 1038) in paragraph at lines 55--70
+\OT1/cmr/m/n/12 R. J., Lasenby, A. N., Poidevin, F., Re-
  []
 
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
+Underfull \hbox (badness 2941) in paragraph at lines 55--70
+\OT1/cmr/m/n/12 Gonz^^Salez, R., Hern^^Sandez-Monteagudo, C.,
  []
 
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
+Underfull \hbox (badness 6236) in paragraph at lines 55--70
+\OT1/cmr/m/n/12 L^^Sopez-Caniego, M., L^^Sopez-Caraballo, C.,
  []
 
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
+Underfull \hbox (badness 1406) in paragraph at lines 55--70
+\OT1/cmr/m/n/12 Santos, A. E., Per-rott, Y., Pic-cir-illo, L.,
  []
 
+[4]) [5
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) [7
-
-
-
-] [8] [9]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 59.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 59.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\circ' on input line 59.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 59.
-
-(/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-120_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_all_pairs.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_no_QQ_autos.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_cross_only.tex
-Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
- [][] 
- []
-
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-)) (build/main.bbl) [10
-
-
-
-] [11] [12] (build/main.aux)
+] [6] [7] (build/main.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 3FA85D009D7E1F0F80B48C657ADEB9CA;1551.
+(rerunfilecheck)             Checksum: 25545C47BBAFD476109F09BC5547E40F;2732.
  ) 
 Here is how much of TeX's memory you used:
- 13126 strings out of 480112
- 215755 string characters out of 5892632
- 563587 words of memory out of 5000000
- 30784 multiletter control sequences out of 15000+600000
- 478038 words of font info for 58 fonts, out of 8000000 for 9000
+ 13154 strings out of 480112
+ 214766 string characters out of 5892632
+ 578105 words of memory out of 5000000
+ 30834 multiletter control sequences out of 15000+600000
+ 479650 words of font info for 64 fonts, out of 8000000 for 9000
  85 hyphenation exceptions out of 8191
- 60i,19n,63p,798b,363s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
-Output written on build/main.pdf (12 pages, 244961 bytes).
+ 60i,19n,63p,798b,451s stack positions out of 5000i,500n,10000p,200000b,80000s
+ </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on build/main.pdf (7 pages, 308029 bytes).
 PDF statistics:
- 276 PDF objects out of 1000 (max. 8388607)
- 215 compressed objects within 3 object streams
- 64 named destinations out of 1000 (max. 500000)
- 112 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 353 PDF objects out of 1000 (max. 8388607)
+ 276 compressed objects within 3 object streams
+ 59 named destinations out of 1000 (max. 500000)
+ 184 words of extra memory for PDF output out of 10000 (max. 10000000)
 

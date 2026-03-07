@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  27 FEB 2026 20:53
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  6 MAR 2026 10:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -482,6 +482,30 @@ LaTeX Warning: Label `tab:fit_no_QQ_autos_ell20-200' multiply defined.
 
 LaTeX Warning: Label `tab:fit_cross_only_ell20-200' multiply defined.
 
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
+
+LaTeX Warning: Label `tab:bin_to_bin_results' multiply defined.
+
 )
 \openout1 = `main.aux'.
 
@@ -648,19 +672,19 @@ Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
 ]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 70.
+(hyperref)                removing `math shift' on input line 71.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 70.
+(hyperref)                removing `superscript' on input line 71.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\circ' on input line 70.
+(hyperref)                removing `\circ' on input line 71.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 70.
+(hyperref)                removing `math shift' on input line 71.
 
 (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell30-120_all_pairs.tex
 Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
@@ -707,7 +731,7 @@ Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
  []
 
 ) (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell20-200_cross_only.tex
-Overfull \hbox (24.18901pt too wide) in paragraph at lines 25--35
+Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
  [][] 
  []
 
@@ -716,19 +740,19 @@ Overfull \hbox (24.18901pt too wide) in paragraph at lines 25--35
 ]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 127.
+(hyperref)                removing `math shift' on input line 128.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 127.
+(hyperref)                removing `superscript' on input line 128.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\circ' on input line 127.
+(hyperref)                removing `\circ' on input line 128.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 127.
+(hyperref)                removing `math shift' on input line 128.
 
 (/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell30-120_all_pairs.tex
 Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
@@ -779,28 +803,142 @@ Overfull \hbox (48.18896pt too wide) in paragraph at lines 7--17
  [][] 
  []
 
-)) [9
+) [9
 
-] (build/main.aux)
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 183.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 183.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\circ' on input line 183.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 183.
+
+(/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [10
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_no_QQ_autos_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [11
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [12
+
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\circ' on input line 203.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 203.
+
+(/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [13
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_no_QQ_autos_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [14
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [15
+
+]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 223.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `superscript' on input line 223.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\circ' on input line 223.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 223.
+
+(/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [16
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_no_QQ_autos_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [17
+
+] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_cross_only_QUIJOTEpWMAPpPlanck.tex
+Overfull \hbox (42.82826pt too wide) in paragraph at lines 5--32
+ [][] 
+ []
+
+) [18
+
+]) (build/main.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 5004C96D6D03074368E468306DA8D448;351.
+(rerunfilecheck)             Checksum: 6E1BB6297D416003CA27B0B3D3EC2893;702.
  ) 
 Here is how much of TeX's memory you used:
- 12787 strings out of 480112
- 215504 string characters out of 5892632
- 548917 words of memory out of 5000000
- 30428 multiletter control sequences out of 15000+600000
+ 12868 strings out of 480112
+ 220937 string characters out of 5892632
+ 549011 words of memory out of 5000000
+ 30450 multiletter control sequences out of 15000+600000
  474985 words of font info for 48 fonts, out of 8000000 for 9000
  85 hyphenation exceptions out of 8191
  60i,10n,63p,508b,366s stack positions out of 5000i,500n,10000p,200000b,80000s
  </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on build/main.pdf (9 pages, 141472 bytes).
+Output written on build/main.pdf (18 pages, 162480 bytes).
 PDF statistics:
- 200 PDF objects out of 1000 (max. 8388607)
- 164 compressed objects within 2 object streams
- 76 named destinations out of 1000 (max. 500000)
- 25 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 274 PDF objects out of 1000 (max. 8388607)
+ 228 compressed objects within 3 object streams
+ 107 named destinations out of 1000 (max. 500000)
+ 49 words of extra memory for PDF output out of 10000 (max. 10000000)
 

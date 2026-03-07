@@ -1,0 +1,50 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}INTRODUCTION}{3}{section.1}%
+\contentsline {paragraph}{}{3}{paragraph*.2}%
+\contentsline {paragraph}{}{3}{paragraph*.3}%
+\contentsline {paragraph}{}{3}{paragraph*.4}%
+\contentsline {paragraph}{}{4}{paragraph*.5}%
+\contentsline {paragraph}{}{4}{paragraph*.6}%
+\contentsline {paragraph}{}{4}{paragraph*.7}%
+\contentsline {section}{\numberline {2}OBJECTIVES}{4}{section.2}%
+\contentsline {section}{\numberline {3}DATA}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1.}Q-U-I JOint TEnerife (QUIJOTE)}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2.}Wilkinson Microwave Anisotropy Probe (WMAP)}{6}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3.}Planck}{6}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Low Frequency Instrument (LFI)}{6}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}High Frequency Instrument (HFI)}{6}{subsubsection.3.3.2}%
+\contentsline {section}{\numberline {4}METHODOLOGY}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1.}Angular power spectrum (APS) analysis}{6}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2.}Masks}{7}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3.}Data corrections}{8}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Beam and pixel window functions}{8}{subsubsection.4.3.1}%
+\contentsline {paragraph}{}{8}{paragraph*.9}%
+\contentsline {subsubsection}{\numberline {4.3.2}Unit conversion}{8}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Noise power spectrum}{9}{subsubsection.4.3.3}%
+\contentsline {subsubsection}{\numberline {4.3.4}color corrections}{9}{subsubsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.4.}Simulations}{10}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Sky signal simulations}{10}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Noise simulations}{10}{subsubsection.4.4.2}%
+\contentsline {paragraph}{QUIJOTE-MFI.}{10}{paragraph*.10}%
+\contentsline {paragraph}{WMAP.}{10}{paragraph*.11}%
+\contentsline {paragraph}{Planck.}{11}{paragraph*.12}%
+\contentsline {subsection}{\numberline {4.5.}Foreground emission model}{11}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Synchrotron emission}{11}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Thermal dust emission}{11}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}Synchrotron-dust cross-correlation}{11}{subsubsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.5.4}CMB subtraction}{12}{subsubsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.6.}Bayesian inference and MCMC fitting}{12}{subsection.4.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}Likelihood}{12}{subsubsection.4.6.1}%
+\contentsline {subsubsection}{\numberline {4.6.2}Priors}{12}{subsubsection.4.6.2}%
+\contentsline {subsubsection}{\numberline {4.6.3}Sampler}{13}{subsubsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.7.}Fitting approaches}{13}{subsection.4.7}%
+\contentsline {paragraph}{Power-law fitting.}{13}{paragraph*.13}%
+\contentsline {paragraph}{Bin-to-bin analysis.}{13}{paragraph*.14}%
+\contentsline {section}{\numberline {5}RESULTS}{13}{section.5}%
+\contentsline {subsection}{\numberline {5.1.}Power-law fitting}{13}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2.}Bin-to-bin fitting}{13}{subsection.5.2}%
+\contentsline {section}{\numberline {6}CONCLUSIONS}{17}{section.6}%
+\contentsline {section}{REFERENCES}{17}{section.6}%
+\contentsline {section}{\numberline {A}Analysis fitting only cross-spectra}{19}{appendix.A}%
+\contentsline {subsection}{\numberline {1.1.}Power-law fitting}{19}{subsection.A.1}%
+\contentsline {subsection}{\numberline {1.2.}Bin-to-bin fitting}{19}{subsection.A.2}%

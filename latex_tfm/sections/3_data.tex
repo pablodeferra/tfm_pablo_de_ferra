@@ -1,0 +1,31 @@
+\section{DATA}
+\label{sec:data}
+
+All data used in this work consist of three independent maps for each frequency band: one intensity map, corresponding to the Stokes parameter $I$, and two maps describing linear polarization, given by the Stokes parameters $Q$ and $U$. In this work, we consider polarization data from three experiments: QUIJOTE-MFI, WMAP, and Planck, which are described below.
+
+\subsection{Q-U-I JOint TEnerife (QUIJOTE)}
+\label{sec:data_quijote}
+
+The QUIJOTE experiment \citep{QUIJOTE_IV} observes the visible sky from the Teide Observatory (latitude +28.3$^{\circ}$), covering all regions with elevations greater than 30$^{\circ}$ in both intensity and polarization. The experiment consists of two telescopes equipped with three polarimetric instruments: the Multifrequency Instrument (MFI), operating in the 10--20 GHz range; the Thirty-GHz Instrument (TGI); and the Forty-GHz Instrument (FGI).\\
+
+In this work we use data from the 11 and 17 GHz bands of the MFI, which have angular resolutions of 55 and 38 arcmin, respectively. The data are obtained from the Legacy Archive for Microwave Background Data Analysis (LAMBDA)\footnote{\url{https://lambda.gsfc.nasa.gov/product/quijote/index.html}}. The 11 GHz band is particularly useful for characterizing the polarization of low-frequency foregrounds, primarily synchrotron emission \citep{QUIJOTE_XIX, casas_2025} and Anomalous Microwave Emission (AME, \citealp{QUIJOTE_X, QUIJOTE_XVIII}).
+
+\subsection{Wilkinson Microwave Anisotropy Probe (WMAP)}
+\label{sec:data_wmap}
+
+WMAP was a space-based experiment that observed the total intensity and polarization of the full sky across five frequency bands, spanning the frequency range from 23 to 94 GHz. In this work, we make use of all five frequency bands from the 9-year data release \citep{WMAP_maps}: the K-band (23 GHz, $FWHM$ = 52.8 arcmin), Ka-band (33 GHz, $FWHM$ = 39.6 arcmin), Q-band (41 GHz, $FWHM$ = 31.2 arcmin), V-band (61 GHz, $FWHM$ = 21.0 arcmin), and W-band (94 GHz, $FWHM$ = 13.2 arcmin). All maps are downloaded from the LAMBDA database\footnote{\url{https://lambda.gsfc.nasa.gov/product/wmap/current/index.html}}.
+
+\subsection{Planck}
+\label{sec:data_planck}
+
+Planck was a space-based experiment operating two complementary instruments: the Low Frequency Instrument (LFI) and the High Frequency Instrument (HFI), together observing the full sky in intensity and polarization across nine frequency channels, from 30 to 857 GHz. In this work, we use data from the third public release (PR3) of the Planck mission, available through the Planck Legacy Archive\footnote{\url{https://pla.esac.esa.int/}} (PLA).
+
+\subsubsection{Low Frequency Instrument (LFI)}
+
+The LFI instrument covered three frequency bands at 28.4, 44.1, and 70.4 GHz. We use the PR3 frequency maps from all three LFI channels \citep{Planck_2015II}. The original angular resolutions correspond to effective beams of 32.65, 27.94, and 13.01 arcmin at 28.4, 44.1, and 70.4 GHz, respectively. All maps are downgraded to a \healpix\footnote{\url{https://healpy.readthedocs.io/en/latest/}} resolution of $N_\mathrm{side} = 512$ to maintain a common pixelization with the QUIJOTE and WMAP datasets.
+
+\subsubsection{High Frequency Instrument (HFI)}
+
+The HFI instrument provides six frequency bands extending up to 857 GHz. In this analysis we use the PR3 frequency maps from the HFI channels up to 353 GHz (100, 143, 217, and 353 GHz) \citep{Planck_2018III}. These four channels provide polarization information, including Stokes $Q$ and $U$ maps, and are therefore used in our polarization analysis. The higher-frequency HFI channels at 545 and 857 GHz are not included, as they do not provide polarization measurements. To ensure a consistent pixelization across the QUIJOTE, WMAP, and Planck datasets, all selected maps are downgraded to $N_\mathrm{side} = 512$.
+
+

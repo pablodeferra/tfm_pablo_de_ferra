@@ -587,6 +587,22 @@ masks = {
             'fsky': 0.2940,
             'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut10_10mk_apodC2_5.fits'
         },
+
+        'galcut10_noapod': {
+            'name': 'quijote_galcut10',
+            'fsky': 0.3382,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut10_0mk_apodC2_0.fits'
+        },
+        'galcut15_noapod': {
+            'name': 'quijote_galcut15',
+            'fsky': 0.3026,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut15_0mk_apodC2_0.fits'
+        },
+        'galcut20_noapod': {
+            'name': 'quijote_galcut20',
+            'fsky': 0.2686,
+            'path': path_masks + 'quijote_galcut/mask_lowdec_satband_galcut20_0mk_apodC2_0.fits'
+        },
     },
 
     'north_south': {

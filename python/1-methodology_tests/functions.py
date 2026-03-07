@@ -4197,9 +4197,9 @@ def model_dust(theta, datasets, ell, fit_c_terms=False,
         s1 = S[freq_to_idx[f1]]
         s2 = S[freq_to_idx[f2]]
         ell_scale = (ell / ell_ref) ** alpha_d
-        # Apply per-band color corrections using alpha = 2 + beta_d (spectral index)
+        # Apply per-band color corrections: alpha_cc = 2 + beta_d (frequency spectral index)
         if cc_dict is not None:
-            alpha_cc = 2.0 + float(alpha_d)
+            alpha_cc = 2.0 + float(beta_d)
             poly1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
             poly2 = (cc_dict.get('dust', {}) or {}).get(str(band2_str))
             cc_d1 = (poly1[0] + poly1[1]*alpha_cc + poly1[2]*(alpha_cc**2)) if poly1 is not None else 1.0
@@ -4270,7 +4270,7 @@ def model_dust_joint(theta, datasets, ell, mode, fit_c_terms=False,
         # Multipole scaling (shared alpha_d for both modes)
         ell_scale = (ell / ell_ref) ** alpha_d
         
-        # Apply per-band color corrections using spectral index alpha = 2 + beta_d
+        # Apply per-band color corrections: alpha_cc = 2 + beta_d (frequency spectral index)
         if cc_dict is not None:
             alpha_cc = 2.0 + float(beta_d)
             poly1 = (cc_dict.get('dust', {}) or {}).get(str(band1_str))
@@ -4358,7 +4358,7 @@ def model_cross(theta, datasets, ell,
             cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
         mix = ( (s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1) )
         As_Ad = A_s * A_d
-        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(np.abs(As_Ad)) * mix * ell_scale_cross
+        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(As_Ad) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
     return np.concatenate(model_list)
@@ -4449,7 +4449,7 @@ def model_cross_joint(theta, datasets, ell, mode,
         # Division by cc because data is raw/uncorrected
         mix = ((s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1))
         As_Ad = A_s * A_d
-        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(np.abs(As_Ad)) * mix * ell_scale_cross
+        C_sd_ij = rho * np.sign(As_Ad) * np.sqrt(As_Ad) * mix * ell_scale_cross
 
         model_list.append(C_sd_ij)
     
@@ -5071,11 +5071,12 @@ def lnprior(theta_full, datasets, fit_c_terms=False, fit_components=('sync', 'du
     A_s, alpha_s, beta_s, A_d, alpha_d, beta_d, rho = theta_full[:7]
 
     if 'sync' in fit_components:
-        # if A_s <= 0: return -np.inf                  # amplitude must be positive
+        if A_s <= 0: return -np.inf                  # amplitude must be positive
         if not (-6 <= alpha_s <= 0): return -np.inf
         if not (-6 <= beta_s <= 0): return -np.inf
 
     if 'dust' in fit_components:
+        if A_d <= 0: return -np.inf                  # amplitude must be positive
         if not (-6 <= alpha_d <= 0): return -np.inf
         if not (0 <= beta_d <= 6): return -np.inf
 
@@ -5160,11 +5161,15 @@ def lnprior_joint(theta_full, fit_c_terms=False, fit_components=('sync', 'dust',
     
     # Apply bounds for synchrotron parameters
     if 'sync' in fit_components:
+        if A_s_EE <= 0: return -np.inf               # amplitude must be positive
+        if A_s_BB <= 0: return -np.inf               # amplitude must be positive
         if not (-6 <= alpha_s <= 0): return -np.inf
         if not (-6 <= beta_s <= 0): return -np.inf
     
     # Apply bounds for dust parameters
     if 'dust' in fit_components:
+        if A_d_EE <= 0: return -np.inf               # amplitude must be positive
+        if A_d_BB <= 0: return -np.inf               # amplitude must be positive
         if not (-6 <= alpha_d <= 0): return -np.inf
         if not (0 <= beta_d <= 6): return -np.inf
     
@@ -6080,11 +6085,12 @@ def _lnprior_bin_to_bin(theta, param_names):
     param_dict = {name: theta[i] for i, name in enumerate(param_names)}
     
     # Check bounds
-    # if 'A_s' in param_dict and not (0 < param_dict['A_s'] < 1e3):
-    #     return -np.inf
-    if 'beta_s' in param_dict and not (-10 < param_dict['beta_s'] < 0):
+    # A_s and A_d must be positive (physical amplitudes)
+    if 'A_s' in param_dict and param_dict['A_s'] <= 0:
         return -np.inf
-    if 'A_d' in param_dict and not (0 < param_dict['A_d'] < 1e3):
+    if 'A_d' in param_dict and param_dict['A_d'] <= 0:
+        return -np.inf
+    if 'beta_s' in param_dict and not (-10 < param_dict['beta_s'] < 0):
         return -np.inf
     if 'beta_d' in param_dict and not (-2 < param_dict['beta_d'] < 5):
         return -np.inf
@@ -6146,7 +6152,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
                 cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_s1 = cc_s2 = 1.0
-            model_val += A_s * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
+            model_val += A_s * (scale_f1 / cc_s1) * (scale_f2 / cc_s2)
         
         if 'dust' in fit_components:
             # Dust: A_d * mbb_scaling
@@ -6162,7 +6168,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
                 cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_d1 = cc_d2 = 1.0
-            model_val += A_d * (scale_f1 * cc_d1) * (scale_f2 * cc_d2)
+            model_val += A_d * (scale_f1 / cc_d1) * (scale_f2 / cc_d2)
         
         if 'cross' in fit_components:
             # Cross term: rho * sqrt(A_s * A_d) * (sync_scale1 * dust_scale2 + sync_scale2 * dust_scale1)
@@ -6189,7 +6195,7 @@ def _lnlike_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_components, pa
             else:
                 cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
 
-            model_val += rho * np.sqrt(A_s * A_d) * ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1))
         
         y_model[idx] = model_val
     
@@ -6230,7 +6236,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
                 cc_s2 = (poly2[0] + poly2[1]*alpha_s_cc + poly2[2]*(alpha_s_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_s1 = cc_s2 = 1.0
-            model_val += A_s * (scale_f1 * cc_s1) * (scale_f2 * cc_s2)
+            model_val += A_s * (scale_f1 / cc_s1) * (scale_f2 / cc_s2)
         
         if 'dust' in fit_components:
             freq_ref_dust = 353.0
@@ -6246,7 +6252,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
                 cc_d2 = (poly2[0] + poly2[1]*alpha_d_cc + poly2[2]*(alpha_d_cc**2)) if poly2 is not None else 1.0
             else:
                 cc_d1 = cc_d2 = 1.0
-            model_val += A_d * (scale_f1 * cc_d1) * (scale_f2 * cc_d2)
+            model_val += A_d * (scale_f1 / cc_d1) * (scale_f2 / cc_d2)
         
         if 'cross' in fit_components:
             freq_ref_sync = 23.
@@ -6272,7 +6278,7 @@ def _compute_chi2_reduced_bin_to_bin(theta, datasets, ell, y_all, yerr_all, fit_
             else:
                 cc_s1 = cc_s2 = cc_d1 = cc_d2 = 1.0
 
-            model_val += rho * np.sqrt(A_s * A_d) * ((s1 * cc_s1) * (d2 * cc_d2) + (s2 * cc_s2) * (d1 * cc_d1))
+            model_val += rho * np.sqrt(A_s * A_d) * ((s1 / cc_s1) * (d2 / cc_d2) + (s2 / cc_s2) * (d1 / cc_d1))
         
         y_model[idx] = model_val
     
@@ -6597,66 +6603,36 @@ def create_bin_to_bin_table(
         medians_BB = {}
         
         for j, param_name in enumerate(param_names):
+            # --- EE ---
             values_EE = samples_EE[:, j]
-            median_EE = np.median(values_EE)
-            std_EE = np.std(values_EE)
+            median_EE  = np.median(values_EE)
+            lower_EE   = np.percentile(values_EE, 16)
+            upper_EE   = np.percentile(values_EE, 84)
             medians_EE[param_name] = median_EE
 
+            # --- BB ---
             values_BB = samples_BB[:, j]
-            median_BB = np.median(values_BB)
-            std_BB = np.std(values_BB)
+            median_BB  = np.median(values_BB)
+            lower_BB   = np.percentile(values_BB, 16)
+            upper_BB   = np.percentile(values_BB, 84)
             medians_BB[param_name] = median_BB
 
-            if param_name == 'A_s':
-                # Convert from mK^2 to μK^2 (multiply by 1e6)
-                median_EE_conv = median_EE * 1e6
-                std_EE_conv = std_EE * 1e6
-                row_EE[param_name] = f"{median_EE_conv:.2f}"
-                row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
-            elif param_name == 'A_d':
-                # Convert from mK^2 to 10^-3 μK^2 (multiply by 1e9)
-                median_EE_conv = median_EE * 1e9
-                std_EE_conv = std_EE * 1e9
-                row_EE[param_name] = f"{median_EE_conv:.2f}"
-                row_EE[f'{param_name}_err'] = f"{std_EE_conv:.2f}"
-            elif param_name == 'rho':
-                # Correlation coefficient
-                row_EE[param_name] = f"{median_EE:.3f}"
-                row_EE[f'{param_name}_err'] = f"{std_EE:.3f}"
+            # Apply unit scale (amplitudes: K² → 10⁻³ µK², i.e. ×1e9)
+            if param_name in ('A_s', 'A_d'):
+                scale = 1e9
             else:
-                # Spectral indices
-                row_EE[param_name] = f"{median_EE:.2f}"
-                row_EE[f'{param_name}_err'] = f"{std_EE:.2f}"
+                scale = 1.0
 
-            if param_name == 'A_s' or param_name == 'A_d':
-                # Apply same conversion as for EE mode
-                if param_name == 'A_s':
-                    median_BB_conv = median_BB * 1e6
-                    std_BB_conv = std_BB * 1e6
-                else:  # A_d
-                    median_BB_conv = median_BB * 1e9
-                    std_BB_conv = std_BB * 1e9
-                row_BB[param_name] = f"{median_BB_conv:.2f}"
-                row_BB[f'{param_name}_err'] = f"{std_BB_conv:.2f}"
-            elif 'A_' in param_name:
-                # Fallback for any other amplitude-like parameter: compute BB/EE ratio (dimensionless)
-                if median_EE != 0:
-                    ratio = median_BB / median_EE
-                    rel_err_EE = std_EE / median_EE if median_EE != 0 else 0
-                    rel_err_BB = std_BB / median_BB if median_BB != 0 else 0
-                    ratio_err = ratio * np.sqrt(rel_err_EE**2 + rel_err_BB**2)
-                else:
-                    ratio = 0
-                    ratio_err = 0
-                row_BB[param_name] = f"{ratio:.3f}"
-                row_BB[f'{param_name}_err'] = f"{ratio_err:.3f}"
-            elif param_name == 'rho':
-                row_BB[param_name] = f"{median_BB:.3f}"
-                row_BB[f'{param_name}_err'] = f"{std_BB:.3f}"
-            else:
-                # Spectral indices
-                row_BB[param_name] = f"{median_BB:.2f}"
-                row_BB[f'{param_name}_err'] = f"{std_BB:.2f}"
+            def _cell(med, lo, hi, s=scale):
+                """Format as $med^{+upper}_{-lower}$ after applying scale s."""
+                m = med * s
+                u = (hi - med) * s
+                l = (med - lo) * s
+                prec = 3 if param_name == 'rho' else 3 if param_name in ('A_s', 'A_d') else 3
+                return f"${m:.{prec}f}^{{+{u:.{prec}f}}}_{{-{l:.{prec}f}}}$"
+
+            row_EE[param_name] = _cell(median_EE, lower_EE, upper_EE)
+            row_BB[param_name] = _cell(median_BB, lower_BB, upper_BB)
         
         # Add per-bin chi2 reduced if provided
         if chi2_reduced_EE is not None:
@@ -6673,97 +6649,67 @@ def create_bin_to_bin_table(
     show_chi2 = (chi2_reduced_EE is not None) or (chi2_reduced_BB is not None)
 
     if format == 'latex':
-        # Create LaTeX table with EE results on top, BB (absolute amplitudes) below
+        # Create LaTeX table — same style as power-law table (booktabs, footnotesize, scalebox)
         table_lines = []
-        table_lines.append(r"\begin{table*}[htbp]")
+        table_lines.append(r"\begin{table*}[h]")
         table_lines.append(r"\centering")
+        table_lines.append(r"\setlength{\tabcolsep}{4pt}")
         table_lines.append(r"\caption{Bin-to-bin fit results. EE mode (top) and BB mode (bottom).}")
         table_lines.append(r"\label{tab:bin_to_bin_results}")
-        
+
         # Build column specification: 2 fixed cols + 1 per parameter + optional chi2 col
         n_params = len(param_names)
         n_extra = 1 if show_chi2 else 0
-        col_spec = "c c " + " ".join(["c"] * (n_params + n_extra))
+        col_spec = "cc" + "c" * (n_params + n_extra)
         table_lines.append(r"\begin{tabular}{" + col_spec + "}")
-        table_lines.append(r"\hline\hline")
-        
-        # Header row for EE mode
-        header_cols = [r"$\ell$ range", r"$\ell_{\rm eff}$"]
-        for param_name in param_names:
-            # Convert parameter names to LaTeX with EE superscript and updated units
-            if param_name == 'A_s':
-                latex_name = r"$A^{\rm EE}_{\rm sync}$ [$\mu$K$^2$]"
-            elif param_name == 'beta_s':
-                latex_name = r"$\beta^{\rm EE}_{\rm sync}$"
-            elif param_name == 'A_d':
-                latex_name = r"$A^{\rm EE}_{\rm dust}$ [$10^{-3}$ $\mu$K$^2$]"
-            elif param_name == 'beta_d':
-                latex_name = r"$\beta^{\rm EE}_{\rm dust}$"
-            elif param_name == 'rho':
-                latex_name = r"$\rho^{\rm EE}$"
-            else:
-                latex_name = param_name + r"$^{\rm EE}$"
-            
-            header_cols.append(latex_name)
-        
-        if show_chi2:
-            header_cols.append(r"$\chi^2_\nu$")
-        table_lines.append(" & ".join(header_cols) + r" \\")
-        table_lines.append(r"\hline")
-        
-        # EE mode data rows
+        table_lines.append(r"\toprule")
+
+        # Shared helper: build a header row for a given mode suffix (EE or BB)
+        def _btb_header(suffix):
+            cols = [r"$\ell$ range", r"$\ell_{\rm eff}$"]
+            latex_map = {
+                'A_s':    rf"$A^{{\rm {suffix}}}_{{\rm s}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$",
+                'beta_s': rf"$\beta^{{\rm {suffix}}}_{{\rm s}}$",
+                'A_d':    rf"$A^{{\rm {suffix}}}_{{\rm d}}\,[10^{{-3}}\,\mu\mathrm{{K}}^2]$",
+                'beta_d': rf"$\beta^{{\rm {suffix}}}_{{\rm d}}$",
+                'rho':    rf"$\rho^{{\rm {suffix}}}$",
+            }
+            for p in param_names:
+                cols.append(latex_map.get(p, p + rf"$^{{\rm {suffix}}}$"))
+            if show_chi2:
+                cols.append(r'$\chi^2_\mathrm{red}$')
+            return cols
+
+        # ---- EE header + rows ----
+        table_lines.append(" & ".join(_btb_header("EE")) + r" \\")
+        table_lines.append(r"\midrule")
         for i in range(n_bins):
             row_vals = [rows_EE[i]['ell_range'], rows_EE[i]['ell_eff']]
             for param_name in param_names:
-                # Combine value and error in same column
-                val_err = f"{rows_EE[i][param_name]} $\\pm$ {rows_EE[i][f'{param_name}_err']}"
-                row_vals.append(val_err)
+                row_vals.append(rows_EE[i][param_name])
             if show_chi2:
                 row_vals.append(rows_EE[i].get('chi2', '---'))
             table_lines.append(" & ".join(row_vals) + r" \\")
-        
-        table_lines.append(r"\hline")
-        
-        # Header row for BB mode (with ratio notation for amplitudes)
-        header_cols_BB = [r"$\ell$ range", r"$\ell_{\rm eff}$"]
-        for param_name in param_names:
-            if param_name == 'A_s':
-                latex_name = r"$A^{\rm BB}_{\rm sync}$ [$\mu$K$^2$]"
-            elif param_name == 'beta_s':
-                latex_name = r"$\beta^{\rm BB}_{\rm sync}$"
-            elif param_name == 'A_d':
-                latex_name = r"$A^{\rm BB}_{\rm dust}$ [$10^{-3}$ $\mu$K$^2$]"
-            elif param_name == 'beta_d':
-                latex_name = r"$\beta^{\rm BB}_{\rm dust}$"
-            elif param_name == 'rho':
-                latex_name = r"$\rho^{\rm BB}$"
-            else:
-                latex_name = param_name + r"$^{\rm BB}$"
-            
-            header_cols_BB.append(latex_name)
-        
-        if show_chi2:
-            header_cols_BB.append(r"$\chi^2_\nu$")
-        table_lines.append(" & ".join(header_cols_BB) + r" \\")
-        table_lines.append(r"\hline")
-        
-        # BB mode data rows
+
+        table_lines.append(r"\midrule")
+
+        # ---- BB header + rows ----
+        table_lines.append(" & ".join(_btb_header("BB")) + r" \\")
+        table_lines.append(r"\midrule")
         for i in range(n_bins):
             row_vals = [rows_BB[i]['ell_range'], rows_BB[i]['ell_eff']]
             for param_name in param_names:
-                # Combine value and error in same column
-                val_err = f"{rows_BB[i][param_name]} $\\pm$ {rows_BB[i][f'{param_name}_err']}"
-                row_vals.append(val_err)
+                row_vals.append(rows_BB[i][param_name])
             if show_chi2:
                 row_vals.append(rows_BB[i].get('chi2', '---'))
             table_lines.append(" & ".join(row_vals) + r" \\")
-        
-        table_lines.append(r"\hline\hline")
+
+        table_lines.append(r"\bottomrule")
         table_lines.append(r"\end{tabular}")
         table_lines.append(r"\end{table*}")
-        
+
         table_str = "\n".join(table_lines)
-    
+
     elif format == 'ascii':
         # Create ASCII table with EE results on top, BB (with ratios) below
         table_lines = []
@@ -6776,9 +6722,7 @@ def create_bin_to_bin_table(
         # Header for EE (with EE superscript)
         header = f"{'ell range':^12} | {'ell_eff':^8} |"
         for param_name in param_names:
-            # Add EE suffix to parameter names
-            label = f"{param_name}_EE"
-            header += f" {label:^20} |"
+            header += f" {param_name + '_EE':^30} |"
         if show_chi2:
             header += f" {'chi2_red_EE':^12} |"
         table_lines.append(header)
@@ -6788,37 +6732,27 @@ def create_bin_to_bin_table(
         for i in range(n_bins):
             row_str = f"{rows_EE[i]['ell_range']:^12} | {rows_EE[i]['ell_eff']:^8} |"
             for param_name in param_names:
-                val = rows_EE[i][param_name]
-                err = rows_EE[i][f'{param_name}_err']
-                row_str += f" {val:>9} ± {err:<9} |"
+                row_str += f" {rows_EE[i][param_name]:^30} |"
             if show_chi2:
                 row_str += f" {rows_EE[i].get('chi2', '---'):^12} |"
             table_lines.append(row_str)
-        
+
         table_lines.append("=" * 150)
-        
-        # Header for BB (with ratio notation)
+
+        # Header for BB
         header_BB = f"{'ell range':^12} | {'ell_eff':^8} |"
         for param_name in param_names:
-            if param_name in ('A_s', 'A_d'):
-                label = f"{param_name}_BB"
-            elif 'A_' in param_name:
-                label = f"{param_name}_BB/EE"
-            else:
-                label = f"{param_name}_BB"
-            header_BB += f" {label:^20} |"
+            header_BB += f" {param_name + '_BB':^30} |"
         if show_chi2:
             header_BB += f" {'chi2_red_BB':^12} |"
         table_lines.append(header_BB)
         table_lines.append("-" * 150)
-        
+
         # BB mode data rows
         for i in range(n_bins):
             row_str = f"{rows_BB[i]['ell_range']:^12} | {rows_BB[i]['ell_eff']:^8} |"
             for param_name in param_names:
-                val = rows_BB[i][param_name]
-                err = rows_BB[i][f'{param_name}_err']
-                row_str += f" {val:>9} ± {err:<9} |"
+                row_str += f" {rows_BB[i][param_name]:^30} |"
             if show_chi2:
                 row_str += f" {rows_BB[i].get('chi2', '---'):^12} |"
             table_lines.append(row_str)
@@ -8681,10 +8615,9 @@ def create_fitting_results_table(results_list, save_path=None,
     if caption is None:
         caption = (
             f"Posterior constraints (median and $68\\%$ credible intervals) on the "
-            f"synchrotron and dust amplitudes and spectral indices, and on the "
+            f"synchrotron and dust amplitudes, spectral indices, and on the "
             f"synchrotron--dust correlation coefficient $\\rho$, from fits to the "
-            f"$EE$ and $BB$ spectra using the 10º mask "
-            f"(multipole range $\\ell={ell_range}$)."
+            f"$EE$ and $BB$ spectra using the $b$ $>$ $|$10º$|$ mask."
         )
     
     # -----------------------------------------------------------------
@@ -8791,34 +8724,50 @@ def create_fitting_results_table(results_list, save_path=None,
         lines = []
         lines.append(r'\begin{table*}[h]')
         lines.append(r'\centering')
-        lines.append(r'\scriptsize')
+        lines.append(r'\footnotesize')
         lines.append(r'\setlength{\tabcolsep}{4pt}')
         lines.append(f'\\caption{{{cap}}}')
         lines.append(f'\\label{{{lab}}}')
-        
+
         extra = 1 if chi2_col else 0
         colspec = 'll' + 'c' * (len(param_list) + extra)
+        lines.append(r'\scalebox{0.95}{')
         lines.append(f'\\begin{{tabular}}{{{colspec}}}')
         lines.append(r'\toprule')
-        
+
         header = ['Data', 'Mode'] + [latex_headers[p] for p in param_list]
         if chi2_col:
             header.append(r'$\chi^2_\mathrm{red}$')
         lines.append(' & '.join(header) + r' \\')
         lines.append(r'\midrule')
-        
+
+        prev_label = None
         for idx, result in enumerate(results_list):
+            # Normalize data label to short form required by tables
+            raw_label = result.get('data_label', '')
+            if 'QUIJOTE' in raw_label.upper() or raw_label.upper().startswith('Q'):
+                cur_label = 'QJ+WP+Pl'
+            elif ('WMAP' in raw_label.upper() and 'PLANCK' in raw_label.upper()) or raw_label.upper().startswith('W'):
+                cur_label = 'WP+Pl'
+            else:
+                cur_label = raw_label
+
+            # Insert \midrule between distinct data_label groups
+            if prev_label is not None and cur_label != prev_label:
+                lines.append(r'\midrule')
+            prev_label = cur_label
+
             pv = all_param_values[idx]
-            row = [result['data_label'], result['mode']]
+            row = [cur_label, result['mode']]
             for pname in param_list:
                 row.append(_fmt(pv, pname))
             if chi2_col:
                 chi2 = result.get('chi2_reduced', None)
                 row.append(f'${chi2:.2f}$' if chi2 is not None else '---')
             lines.append(' & '.join(row) + r' \\')
-        
+
         lines.append(r'\bottomrule')
-        lines.append(r'\end{tabular}')
+        lines.append(r'\end{tabular}}')
         lines.append(r'\end{table*}')
         return '\n'.join(lines)
     

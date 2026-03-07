@@ -49,8 +49,8 @@ set_gaussian_priors(None)
 fitting_mode = 'power-law'
 
 # Sampler configuration
-nwalkers = 200
-ninter = 15000
+nwalkers = 100
+ninter = 100
 discard_fraction = 0.5
 
 # Components: sync + dust + cross, no constant terms
@@ -110,12 +110,12 @@ def build_band_pairs(band_list_fit, strategy):
 # =====================================================================
 pair_strategies = [
     ('all',         'all_pairs'),
-    ('no_qq_autos', 'no_QQ_autos'),
-    ('cross_only',  'cross_only'),
+    # ('no_qq_autos', 'no_QQ_autos'),
+    # ('cross_only',  'cross_only'),
 ]
 
 ell_ranges = [
-    (30, 120),
+    # (30, 120),
     (30, 200),
 ]
 
@@ -135,7 +135,7 @@ for ell_min, ell_max in ell_ranges:
         print(f"{'#'*70}\n")
 
         table_save_path = (
-            f'{table_dir}table_{mask_name}_ell{ell_min}-{ell_max}_{strategy_label}.tex'
+            f'{table_dir}table_{mask_name}_ell{ell_min}-{ell_max}_{strategy_label}__TEST__.tex'
         )
 
         # Collect results for this single table (2 configs × 2 modes = 4 entries)

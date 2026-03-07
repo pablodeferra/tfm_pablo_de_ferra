@@ -18,7 +18,7 @@ import numpy as np
 
 # Number of parallel processes for MCMC (set to control CPU usage)
 # bin-to-bin runs one per-bin pool sequentially, so this limits each pool
-n_processes = 18  # Adjust this for your 50-core machine
+n_processes = 10  # Adjust this for your 50-core machine
 
 # =====================================================================
 # Global configuration
@@ -47,7 +47,7 @@ fitting_mode = 'bin-to-bin'
 
 # Sampler configuration
 nwalkers = 100
-ninter   = 10000
+ninter   = 50
 discard_fraction = 0.5
 
 # Components: sync + dust + cross, no constant terms
@@ -112,9 +112,6 @@ pair_strategies = [
 ]
 
 ell_ranges = [
-    # (20, 120,
-    #  [20, 40, 60, 80, 100],
-    #  [39, 59, 79, 99, 119]),
     (20, 200,
      [20, 40, 60, 80, 100, 120, 140, 160, 180],
      [39, 59, 79, 99, 119, 139, 159, 179, 199]),
@@ -207,7 +204,7 @@ for ell_min, ell_max, ell_1, ell_2 in ell_ranges:
 
             save_latex = (
                 f'{table_dir}btb_{mask_name}_ell{ell_min}-{ell_max}'
-                f'_{strategy_label}_{config_short}.tex'
+                f'_{strategy_label}_{config_short}__TEST__.tex'
             )
             save_ascii = save_latex.replace('.tex', '.txt')
 

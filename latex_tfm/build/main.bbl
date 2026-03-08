@@ -27,11 +27,6 @@
 Ade P.,  et~al., 2021, \mn@doi [Physical Review Letters]
   {10.1103/physrevlett.127.151301}, 127
 
-\bibitem[\protect\citeauthoryear{Aghanim et~al.,}{Aghanim
-  et~al.}{2020}]{Planck_2018I}
-Aghanim N.,  et~al., 2020, \mn@doi [Astronomy &amp; Astrophysics]
-  {10.1051/0004-6361/201833880}, 641, A1
-
 \bibitem[\protect\citeauthoryear{Allys et~al.,}{Allys et~al.}{2022}]{LiteBIRD}
 Allys E.,  et~al., 2022, \mn@doi [Progress of Theoretical and Experimental
   Physics] {10.1093/ptep/ptac150}, 2023
@@ -106,6 +101,11 @@ Fuskeland U.,  et~al., 2021, \mn@doi [Astronomy &amp; Astrophysics]
   et~al.}{2017}]{QUIJOTE_II}
 Génova-Santos R.,  et~al., 2017, \mn@doi [Monthly Notices of the Royal
   Astronomical Society] {10.1093/mnras/stw2503}, 464, 4107–4132
+
+\bibitem[\protect\citeauthoryear{Hensley et~al.,}{Hensley
+  et~al.}{2022}]{Hensley_2022}
+Hensley B.~S.,  et~al., 2022, \mn@doi [The Astrophysical Journal]
+  {10.3847/1538-4357/ac5e36}, 929, 166
 
 \bibitem[\protect\citeauthoryear{{Herman, D.} et~al.,}{{Herman, D.}
   et~al.}{2023}]{AME_pol_limits}
@@ -189,15 +189,10 @@ Peel M.~W.,  Genova-Santos R.,  Dickinson C.,  Leahy J.~P.,  López-Caraballo
   {https://ui.adsabs.harvard.edu/abs/2015A&A...576A.107P} {576, A107}
 
 \bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
-  Collaboration} et~al.}{2016a}]{Planck_2016XXX}
-{Planck Collaboration} et~al., 2016a, \mn@doi [\aap]
+  Collaboration} et~al.}{2016}]{Planck_2016XXX}
+{Planck Collaboration} et~al., 2016, \mn@doi [\aap]
   {10.1051/0004-6361/201425034}, \href
   {https://ui.adsabs.harvard.edu/abs/2016A&A...586A.133P} {586, A133}
-
-\bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
-  Collaboration} et~al.}{2016b}]{Planck_2016VIII}
-{Planck Collaboration} et~al., 2016b, \mn@doi [A\&A]
-  {10.1051/0004-6361/201525820}, 594, A8
 
 \bibitem[\protect\citeauthoryear{{Planck Collaboration} et~al.,}{{Planck
   Collaboration} et~al.}{2020a}]{Planck_2018III}
@@ -214,11 +209,6 @@ Peel M.~W.,  Genova-Santos R.,  Dickinson C.,  Leahy J.~P.,  López-Caraballo
   Collaboration} et~al.}{2020c}]{Planck_2020LVII}
 {Planck Collaboration} et~al., 2020c, \mn@doi [A\&A]
   {10.1051/0004-6361/202038073}, 643, A42
-
-\bibitem[\protect\citeauthoryear{{Planck and AMI Collaborations}
-  et~al.,}{{Planck and AMI Collaborations} et~al.}{2013}]{Planck_2014II}
-{Planck and AMI Collaborations} et~al., 2013, \mn@doi [A\&A]
-  {10.1051/0004-6361/201219361}, 550, A128
 
 \bibitem[\protect\citeauthoryear{{Rubi{\~n}o-Mart{\'\i}n}
   et~al.,}{{Rubi{\~n}o-Mart{\'\i}n} et~al.}{2023}]{QUIJOTE_IV}

@@ -21,30 +21,38 @@
 \contentsline {paragraph}{}{8}{paragraph*.9}%
 \contentsline {subsubsection}{\numberline {4.3.2}Unit conversion}{8}{subsubsection.4.3.2}%
 \contentsline {subsubsection}{\numberline {4.3.3}Noise power spectrum}{9}{subsubsection.4.3.3}%
-\contentsline {subsubsection}{\numberline {4.3.4}color corrections}{9}{subsubsection.4.3.4}%
-\contentsline {subsection}{\numberline {4.4.}Simulations}{10}{subsection.4.4}%
-\contentsline {subsubsection}{\numberline {4.4.1}Sky signal simulations}{10}{subsubsection.4.4.1}%
-\contentsline {subsubsection}{\numberline {4.4.2}Noise simulations}{10}{subsubsection.4.4.2}%
-\contentsline {paragraph}{QUIJOTE-MFI.}{10}{paragraph*.10}%
-\contentsline {paragraph}{WMAP.}{10}{paragraph*.11}%
-\contentsline {paragraph}{Planck.}{11}{paragraph*.12}%
-\contentsline {subsection}{\numberline {4.5.}Foreground emission model}{11}{subsection.4.5}%
-\contentsline {subsubsection}{\numberline {4.5.1}Synchrotron emission}{11}{subsubsection.4.5.1}%
-\contentsline {subsubsection}{\numberline {4.5.2}Thermal dust emission}{11}{subsubsection.4.5.2}%
-\contentsline {subsubsection}{\numberline {4.5.3}Synchrotron-dust cross-correlation}{11}{subsubsection.4.5.3}%
-\contentsline {subsubsection}{\numberline {4.5.4}CMB subtraction}{12}{subsubsection.4.5.4}%
-\contentsline {subsection}{\numberline {4.6.}Bayesian inference and MCMC fitting}{12}{subsection.4.6}%
-\contentsline {subsubsection}{\numberline {4.6.1}Likelihood}{12}{subsubsection.4.6.1}%
-\contentsline {subsubsection}{\numberline {4.6.2}Priors}{12}{subsubsection.4.6.2}%
-\contentsline {subsubsection}{\numberline {4.6.3}Sampler}{13}{subsubsection.4.6.3}%
-\contentsline {subsection}{\numberline {4.7.}Fitting approaches}{13}{subsection.4.7}%
-\contentsline {paragraph}{Power-law fitting.}{13}{paragraph*.13}%
-\contentsline {paragraph}{Bin-to-bin analysis.}{13}{paragraph*.14}%
-\contentsline {section}{\numberline {5}RESULTS}{13}{section.5}%
-\contentsline {subsection}{\numberline {5.1.}Power-law fitting}{13}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2.}Bin-to-bin fitting}{13}{subsection.5.2}%
-\contentsline {section}{\numberline {6}CONCLUSIONS}{17}{section.6}%
-\contentsline {section}{REFERENCES}{17}{section.6}%
-\contentsline {section}{\numberline {A}Analysis fitting only cross-spectra}{19}{appendix.A}%
-\contentsline {subsection}{\numberline {1.1.}Power-law fitting}{19}{subsection.A.1}%
-\contentsline {subsection}{\numberline {1.2.}Bin-to-bin fitting}{19}{subsection.A.2}%
+\contentsline {paragraph}{}{9}{paragraph*.10}%
+\contentsline {paragraph}{}{9}{paragraph*.11}%
+\contentsline {subsubsection}{\numberline {4.3.4}Colour corrections}{9}{subsubsection.4.3.4}%
+\contentsline {paragraph}{}{10}{paragraph*.12}%
+\contentsline {paragraph}{}{10}{paragraph*.13}%
+\contentsline {subsection}{\numberline {4.4.}Simulations}{11}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Sky signal simulations}{11}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Noise simulations}{11}{subsubsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.5.}Foreground emission model}{12}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Synchrotron emission}{12}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Thermal dust emission}{13}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}Synchrotron-dust cross-correlation}{13}{subsubsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.5.4}CMB subtraction}{13}{subsubsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.6.}Bayesian inference and MCMC fitting}{13}{subsection.4.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}Likelihood}{14}{subsubsection.4.6.1}%
+\contentsline {subsubsection}{\numberline {4.6.2}Priors}{14}{subsubsection.4.6.2}%
+\contentsline {subsubsection}{\numberline {4.6.3}Sampler}{14}{subsubsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.7.}Fitting approaches}{14}{subsection.4.7}%
+\contentsline {subsubsection}{\numberline {4.7.1}Power-law fitting}{15}{subsubsection.4.7.1}%
+\contentsline {subsubsection}{\numberline {4.7.2}Bin-to-bin analysis}{15}{subsubsection.4.7.2}%
+\contentsline {section}{\numberline {5}RESULTS}{15}{section.5}%
+\contentsline {paragraph}{}{15}{paragraph*.14}%
+\contentsline {paragraph}{}{15}{paragraph*.15}%
+\contentsline {subsection}{\numberline {5.1.}Power-law fitting}{15}{subsection.5.1}%
+\contentsline {paragraph}{}{15}{paragraph*.16}%
+\contentsline {subsection}{\numberline {5.2.}Bin-to-bin fitting}{16}{subsection.5.2}%
+\contentsline {section}{\numberline {6}CONCLUSIONS}{20}{section.6}%
+\contentsline {section}{REFERENCES}{20}{section.6}%
+\contentsline {section}{\numberline {A}Analysis fitting only cross-spectra}{22}{appendix.A}%
+\contentsline {subsection}{\numberline {1.1.}Power-law fitting}{22}{subsection.A.1}%
+\contentsline {subsection}{\numberline {1.2.}Bin-to-bin fitting}{22}{subsection.A.2}%
+\contentsline {section}{\numberline {B}Alternative multipole fitting range $30 \leq \ell \leq 199$}{26}{appendix.B}%
+\contentsline {subsection}{\numberline {2.1.}Fitting all data (auto- and cross-spectra)}{26}{subsection.B.1}%
+\contentsline {subsection}{\numberline {2.2.}Fitting only cross-spectra}{26}{subsection.B.2}%
+\contentsline {section}{\numberline {C}Reduced $\chi ^2$ values of the power-law fittings}{27}{appendix.C}%

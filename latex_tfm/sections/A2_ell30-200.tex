@@ -1,0 +1,45 @@
+\section{Alternative multipole fitting range $30 \leq \ell \leq 199$}
+\label{sec:appendix_2}
+
+This appendix presents the results of the global power-law fitting analysis carried out over the multipole range $30 \leq \ell \leq 199$, as a robustness check against the baseline range $20 \leq \ell \leq 199$ adopted in Section~\ref{sec:results}. Starting at $\ell = 30$ is the conventional choice in the literature \citep{QUIJOTE_IV, Martire_2022}, as it avoids the largest angular scales where residual systematic effects and foreground modelling uncertainties may be more significant.
+
+However, as discussed in Section~\ref{sec:results}, excluding the first multipole bin ($20 \leq \ell \leq 39$, $\ell_{\rm eff} = 29$) has a marked impact on the BB-mode power-law fit. The BB polarization power spectrum is intrinsically fainter than EE and falls steeply with multipole; as a result, the first bin carries a substantial fraction of the total constraining power on the BB angular spectral index $\alpha_s^{BB}$. Without it, the remaining bins span a narrower dynamic range in signal amplitude, and the power-law slope becomes poorly constrained. This manifests as an artificial steepening of the inferred $\alpha_s^{BB}$ towards unphysically large negative values, accompanied by significantly enlarged posterior uncertainties. The effect is most pronounced in the $|b| > 10^\circ$ mask when QUIJOTE data are included, where the additional low-frequency sensitivity of QUIJOTE makes the model sensitive to the shape of the synchrotron angular spectrum, amplifying the impact of missing low-$\ell$ information. The inclusion of the first multipole bin in the baseline analysis resolves this degeneracy, yielding well-constrained and physically consistent estimates for both the EE and BB modes.
+
+The results below are presented for both the auto+cross-spectra and cross-spectra-only configurations, and for the three Galactic masks, to allow a direct comparison with the baseline results of Section~\ref{sec:results} and Appendix~\ref{sec:appendix_1}.
+
+\subsection{Fitting all data (auto- and cross-spectra)}
+
+\textcolor{red}{RESULTS AUTO+CROSS-SPECTRA -- $30 \leq \ell \leq 199$}
+
+
+\input{tables/table_quijote_galcut10-15-20_ell30-200_all_pairs.tex}
+
+% ----------------------------------------------------
+% Individual tables
+% ----------------------------------------------------
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_all_pairs.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell30-200_all_pairs.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell30-200_all_pairs.tex}
+
+% ----------------------------------------------------
+
+\subsection{Fitting only cross-spectra}
+
+\textcolor{red}{RESULTS CROSS-SPECTRA ONLY -- $30 \leq \ell \leq 199$}
+
+\input{tables/table_quijote_galcut10-15-20_ell30-200_cross_only.tex}
+
+% ----------------------------------------------------
+% Individual tables
+% ----------------------------------------------------
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell30-200_cross_only.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell30-200_cross_only.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell30-200_cross_only.tex}
+
+% ----------------------------------------------------

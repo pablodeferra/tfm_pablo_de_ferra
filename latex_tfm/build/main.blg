@@ -7,45 +7,45 @@ Warning--I didn't find a database entry for "Planck_XI"
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Warning--empty publisher in Rybicki_1979
-You've used 44 entries,
+You've used 42 entries,
             2881 wiz_defined-function locations,
-            1101 strings with 53808 characters,
-and the built_in function-call counts, 20052 in all, are:
-= -- 1958
-> -- 1107
+            1087 strings with 42221 characters,
+and the built_in function-call counts, 19326 in all, are:
+= -- 1890
+> -- 1069
 < -- 74
-+ -- 518
++ -- 496
 - -- 108
-* -- 2460
-:= -- 2897
+* -- 2358
+:= -- 2795
 add.period$ -- 0
-call.type$ -- 44
-change.case$ -- 88
-chr.to.int$ -- 40
-cite$ -- 45
-duplicate$ -- 1021
-empty$ -- 1015
-format.name$ -- 270
-if$ -- 3611
-int.to.chr$ -- 5
+call.type$ -- 42
+change.case$ -- 84
+chr.to.int$ -- 39
+cite$ -- 43
+duplicate$ -- 979
+empty$ -- 971
+format.name$ -- 262
+if$ -- 3487
+int.to.chr$ -- 4
 int.to.str$ -- 0
-missing$ -- 44
-newline$ -- 145
-num.names$ -- 246
-pop$ -- 209
+missing$ -- 42
+newline$ -- 139
+num.names$ -- 238
+pop$ -- 198
 preamble$ -- 1
-purify$ -- 176
+purify$ -- 168
 quote$ -- 0
-skip$ -- 652
+skip$ -- 632
 stack$ -- 0
-substring$ -- 1581
-swap$ -- 416
-text.length$ -- 178
+substring$ -- 1536
+swap$ -- 408
+text.length$ -- 170
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 393
+type$ -- 375
 warning$ -- 1
-while$ -- 298
+while$ -- 286
 width$ -- 0
-write$ -- 451
+write$ -- 431
 (There were 2 warnings)

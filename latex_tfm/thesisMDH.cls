@@ -196,7 +196,8 @@
 \newcommand{\pysm}{{\sc PySM}}
 \newcommand{\commander}{{\sc COMMANDER}}
 \newcommand{\python}{{\sc Python}}
-\newcommand{\fastcc}{{\sc Fastcc}}
+\newcommand{\fastcc}{\texttt{fastcc}}
+\newcommand{\interpcc}{\texttt{interpcc}}
 \newcommand{\IDL}{{\sc IDL}}
 \newcommand{\emcee}{{\sc Emcee}}
 \newcommand{\sevem}{{\sc SEVEM}}

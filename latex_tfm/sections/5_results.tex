@@ -1,63 +1,134 @@
 \section{RESULTS}
 \label{sec:results}
 
-In the following subsections we first present the results obtained on simulated data and then the results for observational data, applying the three procedures described previously (Section \ref{sec:fitting_methods}).
+In this section we present the results of the foreground power spectrum analysis described in Section~\ref{sec:methodology}. The analysis is performed over the multipole range $20 \leq \ell \leq 199$ using the combined 14-band of QUIJOTE, WMAP and Planck dataset. Two complementary fitting approaches are applied: a global power-law fit (Section~\ref{sec:fitting_methods_pl}) and an independent bin-to-bin fit (Section~\ref{sec:fitting_methods_btb}). For each approach, results are obtained for three Galactic masks defined by latitude cuts at $|b| > 10^\circ$, $15^\circ$, and $20^\circ$ (Section~\ref{sec:masks}), allowing us to assess the robustness of the derived foreground parameters with respect to Galactic plane contamination. In all cases, the EE and BB polarization modes are fitted separately.
 
+\paragraph{}
 
+The foreground model and the Bayesian inference framework are described in Sections~\ref{sec:foreground_model} and \ref{sec:mcmc}, respectively. This analysis follows approaches similar to those of \citet{Planck_2018XI}, \citet{Choi_2015}, \citet{Hensley_2022}, and \citet{Martire_2022}. The baseline results presented here include both auto- and cross-spectra (105 spectra in total). A complementary analysis restricted to cross-spectra only, which avoids any noise bias contribution from the auto-spectra, is presented in Appendix~\ref{sec:appendix_1}. 
+
+\paragraph{}
+
+The multipole range adopted here starts at $\ell = 20$, rather than the $\ell \geq 30$ range used in several comparable studies \citep{QUIJOTE_IV, Martire_2022}. The choice is motivated by the behaviour of the BB-mode power-law fit: the BB signal is intrinsically fainter than EE and falls steeply with multipole, so the first bin ($\ell_{\rm eff} = 29$) carries a large fraction of the constraining power on the angular spectral index $\alpha_s$. When this bin is excluded, the remaining bins at smaller angular scales provide insufficient leverage to anchor the power-law slope, leading to steeper and poorly constrained values of $\alpha_s$. Including the first bin resolves this degeneracy and yields well-constrained, physically consistent results for the BB mode. This effect is demonstrated in Appendix~\ref{sec:appendix_2}, where results obtained over the range $30 \leq \ell \leq 199$ are presented for comparison.
+
+% ---------------------------------------------------------------
 \subsection{Power-law fitting}
+% ---------------------------------------------------------------
 
-\input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell20-200_all_pairs.tex}
+The global power-law model (Section~\ref{sec:fitting_methods_pl}) is fitted simultaneously over all nine multipole bins and all 105 frequency spectra. The posterior constraints on the synchrotron amplitude $A_s$, multipole spectral index $\alpha_s$, frequency spectral index $\beta_s$, dust amplitude $A_d$, multipole spectral index $\alpha_d$, frequency spectral index $\beta_d$, and synchrotron-dust correlation coefficient $\rho$ are reported as the median and $68\%$ credible intervals. 
 
-\input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell20-200_all_pairs.tex}
+\paragraph{}
 
-\input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell20-200_all_pairs.tex}
+Results are obtained separately for EE and BB polarization modes, and for two dataset combinations: WMAP+Planck (WP+Pl) and QUIJOTE+WMAP+Planck (QJ+WP+Pl). These combinations are used to quantify the impact of including QUĲOTE-MFI data in the analysis.
+
+The results for the three Galactic masks are presented below. For each mask, we provide a table of the best-fit parameters, followed by figures illustrating the best-fit synchrotron and dust spectral models alongside the measured frequency spectra.
+
+
+
+The posterior constraints for the $|b| > 10^\circ$ mask are given in Table~\ref{tab:fit_galcut10_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut10_fit}.
+
+
+The posterior constraints for the $|b| > 15^\circ$ mask are given in Table~\ref{tab:fit_galcut15_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut15_fit}.
+
+
+The posterior constraints for the $|b| > 20^\circ$ mask are given in Table~\ref{tab:fit_galcut20_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut20_fit}.
+
+
+\input{tables/table_quijote_galcut10-15-20_ell20-200_all_pairs.tex}
+
+
 
 \begin{figure}[h]
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut10_synch_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf}
     \end{minipage}
     \hfill
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut10_dust_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf}
     \end{minipage}
-    \caption{\textcolor{red}{APS SYNCH AND DUST FIT GALCUT 10}}
+    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 10^\circ$ Galactic mask.}
     \label{fig:aps_galcut10_fit}
 \end{figure}
 
+
 \begin{figure}[h]
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut15_synch_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf}
     \end{minipage}
     \hfill
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut15_dust_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf}
     \end{minipage}
-    \caption{\textcolor{red}{APS SYNCH AND DUST FIT GALCUT 15}}
+    \caption{Same as Figure~\ref{fig:aps_galcut10_fit} but for the $|b| > 15^\circ$ Galactic mask.}
     \label{fig:aps_galcut15_fit}
 \end{figure}
 
+
 \begin{figure}[h]
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut20_synch_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf}
     \end{minipage}
     \hfill
     \begin{minipage}[b]{0.5\linewidth}
         \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_quijote_galcut20_dust_model_fit.pdf}
+        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf}
     \end{minipage}
-    \caption{\textcolor{red}{APS SYNCH AND DUST FIT GALCUT 20}}
+    \caption{Same as Figure~\ref{fig:aps_galcut10_fit} but for the $|b| > 20^\circ$ Galactic mask.}
     \label{fig:aps_galcut20_fit}
 \end{figure}
 
+
+
+
+
+% ----------------------------------------------------
+% Individual tables
+% ----------------------------------------------------
+
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell20-200_all_pairs.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell20-200_all_pairs.tex}
+
+% \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell20-200_all_pairs.tex}
+
+% ----------------------------------------------------
+
+
+% ---------------------------------------------------------------
 \subsection{Bin-to-bin fitting}
+% ---------------------------------------------------------------
+
+In the bin-to-bin approach (Section~\ref{sec:fitting_methods_btb}), each of the nine multipole bins is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$, and results are obtained separately for EE and BB modes. This approach allows the identification of scale-dependent trends and potential deviations from the global power-law behaviour found in Section~\ref{sec:results}. In multipole bins where the signal-to-noise ratio in the low-frequency channels is insufficient to independently constrain the synchrotron SED, the Gaussian prior on $\beta_s$ described in Section~\ref{sec:mcmc} is applied to regularize the fit.
+
+Posterior constraints (median and $68\%$ credible intervals) on $A_s$, $\beta_s$, $A_d$, $\beta_d$, and $\rho$ are reported as a function of the effective multipole $\ell_{\rm eff}$ for each bin. Results are presented for the three Galactic masks below. The corresponding cross-spectra-only results are provided in Appendix~\ref{sec:appendix_1}.
+
+\subsubsection*{$|b| > 10^\circ$ mask}
+
+\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>10^\circ$}
+
+The bin-to-bin posterior constraints for the $|b| > 10^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut10_all_pairs}.
 
 \input{/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex}
 
+\subsubsection*{$|b| > 15^\circ$ mask}
+
+\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>15^\circ$}
+
+The bin-to-bin posterior constraints for the $|b| > 15^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut15_all_pairs}.
+
 \input{/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex}
 
+\subsubsection*{$|b| > 20^\circ$ mask}
+
+\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>20^\circ$}
+
+The bin-to-bin posterior constraints for the $|b| > 20^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut20_all_pairs}.
+
 \input{/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex}
+

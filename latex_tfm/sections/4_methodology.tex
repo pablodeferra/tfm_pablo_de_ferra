@@ -256,6 +256,7 @@ Synchrotron radiation is the dominant polarized foreground at frequencies below 
 the synchrotron power spectrum is:
 
 \begin{equation}
+    \label{eq:synch_model}
 C_\ell^{\rm sync}(\nu_i, \nu_j) = A_s \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_s}
 S_s(\nu_i)\, S_s(\nu_j),
 \end{equation}
@@ -274,6 +275,7 @@ S_d(\nu) = \left(\frac{\nu}{\nu_0}\right)^{\beta_d} \frac{B_\nu(\nu, T_d)}{B_\nu
 where $B_\nu$ is the Planck function and $T_d = 19.6$~K is the dust temperature, fixed in accordance with Planck measurements \citep{Planck_2015X}. The dust model power spectrum is:
 
 \begin{equation}
+    \label{eq:dust_model}
 C_\ell^{\rm dust}(\nu_i, \nu_j) = A_d \left(\frac{\ell}{\ell_{\rm ref}}\right)^{\alpha_d}
 S_d(\nu_i)\, S_d(\nu_j),
 \end{equation}
@@ -283,14 +285,13 @@ where $A_d$ is the dust amplitude at $\ell_{\rm ref} = 80$ and $\nu_0 = 353$~GHz
 \subsubsection{Synchrotron-dust cross-correlation}
 \label{sec:corr}
 
-A non-zero spatial correlation between synchrotron and thermal dust emission can arise when the Galactic magnetic field aligns the polarization angle of both components along the line of sight \citep{Choi_2015}. Following \citet{Hensley_2022}, the cross-correlation term is modelled as:
+A non-zero spatial correlation between synchrotron and thermal dust emission can arise when the GMF aligns the polarization angle of both components along the line of sight \citep{Choi_2015}. Following \citet{Hensley_2022}, the cross-correlation term is modelled as:
 
 \begin{equation}
-\begin{split}
+    \label{eq:corr_model}
 C_\ell^{\rm corr}(\nu_i, \nu_j) = \rho \sqrt{A_s A_d}\,
 \Big[ S_s(\nu_i)\, S_d(\nu_j) + S_s(\nu_j)\, S_d(\nu_i) \Big]
 \left(\frac{\ell}{\ell_{\rm ref}}\right)^{(\alpha_s + \alpha_d)/2},
-\end{split}
 \end{equation}
 
 where $\rho \in [-1, 1]$ is the synchrotron-dust correlation coefficient. When colour corrections are applied, each per-band scaling factor is divided by its corresponding colour correction polynomial, as described in Section~\ref{sec:colour_corrections}.
@@ -313,6 +314,7 @@ p(\boldsymbol{\theta} \mid \mathbf{D}) \propto \mathcal{L}(\mathbf{D} \mid \bold
 where $p(\boldsymbol{\theta} \mid \mathbf{D})$ is the posterior probability of the parameters given the data $\mathbf{D}$, $\mathcal{L}(\mathbf{D} \mid \boldsymbol{\theta})$ is the likelihood of observing the data under the model with parameters $\boldsymbol{\theta}$, and $p(\boldsymbol{\theta})$ is the prior encoding our knowledge of the parameters before seeing the data. The posterior is thus proportional to the product of the likelihood and the prior, with the normalization constant (the Bayesian evidence) being irrelevant for parameter estimation.
 
 \subsubsection{Likelihood}
+\label{sec:likelihood}
 
 The likelihood is constructed assuming that residuals between the measured and model power spectra are Gaussian distributed. This approximation is well justified in the regime of partial sky coverage and moderate multipoles ($\ell < 200$), where the central limit theorem ensures that the distribution of bandpower estimates is close to Gaussian, and has been widely adopted in foreground power spectrum analyses at similar angular scales \citep{Choi_2015, Martire_2022, QUIJOTE_IV}. The data vector $\mathbf{D}$ consists of the measured spectra $\hat{C}_\ell(\nu_i, \nu_j)$ concatenated over all frequency pairs and multipole bins, with corresponding uncertainties $\sigma_\ell(\nu_i, \nu_j)$ estimated from Monte Carlo realizations (Section~\ref{sec:simulations}). The log-likelihood is then:
 
@@ -321,6 +323,7 @@ The likelihood is constructed assuming that residuals between the measured and m
 \end{equation}
 
 \subsubsection{Priors}
+\label{sec:prior}
 
 Two fitting approaches are considered in this work: a power-law fit, in which all nine multipole bins are fitted simultaneously by a global power-law model, and a bin-to-bin fit, in which each multipole bin is fitted independently. Both approaches are described in detail in Section~\ref{sec:fitting_methods}. In both cases, uniform (flat) priors are adopted within physically motivated bounds:
 
@@ -337,6 +340,7 @@ For the bin-to-bin analysis, an additional Gaussian prior on the synchrotron fre
 consistent with the values found in published WMAP and Planck foreground analyses \citep{WMAP_7yr_foregrounds, Planck_2016XXX}. This approach has also been used in various works as in \cite{Planck_2018XI} or \cite{Choi_2015}.
 
 \subsubsection{Sampler}
+\label{sec:sampler}
 
 Posterior sampling is performed with the \emcee\ affine-invariant ensemble sampler \citep{Emcee}. Convergence is assessed for all fits using a combination of standard diagnostics: the integrated autocorrelation time $\hat{\tau}$ is monitored to ensure the post-burn-in chain is sufficiently long; the effective sample size (ESS $= N_{\rm post}/\hat{\tau}$) is required to exceed 1000 per parameter; the mean acceptance fraction across walkers is verified to lie within the range recommended for the affine-invariant sampler; and the reduced chi-squared $\chi_{red}^2$ at the posterior maximum-likelihood point is inspected to confirm that the model provides an adequate fit and that the uncertainties are well calibrated.
 

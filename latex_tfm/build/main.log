@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  8 MAR 2026 13:11
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.9)  9 MAR 2026 01:28
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -754,22 +754,22 @@ Overfull \hbox (2.22168pt too wide) in paragraph at lines 63--63
 <to be read again> 
                    \relax 
 l.68 \clearpage
-                [1] (build/main.toc)
+                [1] (build/main.toc [2
+
+])
 \tf@toc=\write3
 \openout3 = `main.toc'.
 
- [2
-
-] (./sections/1_introduction.tex [3
+ [3] (./sections/1_introduction.tex [4
 
 ]
 
-Package natbib Warning: Citation `Planck_XI' on page 4 undefined on input line 24.
+Package natbib Warning: Citation `Planck_XI' on page 5 undefined on input line 24.
 
 
-Package natbib Warning: Citation `Planck_XI' on page 4 undefined on input line 24.
+Package natbib Warning: Citation `Planck_XI' on page 5 undefined on input line 24.
 
-) (./sections/2_objectives.tex [4]) (./sections/3_data.tex
+) (./sections/2_objectives.tex [5]) (./sections/3_data.tex
 Underfull \hbox (badness 10000) in paragraph at lines 9--10
 
  []
@@ -777,149 +777,104 @@ Underfull \hbox (badness 10000) in paragraph at lines 9--10
 LaTeX Font Info:    Trying to load font information for T1+cmtt on input line 11.
 (/usr/share/texlive/texmf-dist/tex/latex/base/t1cmtt.fd
 File: t1cmtt.fd 2019/12/16 v2.5j Standard LaTeX font definitions
-) [5]) (./sections/4_methodology.tex [6]
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf, id=315, 614.295pt x 390.25798pt>
+) [6]) (./sections/4_methodology.tex [7]
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf, id=329, 614.295pt x 390.25798pt>
 File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf>
 Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf  used on input line 47.
 (pdftex.def)             Requested size: 136.57635pt x 86.76215pt.
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf, id=316, 614.295pt x 390.25798pt>
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf, id=330, 614.295pt x 390.25798pt>
 File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf>
 Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf  used on input line 52.
 (pdftex.def)             Requested size: 136.57635pt x 86.76215pt.
-</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf, id=317, 614.295pt x 390.25798pt>
+</home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf, id=331, 614.295pt x 390.25798pt>
 File: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf>
 Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf  used on input line 57.
 (pdftex.def)             Requested size: 136.57635pt x 86.76215pt.
- [7] [8 </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf>] [9]
+ [8] [9 </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut10_cbar.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut15_cbar.pdf> </home/pablo/Desktop/master/tfm/figures//masks/mask_quijote_galcut20_cbar.pdf>] [10]
 Overfull \hbox (5.93423pt too wide) detected at line 177
 [][][]\OML/cmm/m/it/10 C[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 ^^W[]; ^^W[]\OT1/cmr/m/n/10 ) = \OML/cmm/m/it/10 ^^Z[] [][] [] :
  []
 
-[10] [11] [12] [13] [14]) (./sections/5_results.tex
-
-LaTeX Warning: Reference `tab:fit_galcut10_all_pairs_ell20-200' on page 15 undefined on input line 28.
-
-[15]
-
-LaTeX Warning: Reference `tab:fit_galcut15_all_pairs_ell20-200' on page 16 undefined on input line 31.
-
-
-LaTeX Warning: Reference `tab:fit_galcut20_all_pairs_ell20-200' on page 16 undefined on input line 34.
-
-(./tables/table_quijote_galcut10-15-20_ell20-200_all_pairs.tex)
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf, id=605, 1011.78pt x 722.7pt>
+[11] [12] [13] [14] [15]) (./sections/5_results.tex (./tables/table_quijote_galcut10-15-20_ell20-200_all_pairs.tex [16])
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf, id=620, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf  used on input line 44.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf, id=606, 1011.78pt x 722.7pt>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf  used on input line 35.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf, id=621, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf  used on input line 49.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 42--51
-[][]  [] 
- []
-
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf, id=607, 1011.78pt x 722.7pt>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf  used on input line 40.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf, id=622, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf  used on input line 59.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf, id=608, 1011.78pt x 722.7pt>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf  used on input line 53.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf, id=623, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf  used on input line 64.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 57--66
-[][]  [] 
- []
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf  used on input line 58.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf, id=611, 1011.78pt x 722.7pt>
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf, id=624, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf  used on input line 74.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf, id=612, 1011.78pt x 722.7pt>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf  used on input line 70.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf, id=625, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf  used on input line 79.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 72--81
-[][]  [] 
- []
-
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf  used on input line 75.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[16 </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf>] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
+[17 </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf>] [18 </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf>] [19 </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf>] [20] [21] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut10_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut15_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
+) [22] (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-) (/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-)) (./sections/6_conclusions.tex [17 </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf>] [18] [19]) (build/main.bbl [20
-
-]) [21] (./sections/A1_cross-only.tex (./tables/table_quijote_galcut10-15-20_ell20-200_cross_only.tex)
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf, id=1201, 1011.78pt x 722.7pt>
+)) (./sections/6_conclusions.tex [23]) (build/main.bbl [24]) [25] (./sections/A1_cross-only.tex (./tables/table_quijote_galcut10-15-20_ell20-200_cross_only.tex)
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf, id=1306, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 11.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf, id=1202, 1011.78pt x 722.7pt>
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 12.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
+</home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf, id=1307, 1011.78pt x 722.7pt>
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 16.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 9--18
-[][]  [] 
- []
-
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 17.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 26.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 29.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 31.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 24--33
-[][]  [] 
- []
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 34.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 41.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 46.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 File: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf Graphic file (type pdf)
 <use /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf>
-Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 46.
-(pdftex.def)             Requested size: 213.39568pt x 152.42209pt.
-
-Overfull \hbox (2.22168pt too wide) in paragraph at lines 39--48
-[][]  [] 
- []
-
+Package pdftex.def Info: /home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf  used on input line 51.
+(pdftex.def)             Requested size: 268.88063pt x 192.05493pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
@@ -935,36 +890,32 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-)) (./sections/A2_ell30-200.tex [22
+)) (./sections/A2_ell30-200.tex [26
 
- </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf>] [23] [24] [25] (./tables/table_quijote_galcut10-15-20_ell30-200_all_pairs.tex) (./tables/table_quijote_galcut10-15-20_ell30-200_cross_only.tex
+ </home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf> </home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf>] [27] [28] [29] (./tables/table_quijote_galcut10-15-20_ell30-200_all_pairs.tex) (./tables/table_quijote_galcut10-15-20_ell30-200_cross_only.tex
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-)) (./sections/A3_reduced_chi2.tex.tex [26
+)) (./sections/A3_reduced_chi2.tex.tex [30
 
 ] (./tables/table_chi2_all.tex))
 
 Package natbib Warning: There were undefined citations.
 
-[27] (build/main.aux)
-
-LaTeX Warning: There were undefined references.
-
- ) 
+[31] (build/main.aux) ) 
 Here is how much of TeX's memory you used:
- 18936 strings out of 480112
- 315771 string characters out of 5892632
- 714387 words of memory out of 5000000
- 36323 multiletter control sequences out of 15000+600000
- 487342 words of font info for 69 fonts, out of 8000000 for 9000
+ 18970 strings out of 480112
+ 316226 string characters out of 5892632
+ 714370 words of memory out of 5000000
+ 36338 multiletter control sequences out of 15000+600000
+ 488108 words of font info for 70 fonts, out of 8000000 for 9000
  85 hyphenation exceptions out of 8191
- 83i,19n,90p,1573b,553s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 83i,14n,90p,1573b,526s stack positions out of 5000i,500n,10000p,200000b,80000s
  </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0800.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt1000.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/eccc1000.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ectt0800.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0600.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm0700.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1200.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1000.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx1440.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1000.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecbx2074.600pk> </home/pablo/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/ecrm1440.600pk></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on build/main.pdf (28 pages, 1264802 bytes).
+Output written on build/main.pdf (32 pages, 1285726 bytes).
 PDF statistics:
- 1985 PDF objects out of 2073 (max. 8388607)
- 875 compressed objects within 9 object streams
- 177 named destinations out of 1000 (max. 500000)
+ 2088 PDF objects out of 2487 (max. 8388607)
+ 987 compressed objects within 10 object streams
+ 195 named destinations out of 1000 (max. 500000)
  66 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -11,9 +11,9 @@ The foreground model and the Bayesian inference framework are described in Secti
 
 The multipole range adopted here starts at $\ell = 20$, rather than the $\ell \geq 30$ range used in several comparable studies \citep{QUIJOTE_IV, Martire_2022}. The choice is motivated by the behaviour of the BB-mode power-law fit: the BB signal is intrinsically fainter than EE and falls steeply with multipole, so the first bin ($\ell_{\rm eff} = 29$) carries a large fraction of the constraining power on the angular spectral index $\alpha_s$. When this bin is excluded, the remaining bins at smaller angular scales provide insufficient leverage to anchor the power-law slope, leading to steeper and poorly constrained values of $\alpha_s$. Including the first bin resolves this degeneracy and yields well-constrained, physically consistent results for the BB mode. This effect is demonstrated in Appendix~\ref{sec:appendix_2}, where results obtained over the range $30 \leq \ell \leq 199$ are presented for comparison.
 
-% ---------------------------------------------------------------
+% --------------------------------
 \subsection{Power-law fitting}
-% ---------------------------------------------------------------
+% --------------------------------
 
 The global power-law model (Section~\ref{sec:fitting_methods_pl}) is fitted simultaneously over all nine multipole bins and all 105 frequency spectra. The posterior constraints on the synchrotron amplitude $A_s$, multipole spectral index $\alpha_s$, frequency spectral index $\beta_s$, dust amplitude $A_d$, multipole spectral index $\alpha_d$, frequency spectral index $\beta_d$, and synchrotron-dust correlation coefficient $\rho$ are reported as the median and $68\%$ credible intervals. 
 
@@ -21,17 +21,7 @@ The global power-law model (Section~\ref{sec:fitting_methods_pl}) is fitted simu
 
 Results are obtained separately for EE and BB polarization modes, and for two dataset combinations: WMAP+Planck (WP+Pl) and QUIJOTE+WMAP+Planck (QJ+WP+Pl). These combinations are used to quantify the impact of including QUĲOTE-MFI data in the analysis.
 
-The results for the three Galactic masks are presented below. For each mask, we provide a table of the best-fit parameters, followed by figures illustrating the best-fit synchrotron and dust spectral models alongside the measured frequency spectra.
-
-
-
-The posterior constraints for the $|b| > 10^\circ$ mask are given in Table~\ref{tab:fit_galcut10_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut10_fit}.
-
-
-The posterior constraints for the $|b| > 15^\circ$ mask are given in Table~\ref{tab:fit_galcut15_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut15_fit}.
-
-
-The posterior constraints for the $|b| > 20^\circ$ mask are given in Table~\ref{tab:fit_galcut20_all_pairs_ell20-200}, and the corresponding spectral model fits are shown in Figure~\ref{fig:aps_galcut20_fit}.
+Our best-fit results, obtained from the marginalized posterior distributions for each parameter, and for the three Galactic masks are presented in Table~\ref{tab:fit_all_masks_all_pairs_ell20-200}.  Figures~\ref{fig:aps_galcut10_fit}, \ref{fig:aps_galcut15_fit}, and \ref{fig:aps_galcut20_fit} show the corresponding best-fit synchrotron and dust spectral models overlaid on the measured frequency power spectra for the $|b| > 10^\circ$, $|b| > 15^\circ$, and $|b| > 20^\circ$ masks, respectively.
 
 
 \input{tables/table_quijote_galcut10-15-20_ell20-200_all_pairs.tex}
@@ -39,78 +29,160 @@ The posterior constraints for the $|b| > 20^\circ$ mask are given in Table~\ref{
 
 
 \begin{figure}[h]
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{adjustbox}{center}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf}
     \end{minipage}
     \hfill
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf}
     \end{minipage}
+    \end{adjustbox}
     \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 10^\circ$ Galactic mask.}
     \label{fig:aps_galcut10_fit}
 \end{figure}
 
 
+
 \begin{figure}[h]
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{adjustbox}{center}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf}
     \end{minipage}
     \hfill
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf}
     \end{minipage}
-    \caption{Same as Figure~\ref{fig:aps_galcut10_fit} but for the $|b| > 15^\circ$ Galactic mask.}
+    \end{adjustbox}
+    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 15^\circ$ Galactic mask.}
     \label{fig:aps_galcut15_fit}
 \end{figure}
 
 
 \begin{figure}[h]
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{adjustbox}{center}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf}
     \end{minipage}
     \hfill
-    \begin{minipage}[b]{0.5\linewidth}
+    \begin{minipage}[b]{0.63\linewidth}
         \centering
         \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf}
     \end{minipage}
-    \caption{Same as Figure~\ref{fig:aps_galcut10_fit} but for the $|b| > 20^\circ$ Galactic mask.}
+    \end{adjustbox}
+    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 20^\circ$ Galactic mask.}
     \label{fig:aps_galcut20_fit}
 \end{figure}
 
 
+\subsubsection{Synchrotron amplitude $A_s$}
+\label{sec:synch_amp_pl}
+
+The synchrotron amplitude $A_s$ is defined as the value of the power spectrum $C_\ell^{\rm sync}$ at the reference multipole $\ell_{\rm ref} = 80$ and at the reference frequency $\nu_{\rm ref} = 23\,\mathrm{GHz}$ (the WMAP K-band channel), as given by Equation \ref{eq:synch_model}. It is presented in Table \ref{tab:fit_all_masks_all_pairs_ell20-200} in units of $10^{-3}\,\mu\mathrm{K}^2$ and is constrained separately for the EE and BB polarization modes.
+
+The EE amplitude is consistently larger than the BB amplitude across all three masks and both dataset combinations, reflecting the well-established dominance of the E-mode over the B-mode in synchrotron polarization \citep{Krachmalnicoff_2018, Martire_2022}. For the baseline QJ+WP+Pl dataset, the EE amplitude ranges from $A_s^{EE} \approx 6.7 \cdot 10^{-3}\,\mu\mathrm{K}^2$ for the $|b| > 10^\circ$ mask to $A_s^{EE} \approx 5.9 \cdot 10^{-3}\,\mu\mathrm{K}^2$ for the $|b| > 20^\circ$ mask, reflecting the decreasing contribution of low-latitude emission as the Galactic plane emission is masked. 
+
+The synchrotron B-to-E ratio $r \equiv A_s^{BB}/A_s^{EE}$ provides a direct measure of the relative power in the two polarization modes. For the WMAP and Planck dataset we find $r = 0.283 \pm 0.052$, $0.319 \pm 0.071$, and $0.241 \pm 0.062$ for the $|b| > 10^\circ$, $|b| > 15^\circ$, and $|b| > 20^\circ$ masks, respectively. Adding QUIJOTE-MFI data tightens the constraints considerably and yields $r = 0.224 \pm 0.026$, $0.228 \pm 0.033$, and $0.229 \pm 0.036$ for the same three masks. The three values are mutually consistent within $1\sigma$, indicating that the ratio is stable with respect to the choice of Galactic cut. The QJ+WP+Pl estimates are also in good agreement with the values $0.22 \pm 0.02$ reported by \citet{Martire_2022} using WMAP and Planck data, and with the value $0.26 \pm 0.08$ obtained by \citet{QUIJOTE_IV} using the QUIJOTE-MFI 11~GHz map over the range $30 < \ell < 200$ and the same $10^\circ$ and $20^\circ$ masks as we use in this work. 
+
+These ratios are significantly lower than the values of $\sim 0.5$ found by \citet{Krachmalnicoff_2018} using S-PASS data at 2.3~GHz, a discrepancy commonly attributed to Faraday rotation of the polarization angle at low frequencies and mid-Galactic latitudes \citep{Fuskeland_2021}. Compared to thermal dust, for which the B-to-E ratio is typically $\sim 0.5$ \citep{Planck_2018XI}, synchrotron emission shows a markedly lower and more latitude-stable ratio of $\sim 0.2$.
+
+\paragraph{}
+
+The inclusion of the QUIJOTE-MFI data leads to a significant reduction in the uncertainty on $A_s$ for both modes. For EE, the $1\sigma$ uncertainty is reduced by approximately a factor of 1.6 for all masks. For the BB mode, where the synchrotron signal is fainter and the constraints from WMAP and Planck alone are limited, the improvement is similarly substantial, with uncertainties reduced by a factor of 1.8. This shows the key role of QUIJOTE-MFI in anchoring the low-frequency synchrotron amplitude, particularly for the BB mode.
+
+\subsubsection{Synchrotron angular spectral index $\alpha_s$}
+\label{sec:synch_alp_pl}
+
+The angular spectral index $\alpha_s$ parametrizes the multipole-dependence of the synchrotron power spectrum as a power law about the pivot $\ell_{\rm ref} = 80$ (Section~\ref{sec:synchrotron}). Negative values indicate that the power falls with increasing $\ell$, as expected for diffuse Galactic emission dominated by large angular scales.
+
+For the QJ+WP+Pl dataset, the EE spectral index takes values of $\alpha_s^{EE} \approx -3.7$ across all three masks, indicating a steep, large-scale-dominated spectrum. The BB spectral index is less tightly constrained, yielding $\alpha_s^{BB} \approx -3.3$ to $-3.4$ with uncertainties of $\sim 0.12\text{-}0.16$, also consistent across masks. The QUIJOTE-MFI data reduces the uncertainty on $\alpha_s^{EE}$ by roughly a factor of $1.7$ and on $\alpha_s^{BB}$ by a factor of $\sim 1.5$ with respect to WP+Pl alone, primarily by breaking the degeneracy between the angular and frequency dependences of the synchrotron model.
+
+Although the BB values are nominally less steep than EE by $\sim 0.3\text{-}0.4$ across all masks and dataset combinations, the difference is only significant at about the $\sim 2\sigma$ level because the BB uncertainties are much larger. For that reason, the current data do not provide robust evidence for a genuine difference between the EE and BB angular slopes. This becomes even clearer when the baseline fit is compared with the $30 \leq \ell \leq 199$ case discussed in Appendix~\ref{sec:appendix_2}. Once the first multipole bin ($\ell_{\rm eff} = 29$) is removed, the trend reverses and the BB slope becomes steeper than the EE slope for all three masks (e.g., $\alpha_s^{BB} \approx -4.1$ versus $\alpha_s^{EE} \approx -2.9$ for $|b| > 10^\circ$), but with very large BB uncertainties. The fact that the sign of the $\alpha_s^{EE} - \alpha_s^{BB}$ difference changes with the fitting range shows that the relative slope is not yet robustly constrained and remains sensitive to the low-$\ell$ binning.
+
+This same dependence on the fitted multipole range also helps explain the comparison with previous work. The baseline EE values found here ($\alpha_s^{EE} \approx -3.6$ to $-3.8$) are steeper than the $-2.94 \pm 0.05$ reported by \citet{Martire_2022} using WMAP and Planck alone, and steeper than the $-3.16 \pm 0.03$ obtained by \citet{Krachmalnicoff_2018} with S-PASS at 2.3~GHz. However, in Appendix~\ref{sec:appendix_2}, where the first bin is excluded, the EE slopes flatten to $\alpha_s^{EE} \approx -2.7$ to $-3.0$, bringing them much closer to those literature values. This suggests that part of the discrepancy is driven by the extra leverage introduced by the $\ell_{\rm eff} = 29$ bin in our baseline analysis, while any remaining disagreement with S-PASS may also reflect the different sky regions covered by the two experiments. A more specific study is needed in order to draw firmer conclusions about these discrepancies.
+
+\subsubsection{Synchrotron frequency spectral index $\beta_s$}
+\label{sec:synch_bet_pl}
+
+The frequency spectral index $\beta_s$ governs the power-law scaling of the synchrotron SED in Rayleigh-Jeans brightness temperature units, $T_{\rm RJ} \propto \nu^{\beta_s}$, and is directly related to the energy distribution of the cosmic-ray electrons responsible for synchrotron radiation \citep{Rybicki_1979, Padovani_2021}. Of all the parameters in the foreground model, $\beta_s$ is the one most directly sensitive to the frequency coverage of the dataset, because its constraint comes almost entirely from the lever arm between the lowest and highest frequency channels at which synchrotron emission is detectable. This makes $\beta_s$ the parameter for which the inclusion of the QUIJOTE-MFI bands produces the most notable improvement.
+
+\paragraph{}
+
+Without QUIJOTE, the WP+Pl dataset yields EE spectral indices that hover around $\beta_s^{EE} \approx -3.0$ to $-3.1$ across the three masks, with uncertainties in the range $0.04$-$0.06$. The corresponding BB estimates are nominally steeper by $\sim 0.1$-$0.3$, but consistent with the EE values within $1$-$2\sigma$ given BB uncertainties of $\sim 0.14$-$0.19$. These relatively large errors reflect the limited frequency baseline of WMAP and Planck alone, for which the synchrotron signal is not sufficiently strong or well separated from other components to tightly constrain the spectral index.
+
+Adding the four QUIJOTE-MFI bands extends the synchrotron baseline down to 11~GHz, making a significant improvement in the fitting. For the QJ+WP+Pl combination the EE uncertainties decrease by a factor of $2.6$-$2.9$ depending on mask, and the BB uncertainties by a factor of $2.8$-$3.0$, making $\beta_s$ the parameter with the largest error reduction brought by QUIJOTE. The resulting QJ+WP+Pl posteriors converge tightly around $\beta_s \approx -3.0$ to $-3.1$ for both polarization modes, with EE errors of $\sim 0.02$ and BB errors of order $\sim0.06$. Across all three masks, the EE and BB estimates are mutually consistent within $\sim 2\sigma$, providing no statistically significant evidence for a difference between the two polarization modes.
+
+\paragraph{}
 
 
 
-% ----------------------------------------------------
+These values are in excellent agreement with the canonical synchrotron spectral index, $\beta_s \approx -3.1$, reported in previous studies. \cite{Fuskeland_2014} found $\beta_s = -3.12 \pm 0.04$ from an analysis of WMAP polarization data, while \citet{Martire_2022} obtained $\beta_s^{EE} = -3.00 \pm 0.10$ and $\beta_s^{BB} = -3.05 \pm 0.36$ using a similar multi-frequency power spectrum approach combining WMAP and Planck data. Our QJ+WP+Pl EE estimates ($\beta_s^{EE} \approx -3.08$ to $-3.11$) are consistent with both studies within $1\sigma$.
+
+For the BB-mode spectral indices, we obtain $\beta_s^{BB} \approx -2.98$ to $-3.02$. These values are compatible with the results of \citet{Martire_2022}, while providing a clear improvement in the constraints on this parameter for the BB polarization mode. Furthermore, \citet{Fuskeland_2021} measured a steeper value, $\beta_s = -3.22 \pm 0.08$, using Faraday-corrected S-PASS data combined with WMAP. This measurement is also consistent with our results at the $\sim 2\sigma$ level.
+
+
+
+\subsubsection{Synchrotron-dust spatial correlation $\rho$}
+\label{sec:rho_pl}
+
+The correlation coefficient $\rho$ quantifies the degree of spatial correlation between the synchrotron and thermal dust polarized emission along the line of sight (Section~\ref{sec:corr}; \citealp{Choi_2015}). A positive $\rho$ indicates that the two foreground components share a common polarization structure, which is physically expected when the GMF aligns the polarization directions of both components over large angular scales \citep{Choi_2015}. This parameter is constrained jointly with the other foreground parameters in the global power-law fit and is bounded by $\rho \in [-1, 1]$.
+
+For both dataset combinations and all three masks, we recover small but significantly non-zero positive values of $\rho$, confirming a weak spatial correlation between the two foreground components. For the QJ+WP+Pl dataset, the EE correlation coefficient decreases with increasing Galactic latitude cut, from $\rho^{EE} = 0.096 \pm 0.005$ for the $|b| > 10^\circ$ mask to $\rho^{EE} = 0.023 \pm 0.007$ for the $|b| > 20^\circ$ mask. This trend is consistent with the expectation that synchrotron and dust emission are both concentrated at low latitudes. As the mask becomes more restrictive and the retained sky is dominated by high-latitude regions with less coherent magnetic field structure, the spatial correlation between the two components decreases. These values are in concordance with the findings of \citet{Choi_2015}, who reported $\rho \sim 0.2$ from a bin-to-bin analysis of WMAP 9-year data.
+
+The BB correlation coefficient shows a different behaviour: $\rho^{BB}$ remains relatively stable across masks, with values of $\sim 0.11$-$0.12$ for QJ+WP+Pl, and does not exhibit the pronounced decline observed for EE. \citet{Choi_2015} similarly found that BB values of $\rho$ are generally comparable to the corresponding EE values and do not show a significant decrease with sky fraction. This behaviour is consistent with the distinct physical origin of the two polarization modes in the presence of the GMF. E-mode emission is primarily generated by the ordered, large-scale component of the GMF, which is strongest near the Galactic plane and decreases toward high Galactic latitudes. In contrast, B-mode emission traces the turbulent component of the field \citep{Planck_2016XXX, Planck_2015XIX}. Because the turbulent magnetic field is present at all Galactic latitudes, the B-mode correlation between synchrotron and dust emission is expected to be more spatially uniform than the E-mode correlation, as observed.
+
+The EE-BB difference in $\rho$ grows with the Galactic cut. For the $|b| > 10^\circ$ mask the two modes are consistent at the $\sim 1.3\sigma$ level, but the discrepancy increases to $\sim 3.4\sigma$ for $|b| > 15^\circ$ and reaches $\sim 5.9\sigma$ for $|b| > 20^\circ$, providing clear evidence that the two polarization modes trace spatially distinct correlation structures at high Galactic latitudes.
+
+\paragraph{}
+
+The overall magnitude and mode-dependent behaviour of $\rho$ are consistent with previous studies. \citet{Planck_2018XI} also reported low but positive correlations in their joint synchrotron-dust power spectrum analysis, finding $\rho$ values consistent with ours at the $\sim 0.1$ level. \citet{Krachmalnicoff_2018}, using S-PASS at 2.3~GHz combined with Planck 353~GHz data, found evidence for positive correlation, reaching about 40$\%$ on large angular scales, decaying to smaller values on smaller scales, depending on the latitudes considered. Our results are fully consistent with all of these findings and confirm that the synchrotron-dust correlation, while non-negligible, remains at the level of $\rho \sim 0.1$ or below for most of the sky outside the Galactic plane.
+
+\subsubsection{Thermal dust parameters}
+\label{sec:dust_pl}
+
+The thermal dust component is parametrized by the amplitude $A_d$ at $\ell_{\rm ref} = 80$ and $\nu_0 = 353\,\mathrm{GHz}$, the angular spectral index $\alpha_d$, and the modified-blackbody frequency spectral index $\beta_d$ (Section~\ref{sec:dust}). Because the dust signal is anchored by the Planck HFI bands (100-353~GHz), which are present in both dataset combinations, the inclusion of QUIJOTE data has virtually no effect on the dust parameters. The WP+Pl and QJ+WP+Pl posteriors are identical for all three dust parameters. This is expected, since the QUIJOTE bands at 11 and 17~GHz carry negligible dust emission, and confirms that the synchrotron and dust parameters are well separated by the fit.
+
+\paragraph{}
+
+The EE dust amplitude decreases monotonically from $A_d^{EE} \approx 3.2 \cdot 10^{-3}\,\mu\mathrm{K}^2$ for the $|b| > 10^\circ$ mask to $A_d^{EE} \approx 1.4 \cdot 10^{-3}\,\mu\mathrm{K}^2$ for the $|b| > 20^\circ$ mask, reflecting the decreasing density of dust-emitting material at higher Galactic latitudes. The BB amplitude follows the same trend, from $A_d^{BB} \approx 2.4$ to $0.9 \cdot 10^{-3}\,\mu\mathrm{K}^2$, and is consistently smaller than EE. The dust B-to-E ratio $A_d^{BB}/A_d^{EE}$ ranges from $\sim 0.73$ ($|b| > 10^\circ$) to $\sim 0.64$ ($|b| > 20^\circ$), in broad agreement with the ratio of $\sim 0.5$-$0.6$ found by \citet{Planck_2018XI} and \citet{Planck_2016XXX}. Our values are slightly higher, which may reflect the different multipole ranges and sky fractions used. 
+
+\paragraph{}
+
+The EE angular index is $\alpha_d^{EE} \approx -2.5$ for all three masks, with the $|b| > 20^\circ$ mask yielding a slightly flatter value of $-2.478 \pm 0.008$. The BB values are consistently less steep, with $\alpha_d^{BB} \approx -2.2$ to $-2.3$, indicating that the dust BB power spectrum falls off less steeply with multipole than EE. This EE-BB difference is highly significant (above $5\sigma$ for all masks) and constitutes one of the most robust results of the fit. It is in good agreement with the findings of \citet{Planck_2018XI}, who reported $\alpha_d^{EE} = -2.42 \pm 0.02$ and $\alpha_d^{BB} = -2.54 \pm 0.02$ over a similar multipole range, though they found BB to be marginally steeper than EE, the opposite of the trend seen here. \citet{Planck_2016XXX} reported for both EE-and BB-modes $\alpha_d \approx -2.42 \pm 0.02$ for high-latitude sky at 353~GHz over $40 < \ell < 600$. Our EE values are close to this estimate, while the BB values are somewhat flatter, which may reflect the different multipole ranges and sky fractions used in the two analyses.
+
+\paragraph{}
+
+The MBB spectral index $\beta_d$ is remarkably stable across all masks, dataset combinations, and polarization modes, with values clustering tightly around $\beta_d \approx 1.53$. The EE estimates range from $1.486 \pm 0.008$ ($|b| > 20^\circ$) to $1.552 \pm 0.007$ ($|b| > 15^\circ$), while the BB values span $1.530 \pm 0.005$ to $1.533 \pm 0.009$. The EE and BB values are mutually consistent within $\sim 1\sigma$ for all masks except $|b| > 20^\circ$, where the EE value is slightly lower. These values are in excellent agreement with the Planck measurements of $\beta_d = 1.53 \pm 0.02$ from polarization data \citep{Planck_2018XI} and with the intensity-based estimates of $\beta_d \approx 1.51$-$1.59$ from \citet{Planck_XXII}. The tight consistency of $\beta_d$ across masks and modes confirms that the dust SED is well characterized by a single modified blackbody with $T_d = 19.6\,\mathrm{K}$ over the sky fractions and multipole range considered in this work.
+
+
+
+% --------------------------
 % Individual tables
-% ----------------------------------------------------
-
-
+% --------------------------
 % \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut10_ell20-200_all_pairs.tex}
-
 % \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut15_ell20-200_all_pairs.tex}
-
 % \input{/home/pablo/Desktop/master/tfm/tables/final/table_quijote_galcut20_ell20-200_all_pairs.tex}
 
-% ----------------------------------------------------
 
 
-% ---------------------------------------------------------------
+% --------------------------------
 \subsection{Bin-to-bin fitting}
-% ---------------------------------------------------------------
+% --------------------------------
 
 In the bin-to-bin approach (Section~\ref{sec:fitting_methods_btb}), each of the nine multipole bins is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$, and results are obtained separately for EE and BB modes. This approach allows the identification of scale-dependent trends and potential deviations from the global power-law behaviour found in Section~\ref{sec:results}. In multipole bins where the signal-to-noise ratio in the low-frequency channels is insufficient to independently constrain the synchrotron SED, the Gaussian prior on $\beta_s$ described in Section~\ref{sec:mcmc} is applied to regularize the fit.
 
 Posterior constraints (median and $68\%$ credible intervals) on $A_s$, $\beta_s$, $A_d$, $\beta_d$, and $\rho$ are reported as a function of the effective multipole $\ell_{\rm eff}$ for each bin. Results are presented for the three Galactic masks below. The corresponding cross-spectra-only results are provided in Appendix~\ref{sec:appendix_1}.
 
+The consistency of the QJ+WP+Pl posteriors presented in Table \ref{tab:fit_all_masks_all_pairs_ell20-200} (see Section \ref{sec:synch_bet_pl}) with the Gaussian prior $\beta_s \sim \mathcal{N}(-3.1, 0.3^2)$ adopted in this bin-to-bin study (Section~\ref{sec:prior}) provides a useful cross-check. The posterior is far narrower than the prior width of $0.3$, confirming that the data, rather than the prior, drive the result.
+
 \subsubsection*{$|b| > 10^\circ$ mask}
 
-\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>10^\circ$}
+\textcolor{red}{BIN-TO-BIN RESULTS - MASK $|b|>10^\circ$}
 
 The bin-to-bin posterior constraints for the $|b| > 10^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut10_all_pairs}.
 
@@ -118,7 +190,7 @@ The bin-to-bin posterior constraints for the $|b| > 10^\circ$ mask are given in 
 
 \subsubsection*{$|b| > 15^\circ$ mask}
 
-\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>15^\circ$}
+\textcolor{red}{BIN-TO-BIN RESULTS - MASK $|b|>15^\circ$}
 
 The bin-to-bin posterior constraints for the $|b| > 15^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut15_all_pairs}.
 
@@ -126,7 +198,7 @@ The bin-to-bin posterior constraints for the $|b| > 15^\circ$ mask are given in 
 
 \subsubsection*{$|b| > 20^\circ$ mask}
 
-\textcolor{red}{BIN-TO-BIN RESULTS -- MASK $|b|>20^\circ$}
+\textcolor{red}{BIN-TO-BIN RESULTS - MASK $|b|>20^\circ$}
 
 The bin-to-bin posterior constraints for the $|b| > 20^\circ$ mask are given in Table~\ref{tab:bin_to_bin_galcut20_all_pairs}.
 

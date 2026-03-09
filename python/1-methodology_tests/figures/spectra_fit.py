@@ -299,8 +299,7 @@ for mask_name, spectra_plot in SPECTRA.items():
                         capsize=2, ms=4, label=f'{b}x{b} GHz')
             ax.plot(ell_fine,
                     full_model(ell_fine, f, f, params[mode]) * 1e6,
-                    color=col, ls=mstyle['ls'], lw=1.8,
-                    label=f'{b}x{b} - fit' if ax == ax_sEE_auto else None)
+                    color=col, ls=mstyle['ls'], lw=1.8)
 
     # cross spectra
     for i, (b1, b2) in enumerate(synch_cross_pairs):
@@ -319,14 +318,13 @@ for mask_name, spectra_plot in SPECTRA.items():
                         capsize=2, ms=4, label=f'{b1}x{b2} GHz')
             ax.plot(ell_fine,
                     full_model(ell_fine, f1, f2, params[mode]) * 1e6,
-                    color=col, ls=mstyle['ls'], lw=1.8,
-                    label=f'{b1}x{b2} - fit' if ax == ax_sEE_cross else None)
+                    color=col, ls=mstyle['ls'], lw=1.8)
 
     for ax in axes_s.flat:
         ax.set_yscale('log')
         ax.set_xlabel(r'$\ell$')
         ax.set_ylabel(r'$C_\ell \; [\mu\mathrm{K}^2]$')
-        ax.legend(frameon=False, fontsize=11)
+        ax.legend(frameon=False, fontsize=15, loc='upper right')
 
     plt.tight_layout()
     plt.show()
@@ -391,7 +389,7 @@ for mask_name, spectra_plot in SPECTRA.items():
         ax.set_yscale('log')
         ax.set_xlabel(r'$\ell$')
         ax.set_ylabel(r'$C_\ell \; [\mu\mathrm{K}^2]$')
-        ax.legend(frameon=False, fontsize=12)
+        ax.legend(frameon=False, fontsize=15, loc='upper right')
 
     plt.tight_layout()
     plt.show()

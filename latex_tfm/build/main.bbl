@@ -73,9 +73,20 @@ Foreman-Mackey D.,  Hogg D.~W.,  Lang D.,   Goodman J.,  2013, \mn@doi
   [Publications of the Astronomical Society of the Pacific] {10.1086/670067},
   125, 306–312
 
+\bibitem[\protect\citeauthoryear{{Fuskeland}, {Wehus}, {Eriksen}  \&
+  {N{\ae}ss}}{{Fuskeland} et~al.}{2014}]{Fuskeland_2014}
+{Fuskeland} U.,  {Wehus} I.~K.,  {Eriksen} H.~K.,   {N{\ae}ss} S.~K.,  2014,
+  \mn@doi [\apj] {10.1088/0004-637X/790/2/104}, \href
+  {https://ui.adsabs.harvard.edu/abs/2014ApJ...790..104F} {790, 104}
+
 \bibitem[\protect\citeauthoryear{Fuskeland et~al.,}{Fuskeland
-  et~al.}{2021}]{faraday_rotations}
-Fuskeland U.,  et~al., 2021, \mn@doi [Astronomy &amp; Astrophysics]
+  et~al.}{2021a}]{faraday_rotations}
+Fuskeland U.,  et~al., 2021a, \mn@doi [Astronomy &amp; Astrophysics]
+  {10.1051/0004-6361/202037629}, 646, A69
+
+\bibitem[\protect\citeauthoryear{Fuskeland et~al.,}{Fuskeland
+  et~al.}{2021b}]{Fuskeland_2021}
+Fuskeland U.,  et~al., 2021b, \mn@doi [Astronomy &amp; Astrophysics]
   {10.1051/0004-6361/202037629}, 646, A69
 
 \bibitem[\protect\citeauthoryear{{Gold} et~al.,}{{Gold}

@@ -19,11 +19,13 @@ The APS is expressed in terms of the spherical harmonic coefficients $a_{\ell m}
 
 where $X$ and $Y$ denote the two frequency bands. When $X = Y$ this reduces to the auto-power spectrum. Cross-spectra probe the signal component common to two independent observations, suppressing the contribution of uncorrelated noise. By combining auto- and cross-spectra from 14 frequency bands (2 QUIJOTE, 5 WMAP and 7 Planck channels), we form a total of 105 spectra (14 auto and 91 cross), greatly improving the constraining power on the foreground model parameters.
 
-All power spectra in this work are computed using the \namaster\ \python\ library\footnote{\url{https://namaster.readthedocs.io/en/latest/}} \citep{Namaster}, which implements the pseudo-$C_\ell$ method with an analytical treatment of the mode-coupling matrix induced by the sky mask. In particular, the E- and B-mode polarization fields are treated with B-mode purification \citep{Smith_2006}, which suppresses E-to-B leakage arising from the application of a partial sky mask. The power spectra are computed in nine multipole bins of width $\Delta\ell = 20$ over the range $20 \leq \ell \leq 199$, with bin edges defined as
+All power spectra in this work are computed using the \namaster\ \python\ library\footnote{\url{https://namaster.readthedocs.io/en/latest/}} \citep{Namaster}, which implements the pseudo-$C_\ell$ method with an analytical treatment of the mode-coupling matrix induced by the sky mask. In particular, the E- and B-mode polarization fields are treated with B-mode purification \citep{Smith_2006}, which suppresses E-to-B leakage arising from the application of a partial sky mask. The power spectra are computed in nine multipole bins of width $\Delta\ell = 20$ over the range $20 \leq \ell \leq 200$, with bin edges defined as
 
 \begin{equation}
     \ell_{\rm bin}^{(k)} \in [\ell_1^{(k)},\, \ell_2^{(k)}] = [20 + 20(k-1),\, 39 + 20(k-1)], \quad k = 1, \ldots, 9.
 \end{equation}
+
+The lower multipole limit of $\ell = 20$ is imposed by the FDEC filtering applied to the QUIJOTE-MFI maps to remove residual radio frequency interference (RFI) \citep{QUIJOTE_IV}. This filtering suppresses large-angular-scale modes, making multipoles below $\ell \approx 20$ unreliable for a power spectrum analysis. 
 
 The effective multipole $\ell_{\rm eff}$ reported for each bin is computed by \namaster\ as the weighted average of the individual multipoles within the bin:
 
@@ -198,7 +200,7 @@ Realistic simulated polarization sky maps for each frequency band and experiment
 
 The simulation includes both polarized and intensity foreground components. Since this work focuses exclusively on polarization, only the polarized components enter the power spectrum analysis; the intensity components are included solely to produce realistic total-intensity maps but do not contribute to the polarized signal and are not used in the fitting. The polarized foreground components are: synchrotron emission modelled as a power law with a spatially constant spectral index (\textbf{s1}); thermal dust emission described as a single-component modified blackbody (\textbf{d1}); and a lensed CMB polarization realization (\textbf{c1}), computed using the Taylens code \citep{Taylens} with unlensed $C_\ell$ produced by CAMB\footnote{\url{https://www.camb.info/}}. The intensity foreground components included are spinning dust (AME) modelled as a sum of two spinning dust populations (\textbf{a1}; \citealt{Planck_2015X}), and free-free emission following the analytic Commander model (\textbf{f1}); these are included for completeness but play no role in the polarization analysis.
 
-Simulations are produced independently for all 14 frequency bands. The sky emission at each band-centre frequency is obtained from \pysm, converted to thermodynamic CMB temperature units, and subsequently convolved in harmonic space with the instrumental beam window function of the corresponding experiment at a resolution of $N_{\rm side} = 512$.
+Simulated sky maps were generated independently for each of the 14 frequency bands using the \pysm\ sky model. For each band, the simulated emission was expressed in thermodynamic CMB temperature units and convolved in harmonic space with the corresponding instrumental effective beam window function. The final maps were produced at a \healpix\ resolution of $N_{\rm side} = 512$. No bandpass integration was performed, each map was generated at the band-centre frequency.
 
 \subsubsection{Noise simulations}
 \label{sec:noise_simulations}
@@ -211,7 +213,7 @@ The noise in the QUIJOTE-MFI maps is spatially correlated and anisotropic, and t
 
 \subsubsection*{WMAP}
 
-WMAP data are not affected by $1/f$ noise, so the noise is well described by a per-pixel Gaussian model. Following \citet{WMAP_maps}, $N_{\rm sim} = 100$ noise realization maps are generated as independent Gaussian random fields with zero mean and pixel-dependent standard deviation. The per-pixel noise level for polarization is:
+WMAP data are not significantly affected by $1/f$ noise, so the noise is well described by a per-pixel Gaussian model. Following \citet{WMAP_maps}, $N_{\rm sim} = 100$ noise realization maps are generated as independent Gaussian random fields with zero mean and pixel-dependent standard deviation. The per-pixel noise level for polarization is:
 
 \begin{equation}
     \label{eq:wmap_noise}
@@ -228,7 +230,7 @@ and analogously for U, where $N_{\rm obs}^Q$, $N_{\rm obs}^U$, and $N_{\rm obs}^
 
 \subsubsection*{Planck} 
 
-For Planck LFI and HFI bands, $N_{\rm sim} = 100$ per-band noise simulations are downloaded from the Planck Legacy Archive \citep{Planck_2020LVII}. These simulations are generated using the MCMC-based noise estimation procedures described in the respective data processing papers for LFI \citep{Planck_2015II} and HFI \citep{Planck_2018III}, which characterise the noise power spectrum including contributions from the $1/f$ noise component of the detectors. Each simulation map is processed identically to the data in the analysis pipeline.
+For Planck LFI and HFI bands (PR3 data), $N_{\rm sim} = 100$ per-band noise simulations are downloaded from the Planck Legacy Archive \citep{Planck_2020LVII}. These simulations are generated using the MCMC-based noise estimation procedures described in the respective data processing papers for LFI \citep{Planck_2015II} and HFI \citep{Planck_2018III}, which characterise the noise power spectrum including contributions from the $1/f$ noise component of the detectors. Each simulation map is processed identically to the data in the analysis pipeline.
 
 % ---------------------------------------------------------------
 \subsection{Foreground emission model}
@@ -242,7 +244,7 @@ The measured power spectra over the frequency range 11-353~GHz are dominated by 
     C_\ell(\nu_i, \nu_j) = C_\ell^{\rm sync}(\nu_i, \nu_j) + C_\ell^{\rm dust}(\nu_i, \nu_j) + C_\ell^{\rm corr}(\nu_i, \nu_j).
 \end{equation}
 
-Here $C_\ell^{\rm sync}$ is the synchrotron power spectrum, modelled as a power law in both frequency and multipole (Section~\ref{sec:synchrotron}); $C_\ell^{\rm dust}$ is the thermal dust power spectrum, modelled via a modified blackbody SED (Section~\ref{sec:dust}); and $C_\ell^{\rm corr}$ is the synchrotron-dust cross-correlation term, which accounts for any spatial correlation between the two components (Section~\ref{sec:corr}).
+Here $C_\ell^{\rm sync}$ is the synchrotron power spectrum, modelled as a power law in both frequency and multipole space (Section~\ref{sec:synchrotron}). $C_\ell^{\rm dust}$ is the thermal dust power spectrum, modelled via a modified blackbody SED (Section~\ref{sec:dust}); and $C_\ell^{\rm corr}$ is the synchrotron-dust cross-correlation term, which accounts for any spatial correlation between the two components (Section~\ref{sec:corr}).
 
 \subsubsection{Synchrotron emission}
 \label{sec:synchrotron}
@@ -253,7 +255,7 @@ Synchrotron radiation is the dominant polarized foreground at frequencies below 
     S_s(\nu) = \left(\frac{\nu}{\nu_{\rm ref}}\right)^{\beta_s},
 \end{equation}
 
-the synchrotron power spectrum is:
+\noindent the synchrotron power spectrum is:
 
 \begin{equation}
     \label{eq:synch_model}
@@ -261,7 +263,7 @@ C_\ell^{\rm sync}(\nu_i, \nu_j) = A_s \left(\frac{\ell}{\ell_{\rm ref}}\right)^{
 S_s(\nu_i)\, S_s(\nu_j),
 \end{equation}
 
-where $A_s$ is the synchrotron amplitude at the reference multipole $\ell_{\rm ref} = 80$ and reference frequency $\nu_{\rm ref} = 23.0$~GHz, $\alpha_s$ is the angular power spectral index, and $\beta_s$ is the frequency spectral index in Rayleigh-Jeans units.
+where $A_s$ is the synchrotron amplitude at the reference multipole $\ell_{\rm ref} = 80$ and reference frequency $\nu_{\rm ref} = 23.0$~GHz, $\alpha_s$ is the multipole spectral index, and $\beta_s$ is the frequency spectral index in Rayleigh-Jeans units.
 
 \subsubsection{Thermal dust emission}
 \label{sec:dust}
@@ -305,13 +307,15 @@ Before fitting the foreground model, the CMB contribution is subtracted from the
 \label{sec:mcmc}
 % ---------------------------------------------------------------
 
-We adopt a Bayesian framework to constrain the foreground model parameters from the measured power spectra. The full parameter vector for the power-law fitting is $\boldsymbol{\theta} = \{A_s, \alpha_s, \beta_s, A_d, \alpha_d, \beta_d, \rho\}$, where the EE and BB modes are fitted separately in this work. The posterior distribution is:
+We adopt a Bayesian framework to constrain the foreground model parameters from the measured power spectra. The full parameter vector for the power-law fitting is $\boldsymbol{\theta} = \{A_s, \alpha_s, \beta_s, A_d, \alpha_d, \beta_d, \rho\}$, where the EE and BB modes are fitted separately in this work. The posterior distribution of the parameters $\boldsymbol{\theta}$ is
 
 \begin{equation}
 p(\boldsymbol{\theta} \mid \mathbf{D}) \propto \mathcal{L}(\mathbf{D} \mid \boldsymbol{\theta})\, p(\boldsymbol{\theta}),
 \end{equation}
 
-where $p(\boldsymbol{\theta} \mid \mathbf{D})$ is the posterior probability of the parameters given the data $\mathbf{D}$, $\mathcal{L}(\mathbf{D} \mid \boldsymbol{\theta})$ is the likelihood of observing the data under the model with parameters $\boldsymbol{\theta}$, and $p(\boldsymbol{\theta})$ is the prior encoding our knowledge of the parameters before seeing the data. The posterior is thus proportional to the product of the likelihood and the prior, with the normalization constant (the Bayesian evidence) being irrelevant for parameter estimation.
+with $\mathcal{L}(\mathbf{D} \mid \boldsymbol{\theta})$ the likelihood of the data $\mathbf{D}$ given the parameters, and $p(\boldsymbol{\theta})$ the prior. The posterior is thus proportional to the product of the likelihood and the prior, with the normalization constant (the Bayesian evidence) being irrelevant for parameter estimation.
+
+
 
 \subsubsection{Likelihood}
 \label{sec:likelihood}
@@ -350,9 +354,9 @@ Posterior sampling is performed with the \emcee\ affine-invariant ensemble sampl
 \label{sec:fitting_methods}
 % ---------------------------------------------------------------
 
-Two complementary fitting approaches are applied to the corrected power spectra over the multipole range $20 \leq \ell \leq 199$, using data from all 14 frequency bands described in Section~\ref{sec:data}. The baseline analysis includes both auto- and cross-spectra, yielding 105 independent spectra. 
+Two complementary fitting approaches are applied to the corrected power spectra over the multipole range $20 \leq \ell \leq 200$, using data from all 14 frequency bands described in Section~\ref{sec:data}. The baseline analysis includes both auto- and cross-spectra, yielding 105 independent spectra. 
 
-Moreover, a complementary study restricted to cross-spectra only, which avoids any noise bias in the auto-spectra, is presented in Appendix~\ref{sec:appendix_1}; and a study fitting in the multipole range $30 \leq \ell \leq 199$ suggested in \cite{QUIJOTE_IV} is oresented in Appendix~\ref{sec:appendix_2}.
+Moreover, a complementary study restricted to cross-spectra only, which avoids any noise bias in the auto-spectra, is presented in Appendix~\ref{sec:appendix_1}; and a study fitting in the multipole range $30 \leq \ell \leq 200$ suggested in \cite{QUIJOTE_IV} is oresented in Appendix~\ref{sec:appendix_2}.
 
 \subsubsection{Power-law fitting}
 \label{sec:fitting_methods_pl}
@@ -362,4 +366,4 @@ In this approach all nine multipole bins are fitted simultaneously by the global
 \subsubsection{Bin-to-bin analysis}
 \label{sec:fitting_methods_btb}
 
-In this approach each multipole bin is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$; the multipole spectral indices ($\alpha_s$, $\alpha_d$) are unconstrained in a single-bin analysis. This approach enables us to examine how the fitted parameters vary with the effective multipole, $\ell_{\rm eff}$, revealing any scale-dependent behavior or local deviations from the global power-law assumption.
+In this approach each multipole bin is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$. The multipole spectral indices ($\alpha_s$, $\alpha_d$) are not fitted in a single-bin analysis. This approach enables us to examine how the fitted parameters vary with the effective multipole, $\ell_{\rm eff}$, revealing any scale-dependent behavior or local deviations from the global power-law assumption.

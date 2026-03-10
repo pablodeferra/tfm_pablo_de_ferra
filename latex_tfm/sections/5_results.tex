@@ -1,7 +1,7 @@
 \section{RESULTS}
 \label{sec:results}
 
-In this section we present the results of the foreground power spectrum analysis described in Section~\ref{sec:methodology}. The analysis is performed over the multipole range $20 \leq \ell \leq 199$ using the combined 14-band of QUIJOTE, WMAP and Planck dataset. Two complementary fitting approaches are applied: a global power-law fit (Section~\ref{sec:fitting_methods_pl}) and an independent bin-to-bin fit (Section~\ref{sec:fitting_methods_btb}). For each approach, results are obtained for three Galactic masks defined by latitude cuts at $|b| > 10^\circ$, $15^\circ$, and $20^\circ$ (Section~\ref{sec:masks}), allowing us to assess the robustness of the derived foreground parameters with respect to Galactic plane contamination. In all cases, the EE and BB polarization modes are fitted separately.
+In this section we present the results of the foreground power spectrum analysis described in Section~\ref{sec:methodology}. The analysis is performed over the multipole range $20 \leq \ell \leq 200$ using the combined 14-band of QUIJOTE, WMAP and Planck dataset. Two complementary fitting approaches are applied: a global power-law fit (Section~\ref{sec:fitting_methods_pl}) and an independent bin-to-bin fit (Section~\ref{sec:fitting_methods_btb}). For each approach, results are obtained for three Galactic masks defined by latitude cuts at $|b| > 10^\circ$, $15^\circ$, and $20^\circ$ (Section~\ref{sec:masks}), allowing us to assess the robustness of the derived foreground parameters with respect to Galactic plane contamination. In all cases, the EE and BB polarization modes are fitted separately.
 
 \paragraph{}
 
@@ -9,76 +9,42 @@ The foreground model and the Bayesian inference framework are described in Secti
 
 \paragraph{}
 
-The multipole range adopted here starts at $\ell = 20$, rather than the $\ell \geq 30$ range used in several comparable studies \citep{QUIJOTE_IV, Martire_2022}. The choice is motivated by the behaviour of the BB-mode power-law fit: the BB signal is intrinsically fainter than EE and falls steeply with multipole, so the first bin ($\ell_{\rm eff} = 29$) carries a large fraction of the constraining power on the angular spectral index $\alpha_s$. When this bin is excluded, the remaining bins at smaller angular scales provide insufficient leverage to anchor the power-law slope, leading to steeper and poorly constrained values of $\alpha_s$. Including the first bin resolves this degeneracy and yields well-constrained, physically consistent results for the BB mode. This effect is demonstrated in Appendix~\ref{sec:appendix_2}, where results obtained over the range $30 \leq \ell \leq 199$ are presented for comparison.
+The multipole range adopted here starts at $\ell = 20$, rather than the $\ell \geq 30$ range used in several comparable studies \citep{QUIJOTE_IV, Martire_2022}. The choice is motivated by the behaviour of the BB-mode power-law fit: the BB signal is intrinsically fainter than EE and falls steeply with multipole, so the first bin ($\ell_{\rm eff} = 29$) carries a large fraction of the constraining power on the angular spectral index $\alpha_s$. When this bin is excluded, the remaining bins at smaller angular scales provide insufficient leverage to anchor the power-law slope, leading to steeper and poorly constrained values of $\alpha_s$. Including the first bin resolves this degeneracy and yields well-constrained, physically consistent results for the BB mode. This effect is demonstrated in Appendix~\ref{sec:appendix_2}, where results obtained over the range $30 \leq \ell \leq 200$ are presented for comparison.
 
 % --------------------------------
 \subsection{Power-law fitting}
 % --------------------------------
 
-The global power-law model (Section~\ref{sec:fitting_methods_pl}) is fitted simultaneously over all nine multipole bins and all 105 frequency spectra. The posterior constraints on the synchrotron amplitude $A_s$, multipole spectral index $\alpha_s$, frequency spectral index $\beta_s$, dust amplitude $A_d$, multipole spectral index $\alpha_d$, frequency spectral index $\beta_d$, and synchrotron-dust correlation coefficient $\rho$ are reported as the median and $68\%$ credible intervals. 
+The global power-law model (Section~\ref{sec:fitting_methods_pl}) is fitted simultaneously over all nine multipole bins and all 105 frequency spectra. The posterior constraints on the synchrotron amplitude $A_s$, multipole spectral index $\alpha_s$, frequency spectral index $\beta_s$, dust amplitude $A_d$, multipole spectral index $\alpha_d$, frequency spectral index $\beta_d$, and synchrotron-dust correlation coefficient $\rho$ are reported as the median and $68\%$ credible intervals. In order to quantify the goodness of the fit, in Appendix \ref{sec:appendix_3}, we present a table including all the reduced $\chi^2$ values obtained for all power-law fittings of this work.
 
 \paragraph{}
 
 Results are obtained separately for EE and BB polarization modes, and for two dataset combinations: WMAP+Planck (WP+Pl) and QUIJOTE+WMAP+Planck (QJ+WP+Pl). These combinations are used to quantify the impact of including QUĲOTE-MFI data in the analysis.
 
-Our best-fit results, obtained from the marginalized posterior distributions for each parameter, and for the three Galactic masks are presented in Table~\ref{tab:fit_all_masks_all_pairs_ell20-200}.  Figures~\ref{fig:aps_galcut10_fit}, \ref{fig:aps_galcut15_fit}, and \ref{fig:aps_galcut20_fit} show the corresponding best-fit synchrotron and dust spectral models overlaid on the measured frequency power spectra for the $|b| > 10^\circ$, $|b| > 15^\circ$, and $|b| > 20^\circ$ masks, respectively.
+Our best-fit results, obtained from the marginalized posterior distributions for each parameter, and for the three Galactic masks are presented in Table~\ref{tab:fit_all_masks_all_pairs_ell20-200}.  Figures~\ref{fig:synch_fit} and \ref{fig:dust_fit} show the corresponding best-fit synchrotron and dust respectively. These figures show the spectral models overlaid on the measured frequency power spectra for the $|b| > 10^\circ$, $15^\circ$ and $20^\circ$ masks.
 
 
 \input{tables/table_quijote_galcut10-15-20_ell20-200_all_pairs.tex}
 
 
+\begin{figure}[h]
+    \begin{adjustbox}{center}
+    \includegraphics[width=1.2\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_synch_bands.pdf}
+    \end{adjustbox}
+    \caption{Measured auto- and cross-power spectra in the low-frequency bands (11, 23 and 30 GHz) for three Galactic masks. Each row corresponds to a mask (top to bottom: $|b|>10^\circ$, $15^\circ$, $20^\circ$) and the four columns show, from left to right, auto-spectra EE, auto-spectra BB, cross-spectra EE and cross-spectra BB. Markers are binned band powers $C_{\ell}$ with $1\sigma$ uncertainties (circles for auto-spectra, and triangles for cross-spectra). Solid lines show the best-fit full model from Equation \ref{eq:full_model} evaluated for each band pair.}
+    \label{fig:synch_fit}
+\end{figure}
 
 \begin{figure}[h]
     \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut10.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut10.pdf}
-    \end{minipage}
+    \includegraphics[width=1.2\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_dust_bands.pdf}
     \end{adjustbox}
-    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 10^\circ$ Galactic mask.}
-    \label{fig:aps_galcut10_fit}
+    \caption{Measured auto- and cross-power spectra in the high-frequency bands (100, 217 and 353 GHz) for three Galactic masks. Each row corresponds to a mask (top to bottom: $|b|>10^\circ$, $15^\circ$, $20^\circ$) and the four columns show, from left to right, auto-spectra EE, auto-spectra BB, cross-spectra EE and cross-spectra BB. Markers are binned band powers $C_{\ell}$ with $1\sigma$ uncertainties (circles for auto-spectra, and triangles for cross-spectra). Solid lines show the best-fit full model from Equation \ref{eq:full_model} evaluated for each band pair.}
+    \label{fig:dust_fit}
 \end{figure}
 
 
-
-\begin{figure}[h]
-    \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut15.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut15.pdf}
-    \end{minipage}
-    \end{adjustbox}
-    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 15^\circ$ Galactic mask.}
-    \label{fig:aps_galcut15_fit}
-\end{figure}
-
-
-\begin{figure}[h]
-    \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_quijote_galcut20.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_quijote_galcut20.pdf}
-    \end{minipage}
-    \end{adjustbox}
-    \caption{Best-fit global power-law models for synchrotron and thermal dust emission overlaid on the measured EE and BB frequency power spectra, for the $|b| > 20^\circ$ Galactic mask.}
-    \label{fig:aps_galcut20_fit}
-\end{figure}
-
+The global power-law model provides an adequate description of the measured spectra over the fitted multipole range, as shown in Figures~\ref{fig:synch_fit} and \ref{fig:dust_fit}. The fits are visually satisfactory for the cross-spectra in both the synchrotron- and dust-dominated bands. For the auto-spectra, however, individual multipole bins occasionally fall outside the best-fit curve by more than $1\sigma$, particularly at intermediate multipoles where noise contributions are less uniform across band pairs. These residuals are more pronounced for the auto-spectra than for the cross-spectra, consistent with the fact that auto-spectra carry an additional noise bias whose estimation and subtraction introduce extra scatter. Despite these localized deviations, the global fit captures the overall frequency and multipole dependences of the signal. The reduced $\chi^2$ values reported in Appendix~\ref{sec:appendix_3} show that the model, in general, is statistically acceptable. However, if the auto-spectra is not included in the fitting (see Appendix \ref{sec:appendix_1}), the $\chi^2$ values show a better agreement between the data and the model. This could indicate a problem in the noise modelling, still present in the auto-spectra data. 
 
 \subsubsection{Synchrotron amplitude $A_s$}
 \label{sec:synch_amp_pl}
@@ -102,9 +68,13 @@ The angular spectral index $\alpha_s$ parametrizes the multipole-dependence of t
 
 For the QJ+WP+Pl dataset, the EE spectral index takes values of $\alpha_s^{EE} \approx -3.7$ across all three masks, indicating a steep, large-scale-dominated spectrum. The BB spectral index is less tightly constrained, yielding $\alpha_s^{BB} \approx -3.3$ to $-3.4$ with uncertainties of $\sim 0.12\text{-}0.16$, also consistent across masks. The QUIJOTE-MFI data reduces the uncertainty on $\alpha_s^{EE}$ by roughly a factor of $1.7$ and on $\alpha_s^{BB}$ by a factor of $\sim 1.5$ with respect to WP+Pl alone, primarily by breaking the degeneracy between the angular and frequency dependences of the synchrotron model.
 
-Although the BB values are nominally less steep than EE by $\sim 0.3\text{-}0.4$ across all masks and dataset combinations, the difference is only significant at about the $\sim 2\sigma$ level because the BB uncertainties are much larger. For that reason, the current data do not provide robust evidence for a genuine difference between the EE and BB angular slopes. This becomes even clearer when the baseline fit is compared with the $30 \leq \ell \leq 199$ case discussed in Appendix~\ref{sec:appendix_2}. Once the first multipole bin ($\ell_{\rm eff} = 29$) is removed, the trend reverses and the BB slope becomes steeper than the EE slope for all three masks (e.g., $\alpha_s^{BB} \approx -4.1$ versus $\alpha_s^{EE} \approx -2.9$ for $|b| > 10^\circ$), but with very large BB uncertainties. The fact that the sign of the $\alpha_s^{EE} - \alpha_s^{BB}$ difference changes with the fitting range shows that the relative slope is not yet robustly constrained and remains sensitive to the low-$\ell$ binning.
+Although the BB values are nominally less steep than EE by $\sim 0.3\text{-}0.4$ across all masks and dataset combinations, the difference is only significant at about the $\sim 2\sigma$ level because the BB uncertainties are much larger. For that reason, the current data do not provide robust evidence for a genuine difference between the EE and BB angular slopes. This becomes even clearer when the baseline fit is compared with the $30 \leq \ell \leq 200$ case discussed in Appendix~\ref{sec:appendix_2}. Once the first multipole bin ($\ell_{\rm eff} = 29$) is removed, the trend reverses and the BB slope becomes steeper than the EE slope for all three masks (e.g., $\alpha_s^{BB} \approx -4.1$ versus $\alpha_s^{EE} \approx -2.9$ for $|b| > 10^\circ$), but with very large BB uncertainties. The fact that the sign of the $\alpha_s^{EE} - \alpha_s^{BB}$ difference changes with the fitting range shows that the relative slope is not yet robustly constrained and remains sensitive to the low-$\ell$ binning.
 
-This same dependence on the fitted multipole range also helps explain the comparison with previous work. The baseline EE values found here ($\alpha_s^{EE} \approx -3.6$ to $-3.8$) are steeper than the $-2.94 \pm 0.05$ reported by \citet{Martire_2022} using WMAP and Planck alone, and steeper than the $-3.16 \pm 0.03$ obtained by \citet{Krachmalnicoff_2018} with S-PASS at 2.3~GHz. However, in Appendix~\ref{sec:appendix_2}, where the first bin is excluded, the EE slopes flatten to $\alpha_s^{EE} \approx -2.7$ to $-3.0$, bringing them much closer to those literature values. This suggests that part of the discrepancy is driven by the extra leverage introduced by the $\ell_{\rm eff} = 29$ bin in our baseline analysis, while any remaining disagreement with S-PASS may also reflect the different sky regions covered by the two experiments. A more specific study is needed in order to draw firmer conclusions about these discrepancies.
+This same dependence on the fitted multipole range also helps explain the comparison with previous work. The baseline EE values found here ($\alpha_s^{EE} \approx -3.6$ to $-3.8$) are steeper than the $-2.94 \pm 0.05$ reported by \citet{Martire_2022} using WMAP and Planck alone, and steeper than the $-3.16 \pm 0.03$ obtained by \citet{Krachmalnicoff_2018} with S-PASS at 2.3~GHz. However, in Appendix~\ref{sec:appendix_2}, when the first bin is excluded, the EE slopes flatten to $\alpha_s^{EE} \approx -2.7$ to $-3.0$, bringing them much closer to those literature values. This suggests that part of the discrepancy is driven by the extra leverage introduced by the $\ell_{\rm eff} = 29$ bin in our baseline analysis, while any remaining disagreement with S-PASS may also reflect the different sky regions covered by the two experiments.
+
+To further investigate the sensitivity of $\alpha_s$ to the binning choice, we performed a set of auxiliary single-band fits using the QUIJOTE 11~GHz, WMAP 23~GHz and Planck 30~GHz maps independently. In these tests each band is fitted to a simple power law in multipole space with only amplitude $A$ and slope $\alpha$ as free parameters (i.e.\ without the frequency spectral index $\beta_s$, since no frequency combination is involved). Additionally, a constant parameter (without any dependency on the multipole) was included in the model for a secondary set of auxiliary tests. This constant term accounting for possible mismodelings of the noise and contributions of point radio sources. Two binning schemes were explored: $\Delta\ell = 10$ and $\Delta\ell = 20$.
+
+With $\Delta\ell = 10$ binning, the slope estimates remain broadly consistent with $\alpha_s \approx -3$ for both polarization modes across all three bands, in good agreement with the global power-law results obtained in \cite{QUIJOTE_IV} and \cite{Martire_2022}. With $\Delta\ell = 20$ binning the fitting is more sensitive to whether the lowest-$\ell$ bin is included. When the first bin is excluded ($\ell_{\rm eff} = 29$), the EE slope tends toward flatter values near $-3$, while the BB mode is too faint to be well constrained, yielding large uncertainties and unreliable slope estimates, particularly for WMAP and Planck, explaining the results presented in Appendix \ref{sec:appendix_2} for the multipole spectral index. When the first bin is included, the EE slope steepens, consistent with what is seen in Table~\ref{tab:fit_all_masks_all_pairs_ell20-200}, but the BB fit improves substantially as the high-signal first bin provides the leverage needed to anchor the power-law slope, leading to well-constrained values of $\alpha_s^{BB}$ near $-3$. This confirms that the steeper EE slopes in the baseline analysis are a consequence of the additional low-$\ell$ leverage, and that including this bin is essential for obtaining reliable BB constraints with the current data and binning scheme. Nevertheless, a more specific study is needed in order to draw firmer conclusions about these discrepancies.
 
 \subsubsection{Synchrotron frequency spectral index $\beta_s$}
 \label{sec:synch_bet_pl}
@@ -204,3 +174,23 @@ The bin-to-bin posterior constraints for the $|b| > 20^\circ$ mask are given in 
 
 \input{/home/pablo/Desktop/master/tfm/tables/final/bin-to-bin/btb_quijote_galcut20_ell20-200_all_pairs_QUIJOTEpWMAPpPlanck.tex}
 
+
+
+
+\begin{figure}[h]
+    \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/beta_s_vs_ell_bin_to_bin.pdf}
+    \caption{Synchrotron spectral index $\beta_s$ for E-modes (top panel) and B-modes (bottom panel), for the three Galactic cuts from the bin-to-bin analysis (Tables \ref{tab:bin_to_bin_galcut10_all_pairs}, \ref{tab:bin_to_bin_galcut15_all_pairs} and \ref{tab:bin_to_bin_galcut20_all_pairs}) using the WM+Pl+QJ dataset. The dashed line marks the $\beta_s = -3.1$ value as a reference.}
+    \label{fig:beta_s_bin-to-bin}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/beta_d_vs_ell_bin_to_bin.pdf}
+    \caption{Dust spectral index $\beta_d$ for E-modes (top panel) and B-modes (bottom panel), for the three Galactic cuts from the bin-to-bin analysis (Tables \ref{tab:bin_to_bin_galcut10_all_pairs}, \ref{tab:bin_to_bin_galcut15_all_pairs} and \ref{tab:bin_to_bin_galcut20_all_pairs}) using the WM+Pl+QJ dataset. The dashed line marks the $\beta_d = 1.53$ value as a reference.}
+    \label{fig:beta_d_bin-to-bin}
+\end{figure}
+
+\begin{figure}[h]
+    \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/rho_vs_ell_bin_to_bin.pdf}
+    \caption{Synchrotron-dust spatial correlation $\rho$ for E-modes (top panel) and B-modes (bottom panel), for the three Galactic cuts from the bin-to-bin analysis (Tables \ref{tab:bin_to_bin_galcut10_all_pairs}, \ref{tab:bin_to_bin_galcut15_all_pairs} and \ref{tab:bin_to_bin_galcut20_all_pairs}) using the WM+Pl+QJ dataset.The dashed line marks the $\rho = 0$ value as a reference.}
+    \label{fig:rho_bin-to-bin}
+\end{figure}

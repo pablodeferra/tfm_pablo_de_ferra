@@ -18,61 +18,60 @@ plt.rcParams.update({
 })
 
 # ---------------------------------------------------------------
-# ρ data extracted from the three bin-to-bin tables (QJ+WP+Pl)
-# Structure: RHO[mask_key][mode] = dict(ell, rho, err_up, err_dn)
+# beta_s data extracted from the three bin-to-bin tables (QJ+WP+Pl)
+# Structure: DATA[mask_key][mode] = dict(ell, val, err_up, err_dn)
 # ---------------------------------------------------------------
-RHO = {
+DATA = {
     'galcut10': {
         'EE': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.092, 0.117, 0.044, 0.055, 0.037, 0.174, 0.225, 0.073, 0.119]),
-            err_up = np.array([0.007, 0.013, 0.014, 0.021, 0.028, 0.044, 0.057, 0.062, 0.099]),
-            err_dn = np.array([0.007, 0.014, 0.014, 0.019, 0.027, 0.041, 0.048, 0.059, 0.068]),
+            val    = np.array([-3.075, -3.135, -3.234, -3.133, -2.966, -2.594, -2.909, -3.094, -2.903]),
+            err_up = np.array([0.018, 0.050, 0.068, 0.116, 0.165, 0.230, 0.238, 0.278, 0.296]),
+            err_dn = np.array([0.018, 0.047, 0.069, 0.110, 0.164, 0.219, 0.238, 0.271, 0.299]),
         ),
         'BB': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.117,  0.104, 0.088, 0.153, 0.104,  0.143, -0.029, -0.054, 0.068]),
-            err_up = np.array([0.014,  0.020, 0.055, 0.096, 0.071,  0.062,  0.141,  0.051, 0.079]),
-            err_dn = np.array([0.014,  0.020, 0.042, 0.055, 0.049,  0.044,  0.154,  0.056, 0.065]),
+            val    = np.array([-3.010, -3.125, -3.154, -2.988, -2.697, -2.965, -2.976, -3.070, -3.169]),
+            err_up = np.array([0.059, 0.112, 0.272, 0.232, 0.246, 0.247, 0.333, 0.319, 0.326]),
+            err_dn = np.array([0.059, 0.110, 0.254, 0.239, 0.259, 0.237, 0.309, 0.310, 0.320]),
         ),
     },
     'galcut15': {
         'EE': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.078,  0.046, -0.007, 0.080, 0.097, 0.123, 0.148, 0.030, 0.111]),
-            err_up = np.array([0.008,  0.016,  0.019, 0.023, 0.030, 0.049, 0.058, 0.063, 0.137]),
-            err_dn = np.array([0.008,  0.016,  0.018, 0.022, 0.029, 0.044, 0.050, 0.059, 0.085]),
+            val    = np.array([-3.078, -3.107, -3.234, -3.148, -2.907, -2.815, -2.822, -2.991, -2.909]),
+            err_up = np.array([0.019, 0.056, 0.084, 0.120, 0.170, 0.247, 0.259, 0.280, 0.305]),
+            err_dn = np.array([0.019, 0.056, 0.083, 0.119, 0.170, 0.243, 0.273, 0.273, 0.305]),
         ),
         'BB': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.164,  0.041, 0.121, 0.125,  0.041,  0.091,  0.023, -0.097, -0.004]),
-            err_up = np.array([0.017,  0.022, 0.091, 0.093,  0.060,  0.066,  0.163,  0.061,  0.063]),
-            err_dn = np.array([0.017,  0.021, 0.057, 0.062,  0.053,  0.055,  0.135,  0.068,  0.061]),
+            val    = np.array([-3.086, -3.092, -3.118, -2.812, -2.754, -3.018, -2.968, -3.229, -2.877]),
+            err_up = np.array([0.070, 0.127, 0.261, 0.241, 0.269, 0.271, 0.305, 0.277, 0.249]),
+            err_dn = np.array([0.068, 0.127, 0.262, 0.258, 0.290, 0.270, 0.309, 0.278, 0.271]),
         ),
     },
     'galcut20': {
         'EE': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.009,  0.067, -0.091, 0.062, 0.041, 0.180, 0.097, 0.027, 0.122]),
-            err_up = np.array([0.010,  0.015,  0.022, 0.025, 0.038, 0.059, 0.052, 0.064, 0.145]),
-            err_dn = np.array([0.009,  0.015,  0.022, 0.024, 0.036, 0.052, 0.047, 0.062, 0.099]),
+            val    = np.array([-3.103, -3.119, -3.210, -3.144, -2.950, -2.783, -2.672, -3.016, -2.911]),
+            err_up = np.array([0.021, 0.056, 0.085, 0.128, 0.200, 0.237, 0.219, 0.279, 0.299]),
+            err_dn = np.array([0.021, 0.055, 0.085, 0.130, 0.205, 0.242, 0.236, 0.274, 0.300]),
         ),
         'BB': dict(
             ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
-            rho    = np.array([0.171,  0.035,  0.185, 0.079, 0.046,  0.106, -0.004, -0.082, -0.077]),
-            err_up = np.array([0.020,  0.028,  0.121, 0.094, 0.064,  0.081,  0.155,  0.062,  0.064]),
-            err_dn = np.array([0.020,  0.027,  0.072, 0.070, 0.059,  0.064,  0.144,  0.067,  0.067]),
+            val    = np.array([-3.039, -3.086, -2.963, -2.872, -2.750, -3.033, -2.954, -3.149, -2.741]),
+            err_up = np.array([0.072, 0.142, 0.289, 0.254, 0.280, 0.268, 0.308, 0.269, 0.218]),
+            err_dn = np.array([0.072, 0.134, 0.288, 0.267, 0.290, 0.263, 0.308, 0.269, 0.245]),
         ),
     },
 }
 
 # ---------------------------------------------------------------
-# Visual encoding — mirrors the reference figure
-# mask shapes, offset along ell for clarity
+# Visual encoding
 # ---------------------------------------------------------------
 MASK_STYLES = {
     'galcut10': dict(color='steelblue',  marker='o', label=r'$\pm10\degree$', offset=-1.7),
-    'galcut15': dict(color='k', marker='^', label=r'$\pm15\degree$', offset= 0),
+    'galcut15': dict(color='k',          marker='^', label=r'$\pm15\degree$', offset= 0),
     'galcut20': dict(color='goldenrod',  marker='s', label=r'$\pm20\degree$', offset=+1.7),
 }
 
@@ -94,19 +93,16 @@ legend_handles = [
     for mstyle in MASK_STYLES.values()
 ]
 
-for ax, mode, panel_label in [
-        (ax_EE, 'EE', 'EE'),
-        (ax_BB, 'BB', 'BB')]:
+for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
 
-    # Panel titles removed; using y-axis labels to indicate EE/BB
-    ax.axhline(0, color='grey', lw=0.8, ls='--', zorder=1)
+    ax.axhline(-3.1, color='grey', lw=0.8, ls='--', zorder=1)
 
     for mask_key, mstyle in MASK_STYLES.items():
-        d    = RHO[mask_key][mode]
+        d    = DATA[mask_key][mode]
         xpos = d['ell'] + mstyle['offset']
         ax.errorbar(
             xpos,
-            d['rho'],
+            d['val'],
             yerr=[d['err_dn'], d['err_up']],
             fmt=mstyle['marker'],
             color=mstyle['color'],
@@ -117,16 +113,14 @@ for ax, mode, panel_label in [
             zorder=3,
         )
 
-    # Label y-axis with rho^{EE} or rho^{BB} instead of placing titles at the top
     if mode == 'EE':
-        ax.set_ylabel(r'$\rho^{EE}$', fontsize=15)
+        ax.set_ylabel(r'$\beta^{\rm EE}_{\rm s}$', fontsize=15)
     else:
-        ax.set_ylabel(r'$\rho^{BB}$', fontsize=15)
-    # ax.grid(True, axis='y', lw=0.4, alpha=0.5)
+        ax.set_ylabel(r'$\beta^{\rm BB}_{\rm s}$', fontsize=15)
     ax.set_xlim(10, 220)
-    ax.set_ylim(-0.2, 0.4)
+    ax.set_ylim(-3.6, -2.4)
 
-# legend inside the EE panel (top right)
+# legend inside the EE panel (upper right)
 ax_EE.legend(
     handles=legend_handles,
     loc='upper right',
@@ -150,8 +144,8 @@ plt.show()
 # ---------------------------------------------------------------
 out_dir = '/home/pablo/Desktop/master/tfm/figures/spectra/'
 os.makedirs(out_dir, exist_ok=True)
-fig.savefig(os.path.join(out_dir, 'rho_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
-print('Saved rho_vs_ell_bin_to_bin.pdf')
+fig.savefig(os.path.join(out_dir, 'beta_s_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
+print('Saved beta_s_vs_ell_bin_to_bin.pdf')
 
 # ---------------------------------------------------------------
 # Transparent PNG helper (black -> white)
@@ -228,7 +222,7 @@ def save_transparent_white(fig, path, dpi=300):
 ppt_dir = '/home/pablo/Desktop/master/tfm/figures_ppt/spectra/'
 save_transparent_white(
     fig,
-    os.path.join(ppt_dir, 'rho_vs_ell_bin_to_bin_transparent.png'),
+    os.path.join(ppt_dir, 'beta_s_vs_ell_bin_to_bin_transparent.png'),
     dpi=300)
 
 plt.show()

@@ -400,3 +400,146 @@ for mask_name, spectra_plot in SPECTRA.items():
         f'/home/pablo/Desktop/master/tfm/figures_ppt/spectra/spectra_dust_bands_full_model_fit_cross_only_{mask_name}_transparent.png',
         dpi=300)
     plt.close(fig_d)
+
+
+# =================================================================
+# COMBINED FIGURES — 3 rows (masks) × 4 columns
+#   Figure A: synchrotron bands  11, 23, 30 GHz
+#   Figure B: dust bands        100, 217, 353 GHz
+# Each panel shows exactly 3 curves (auto or cross), with data
+# points and the corresponding model fit line.
+# =================================================================
+
+#%%
+mask_order = ['quijote_galcut10', 'quijote_galcut15', 'quijote_galcut20']
+row_labels = [r'$10°$', r'$15°$', r'$20°$']
+col_titles = ['Auto-spectra — EE', 'Auto-spectra — BB',
+              'Cross-spectra — EE', 'Cross-spectra — BB']
+
+def _make_combined(band_cfgs, cross_cfgs, fig_label):
+    """
+    band_cfgs  : list of dict(b, f, color, label)  — 3 auto bands
+    cross_cfgs : list of dict(b1, b2, f1, f2, color, label)  — 3 cross pairs
+    fig_label  : str used in output filenames
+    """
+    fig, axes = plt.subplots(
+        3, 4, figsize=(27, 14),
+        sharex=True,
+        gridspec_kw={'hspace': 0.08, 'wspace': 0.28},
+    )
+
+    for col_idx, title in enumerate(col_titles):
+        axes[0, col_idx].set_title(title, fontsize=15)
+
+    for row_idx, mask_name in enumerate(mask_order):
+        spectra_plot = SPECTRA[mask_name]
+        params       = FIT_PARAMS[mask_name]
+
+        # left column: only show the numeric y-axis label (no mask name)
+        axes[row_idx, 0].set_ylabel(
+            r'$C_\ell\;[\mu\mathrm{K}^2]$',
+            fontsize=15,
+        )
+
+        for col_idx, mode in [(0, 'EE'), (1, 'BB'), (2, 'EE'), (3, 'BB')]:
+            ax       = axes[row_idx, col_idx]
+            is_cross = col_idx >= 2
+            cfgs     = cross_cfgs if is_cross else band_cfgs
+
+            for cfg in cfgs:
+                if is_cross:
+                    key = f"{cfg['b1']}_{cfg['b2']}"
+                    if key not in spectra_plot:
+                        key = f"{cfg['b2']}_{cfg['b1']}"
+                    if key not in spectra_plot:
+                        continue
+                    f1, f2 = cfg['f1'], cfg['f2']
+                else:
+                    key = f"{cfg['b']}_{cfg['b']}"
+                    if key not in spectra_plot:
+                        continue
+                    f1 = f2 = cfg['f']
+
+                ell_eff = spectra_plot[key]['ell_eff']
+                cl  = spectra_plot[key][mode]['SPECTRUM'] * 1e6
+                err = spectra_plot[key][mode]['ERROR']    * 1e6
+
+                marker = '^' if is_cross else 'o'
+                msize = 6 if is_cross else 4
+                ax.errorbar(ell_eff, cl, yerr=err,
+                            fmt=marker, color=cfg['color'], ms=msize, capsize=2,
+                            lw=1.0, label=cfg['label'])
+                ax.plot(ell_fine,
+                        full_model(ell_fine, f1, f2, params[mode]) * 1e6,
+                        color=cfg['color'], ls='-', lw=1.8)
+
+            ax.set_yscale('log')
+            # ax.set_xscale('log')
+            if col_idx != 0:
+                ax.set_ylabel('')
+            if row_idx == 2:
+                ax.set_xlabel(r'$\ell$', fontsize=15)
+
+        # legend in the first column only (keep as before)
+        handles, labels = axes[0, 1].get_legend_handles_labels()
+        axes[0, 1].legend(handles, labels, frameon=False,
+                                fontsize=15, loc='upper right')
+        
+        handles, labels = axes[0, 3].get_legend_handles_labels()
+        axes[0, 3].legend(handles, labels, frameon=False,
+                                fontsize=15, loc='upper right')
+
+        # place the mask label at the right of the row (outside the last subplot)
+        try:
+            right_ax = axes[row_idx, -1]
+            # position in axes coordinates (x slightly >1 places it to the right)
+            right_ax.text(1.03, 0.5, row_labels[row_idx], transform=right_ax.transAxes,
+                          va='center', ha='left', fontsize=18)
+        except Exception:
+            # fallback: put the text in figure coordinates near the right edge
+            fig.text(0.98, 0.66 - row_idx * 0.33, row_labels[row_idx],
+                     va='center', ha='right', fontsize=18)
+
+    plt.tight_layout()
+    plt.show()
+
+    fig.savefig(
+        f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_{fig_label}_cross_only.pdf',
+        bbox_inches='tight')
+    save_figure_transparent_white(
+        fig,
+        f'/home/pablo/Desktop/master/tfm/figures_ppt/spectra/spectra_combined_3masks_{fig_label}_cross_only_transparent.png',
+        dpi=300)
+    plt.close(fig)
+
+
+# --- Synchrotron combined figure: 11, 23, 30 GHz ---
+_make_combined(
+    band_cfgs=[
+        dict(b='11', f=11.0,  color='steelblue', label='11×11 GHz'),
+        dict(b='23', f=23.0,  color='k',         label='23×23 GHz'),
+        dict(b='30', f=30.0,  color='goldenrod',  label='30×30 GHz'),
+    ],
+    cross_cfgs=[
+        dict(b1='11', b2='23', f1=11.0, f2=23.0, color='steelblue', label='11×23 GHz'),
+        dict(b1='11', b2='30', f1=11.0, f2=30.0, color='k',         label='11×30 GHz'),
+        dict(b1='23', b2='30', f1=23.0, f2=30.0, color='goldenrod',  label='23×30 GHz'),
+    ],
+    fig_label='synch_bands',
+)
+
+# --- Dust combined figure: 100, 217, 353 GHz ---
+_make_combined(
+    band_cfgs=[
+        dict(b='100', f=100.0, color='steelblue', label='100×100 GHz'),
+        dict(b='217', f=217.0, color='k',         label='217×217 GHz'),
+        dict(b='353', f=353.0, color='goldenrod',  label='353×353 GHz'),
+    ],
+    cross_cfgs=[
+        dict(b1='100', b2='217', f1=100.0, f2=217.0, color='steelblue', label='100×217 GHz'),
+        dict(b1='100', b2='353', f1=100.0, f2=353.0, color='k',         label='100×353 GHz'),
+        dict(b1='217', b2='353', f1=217.0, f2=353.0, color='goldenrod',  label='217×353 GHz'),
+    ],
+    fig_label='dust_bands',
+)
+

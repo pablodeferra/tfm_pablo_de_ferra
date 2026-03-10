@@ -1,59 +1,40 @@
 \section{Analysis fitting only cross-spectra}
 \label{sec:appendix_1}
 
+This appendix presents the results of the global power-law and bin-to-bin fitting analyses when only cross-spectra are used, i.e.\ excluding all auto-spectra from the likelihood. This configuration eliminates any noise bias contribution to the fitted signal, since cross-spectra between independent detector splits are unaffected by the noise auto-correlation. It therefore serves as a robustness check on the baseline results presented in Section~\ref{sec:results}, and on the goodness of fit discussed in relation to Appendix~\ref{sec:appendix_3}.
+
 \subsection{Power-law fitting}
+
+The cross-spectra-only posterior constraints over $20 \leq \ell \leq 200$ are reported in Table~\ref{tab:fit_all_masks_cross_only_ell20-200} and should be compared directly with the baseline auto+cross results in Table~\ref{tab:fit_all_masks_all_pairs_ell20-200}. The two sets of results are in excellent agreement. All parameter estimates are consistent within $1$-$2\sigma$ across all masks, dataset combinations, and polarization modes. The synchrotron amplitudes $A_s$, frequency spectral indices $\beta_s$, angular spectral indices $\alpha_s$, and all dust parameters ($A_d$, $\alpha_d$, $\beta_d$) show no statistically significant shift when the auto-spectra are removed. Similarly, the correlation coefficient $\rho$ remains stable between the two configurations. This confirms that the baseline results are not driven by noise bias in the auto-spectra, and that the foreground model is robustly constrained by the cross-spectra alone.
+
+The main observable difference is in the parameter uncertainties. Removing the auto-spectra reduces the number of spectra entering the fit from 105 to 91, which results in a systematic increase in the posterior widths. For the QJ+WP+Pl dataset, the $1\sigma$ uncertainties on $A_s^{EE}$ and $\alpha_s^{EE}$ increase by roughly $10$-$15\%$, while the BB uncertainties are similarly affected. The increase is larger for $\beta_s^{BB}$ in the WP+Pl case, where the auto-spectra contribute meaningfully to breaking the synchrotron-noise degeneracy at low frequencies. Overall, the constraining power remains largely unaffected.
+
+\paragraph{}
+
+The reduced $\chi^2$ values (Table~\ref{tab:chi2_all}, Appendix~\ref{sec:appendix_3}) improve, but not significantly when auto-spectra are not accounted. For the EE mode with QJ+WP+Pl, $\chi^2_{\rm red}$ decreases by a factor $\sim1.2$-$1.4$ in the cross-only configuration. For the BB mode there is also an improvement, however, only by a factor $\sim1.1$-$1.2$. The EE values remain elevated even in the cross-only case, particularly for the $|b|>10^\circ$ mask, which suggests that the residual mismatch reflects genuine limitations of the single power-law model at low latitudes rather than noise misestimation in the auto-spectra. The BB $\chi^2_{\rm red}$ values are consistently closer to unity in both configurations, indicating that the model captures the BB spectra more accurately, consistent with the simpler signal structure of the B modes, but also as a consequence of the larger uncertainties present in the BB power spectra.
 
 \input{tables/table_quijote_galcut10-15-20_ell20-200_cross_only.tex}
 
-\begin{figure}[h]
-    \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-\end{adjustbox}
-    \caption{Best-fit global power-law models for synchrotron and thermal dust emission using cross-only spectra for the fit, overlaid on the measured EE and BB frequency power spectra, for the $|b| > 10^\circ$ Galactic mask.}
-    \label{fig:aps_galcut10_fit_cross_only}
-\end{figure}
+\paragraph{}
 
+Figures~\ref{fig:synch_fit_cross_only} and \ref{fig:dust_fit_cross_only} show the best-fit models overlaid on the measured spectra for the synchrotron- and dust-dominated bands, respectively. The visual appearance is very similar to the baseline Figures~\ref{fig:synch_fit} and \ref{fig:dust_fit}, with the cross-spectra curves following the data equally well, as expected from the consistency of the fitted parameters.
 
 \begin{figure}[h]
     \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-\end{adjustbox}
-    \caption{Same as Figure~\ref{fig:aps_galcut10_fit_cross_only} but for the $|b| > 20^\circ$ Galactic mask.}
-    \label{fig:aps_galcut15_fit_cross_only}
+    \includegraphics[width=1.2\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_synch_bands_cross_only.pdf}
+    \end{adjustbox}
+    \caption{Measured auto- and cross-power spectra in the low-frequency bands (11, 23 and 30 GHz) for three Galactic masks. Each row corresponds to a mask (top to bottom: $|b|>10^\circ$, $15^\circ$, $20^\circ$) and the four columns show, from left to right, auto-spectra EE, auto-spectra BB, cross-spectra EE and cross-spectra BB. Markers are binned band powers $C_{\ell}$ with $1\sigma$ uncertainties (circles for auto-spectra, and triangles for cross-spectra). Solid lines show the best-fit full model from Equation \ref{eq:full_model} using only cross data, and evaluated for each band pair.}
+    \label{fig:synch_fit_cross_only}
 \end{figure}
-
 
 \begin{figure}[h]
     \begin{adjustbox}{center}
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]{0.63\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_cross_only_quijote_galcut20.pdf}
-    \end{minipage}
-\end{adjustbox}
-    \caption{Same as Figure~\ref{fig:aps_galcut10_fit_cross_only} but for the $|b| > 20^\circ$ Galactic mask.}
-    \label{fig:aps_galcut20_fit_cross_only}
+    \includegraphics[width=1.2\linewidth]{/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_dust_bands_cross_only.pdf}
+    \end{adjustbox}
+    \caption{Measured auto- and cross-power spectra in the high-frequency bands (100, 217 and 353 GHz) for three Galactic masks. Each row corresponds to a mask (top to bottom: $|b|>10^\circ$, $15^\circ$, $20^\circ$) and the four columns show, from left to right, auto-spectra EE, auto-spectra BB, cross-spectra EE and cross-spectra BB. Markers are binned band powers $C_{\ell}$ with $1\sigma$ uncertainties (circles for auto-spectra, and triangles for cross-spectra). Solid lines show the best-fit full model from Equation \ref{eq:full_model} using only cross data, and evaluated for each band pair.}
+    \label{fig:dust_fit_cross_only}
 \end{figure}
+
 
 % ----------------------------------------------------
 % Individual tables

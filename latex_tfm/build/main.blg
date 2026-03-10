@@ -3,49 +3,48 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: build/main.aux
 The style file: mnras.bst
 Database file #1: references.bib
-Warning--I didn't find a database entry for "Planck_XI"
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Reallocated singl_function (elt_size=4) to 100 items from 50.
 Warning--empty publisher in Rybicki_1979
-You've used 44 entries,
+You've used 45 entries,
             2881 wiz_defined-function locations,
-            1099 strings with 42555 characters,
-and the built_in function-call counts, 20206 in all, are:
-= -- 1964
-> -- 1130
+            1104 strings with 46082 characters,
+and the built_in function-call counts, 20561 in all, are:
+= -- 1996
+> -- 1149
 < -- 76
-+ -- 524
++ -- 535
 - -- 116
-* -- 2475
-:= -- 2930
+* -- 2525
+:= -- 2980
 add.period$ -- 0
-call.type$ -- 44
-change.case$ -- 88
-chr.to.int$ -- 40
-cite$ -- 45
-duplicate$ -- 1023
-empty$ -- 1015
-format.name$ -- 276
-if$ -- 3637
+call.type$ -- 45
+change.case$ -- 90
+chr.to.int$ -- 41
+cite$ -- 46
+duplicate$ -- 1044
+empty$ -- 1037
+format.name$ -- 280
+if$ -- 3697
 int.to.chr$ -- 5
 int.to.str$ -- 0
-missing$ -- 44
-newline$ -- 145
-num.names$ -- 250
-pop$ -- 207
+missing$ -- 45
+newline$ -- 148
+num.names$ -- 254
+pop$ -- 212
 preamble$ -- 1
-purify$ -- 176
+purify$ -- 180
 quote$ -- 0
-skip$ -- 656
+skip$ -- 667
 stack$ -- 0
-substring$ -- 1588
-swap$ -- 428
-text.length$ -- 178
+substring$ -- 1608
+swap$ -- 432
+text.length$ -- 182
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 393
+type$ -- 402
 warning$ -- 1
-while$ -- 300
+while$ -- 306
 width$ -- 0
-write$ -- 451
-(There were 2 warnings)
+write$ -- 461
+(There was 1 warning)

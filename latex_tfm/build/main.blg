@@ -8,43 +8,43 @@ Reallocated singl_function (elt_size=4) to 100 items from 50.
 Warning--empty publisher in Rybicki_1979
 You've used 45 entries,
             2881 wiz_defined-function locations,
-            1104 strings with 46082 characters,
-and the built_in function-call counts, 20561 in all, are:
-= -- 1996
-> -- 1149
+            1109 strings with 46175 characters,
+and the built_in function-call counts, 20639 in all, are:
+= -- 2032
+> -- 1133
 < -- 76
-+ -- 535
-- -- 116
-* -- 2525
-:= -- 2980
++ -- 524
+- -- 114
+* -- 2530
+:= -- 2986
 add.period$ -- 0
 call.type$ -- 45
 change.case$ -- 90
 chr.to.int$ -- 41
 cite$ -- 46
-duplicate$ -- 1044
-empty$ -- 1037
-format.name$ -- 280
-if$ -- 3697
+duplicate$ -- 1041
+empty$ -- 1035
+format.name$ -- 274
+if$ -- 3724
 int.to.chr$ -- 5
 int.to.str$ -- 0
-missing$ -- 45
+missing$ -- 46
 newline$ -- 148
-num.names$ -- 254
-pop$ -- 212
+num.names$ -- 252
+pop$ -- 209
 preamble$ -- 1
 purify$ -- 180
 quote$ -- 0
-skip$ -- 667
+skip$ -- 668
 stack$ -- 0
-substring$ -- 1608
-swap$ -- 432
+substring$ -- 1661
+swap$ -- 424
 text.length$ -- 182
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 402
 warning$ -- 1
-while$ -- 306
+while$ -- 308
 width$ -- 0
 write$ -- 461
 (There was 1 warning)

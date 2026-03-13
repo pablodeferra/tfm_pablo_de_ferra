@@ -72,6 +72,10 @@ Draine B.~T.,  et~al., 2016, \mn@doi [The Astrophysical Journal]
   {10.1093/mnras/stad2545}, \href
   {https://ui.adsabs.harvard.edu/abs/2023MNRAS.526.1343F} {526, 1343}
 
+\bibitem[\protect\citeauthoryear{Fixsen}{Fixsen}{2009}]{Fixsen_2009}
+Fixsen D.~J.,  2009, \mn@doi [The Astrophysical Journal]
+  {10.1088/0004-637x/707/2/916}, 707, 916–920
+
 \bibitem[\protect\citeauthoryear{Foreman-Mackey, Hogg, Lang  \&
   Goodman}{Foreman-Mackey et~al.}{2013}]{Emcee}
 Foreman-Mackey D.,  Hogg D.~W.,  Lang D.,   Goodman J.,  2013, \mn@doi
@@ -132,10 +136,6 @@ Hensley B.~S.,  et~al., 2022, \mn@doi [The Astrophysical Journal]
   et~al.}{2013}]{WMAP_9_year_results}
 Hinshaw G.,  et~al., 2013, \mn@doi [The Astrophysical Journal Supplement
   Series] {10.1088/0067-0049/208/2/19}, 208, 19
-
-\bibitem[\protect\citeauthoryear{Huynh \& Lazio}{Huynh \& Lazio}{2013}]{ska}
-Huynh M.,  Lazio J.,  2013, An Overview of the Square Kilometre Array
-  (\mn@eprint {arXiv} {1311.4288})
 
 \bibitem[\protect\citeauthoryear{{Ishibashi, W.} \& {Courvoisier, T.
   J.-L.}}{{Ishibashi, W.} \& {Courvoisier, T. J.-L.}}{2011}]{synch_radio_agn}

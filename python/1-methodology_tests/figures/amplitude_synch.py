@@ -230,3 +230,173 @@ save_transparent_white(
     dpi=300)
 
 plt.show()
+
+# ---------------------------------------------------------------
+# A_d data extracted from the three bin-to-bin tables (QJ+WP+Pl)
+# Units: 10^{-3} muK^2
+# ---------------------------------------------------------------
+DATA_DUST = {
+    'galcut10': {
+        'EE': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([49.086, 7.887, 4.798, 2.673, 1.555, 1.017, 0.679, 0.479, 0.404]),
+            err_up = np.array([0.270, 0.077, 0.040, 0.022, 0.016, 0.013, 0.010, 0.008, 0.007]),
+            err_dn = np.array([0.261, 0.084, 0.041, 0.023, 0.017, 0.013, 0.010, 0.008, 0.007]),
+        ),
+        'BB': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([22.650, 6.111, 3.378, 2.010, 1.325, 0.826, 0.527, 0.421, 0.365]),
+            err_up = np.array([0.173, 0.052, 0.023, 0.016, 0.011, 0.008, 0.007, 0.006, 0.005]),
+            err_dn = np.array([0.177, 0.052, 0.024, 0.016, 0.012, 0.009, 0.007, 0.006, 0.005]),
+        ),
+    },
+    'galcut15': {
+        'EE': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([33.564, 4.943, 2.612, 1.691, 1.118, 0.623, 0.461, 0.363, 0.288]),
+            err_up = np.array([0.235, 0.069, 0.033, 0.020, 0.014, 0.011, 0.009, 0.007, 0.007]),
+            err_dn = np.array([0.242, 0.071, 0.034, 0.021, 0.014, 0.011, 0.009, 0.007, 0.007]),
+        ),
+        'BB': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([13.185, 4.407, 2.148, 1.119, 0.688, 0.393, 0.308, 0.237, 0.190]),
+            err_up = np.array([0.145, 0.044, 0.019, 0.014, 0.009, 0.007, 0.005, 0.006, 0.005]),
+            err_dn = np.array([0.146, 0.046, 0.019, 0.014, 0.009, 0.007, 0.005, 0.005, 0.005]),
+        ),
+    },
+    'galcut20': {
+        'EE': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([20.685, 4.137, 1.624, 1.178, 0.820, 0.436, 0.325, 0.265, 0.189]),
+            err_up = np.array([0.229, 0.062, 0.029, 0.018, 0.014, 0.010, 0.009, 0.007, 0.006]),
+            err_dn = np.array([0.224, 0.061, 0.029, 0.018, 0.014, 0.010, 0.009, 0.007, 0.006]),
+        ),
+        'BB': dict(
+            ell    = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float),
+            val    = np.array([8.333, 2.945, 1.345, 0.763, 0.461, 0.278, 0.235, 0.173, 0.137]),
+            err_up = np.array([0.113, 0.036, 0.017, 0.012, 0.008, 0.006, 0.005, 0.005, 0.005]),
+            err_dn = np.array([0.113, 0.037, 0.019, 0.012, 0.008, 0.006, 0.005, 0.005, 0.005]),
+        ),
+    },
+}
+
+# ---------------------------------------------------------------
+# Figure 2: A_s^BB / A_s^EE  (single panel)
+# ---------------------------------------------------------------
+fig_r, ax_r = plt.subplots(1, 1, figsize=(15, 3.5))
+
+for mask_key, mstyle in MASK_STYLES.items():
+    ee   = DATA[mask_key]['EE']
+    bb   = DATA[mask_key]['BB']
+    xpos = ee['ell'] + mstyle['offset']
+
+    ratio = bb['val'] / ee['val']
+
+    # Error propagation for r = BB/EE:
+    # sigma_r^± / r = sqrt( (sigma_BB^± / BB)^2 + (sigma_EE^± / EE)^2 )
+    rel_up = np.sqrt((bb['err_up'] / bb['val'])**2 + (ee['err_up'] / ee['val'])**2)
+    rel_dn = np.sqrt((bb['err_dn'] / bb['val'])**2 + (ee['err_dn'] / ee['val'])**2)
+
+    ax_r.errorbar(
+        xpos, ratio,
+        yerr=[ratio * rel_dn, ratio * rel_up],
+        fmt=mstyle['marker'],
+        color=mstyle['color'],
+        ms=6, capsize=3, capthick=1.2, lw=1.2, zorder=3,
+        label=mstyle['label'],
+    )
+
+ax_r.axhline(0.2, color='grey', lw=0.8, ls='--', zorder=1)
+ax_r.set_xlim(10, 220)
+ax_r.set_ylim(0, 0.8)
+ax_r.set_ylabel(r'$A^{\rm BB}_{\rm s}\,/\,A^{\rm EE}_{\rm s}$', fontsize=15)
+ax_r.set_xlabel(r'$\ell$', fontsize=15)
+ax_r.set_xticks(ell_ticks)
+ax_r.set_xticklabels([str(int(v)) for v in ell_ticks])
+ax_r.legend(
+    loc='upper right', frameon=False, fontsize=15,
+    handletextpad=0.4, borderpad=0.6,
+)
+
+plt.tight_layout()
+plt.show()
+
+# Save PDF
+fig_r.savefig(os.path.join(out_dir, 'As_ratio_BB_over_EE_bin_to_bin.pdf'), bbox_inches='tight')
+print('Saved As_ratio_BB_over_EE_bin_to_bin.pdf')
+
+# Transparent PNG
+save_transparent_white(
+    fig_r,
+    os.path.join(ppt_dir, 'As_ratio_BB_over_EE_bin_to_bin_transparent.png'),
+    dpi=300)
+
+# ---------------------------------------------------------------
+# Figure 3: amplitude ratios BB/EE — synch (top) + dust (bottom)
+# ---------------------------------------------------------------
+fig_r2, (ax_rs, ax_rd) = plt.subplots(
+    2, 1, figsize=(15, 6), sharex=True,
+    gridspec_kw={'hspace': 0.15})
+
+for mask_key, mstyle in MASK_STYLES.items():
+    xpos = DATA[mask_key]['EE']['ell'] + mstyle['offset']
+
+    # --- synchrotron ratio ---
+    ee_s = DATA[mask_key]['EE']
+    bb_s = DATA[mask_key]['BB']
+    ratio_s = bb_s['val'] / ee_s['val']
+    rel_up_s = np.sqrt((bb_s['err_up'] / bb_s['val'])**2 + (ee_s['err_up'] / ee_s['val'])**2)
+    rel_dn_s = np.sqrt((bb_s['err_dn'] / bb_s['val'])**2 + (ee_s['err_dn'] / ee_s['val'])**2)
+    ax_rs.errorbar(
+        xpos, ratio_s,
+        yerr=[ratio_s * rel_dn_s, ratio_s * rel_up_s],
+        fmt=mstyle['marker'], color=mstyle['color'],
+        ms=6, capsize=3, capthick=1.2, lw=1.2, zorder=3,
+        label=mstyle['label'],
+    )
+
+    # --- dust ratio ---
+    ee_d = DATA_DUST[mask_key]['EE']
+    bb_d = DATA_DUST[mask_key]['BB']
+    ratio_d = bb_d['val'] / ee_d['val']
+    rel_up_d = np.sqrt((bb_d['err_up'] / bb_d['val'])**2 + (ee_d['err_up'] / ee_d['val'])**2)
+    rel_dn_d = np.sqrt((bb_d['err_dn'] / bb_d['val'])**2 + (ee_d['err_dn'] / ee_d['val'])**2)
+    ax_rd.errorbar(
+        xpos, ratio_d,
+        yerr=[ratio_d * rel_dn_d, ratio_d * rel_up_d],
+        fmt=mstyle['marker'], color=mstyle['color'],
+        ms=6, capsize=3, capthick=1.2, lw=1.2, zorder=3,
+    )
+
+ax_rs.axhline(0.25, color='grey', lw=0.8, ls='--', zorder=1)
+ax_rs.set_xlim(10, 220)
+ax_rs.set_ylim(0, 0.8)
+
+ax_rd.axhline(0.70, color='grey', lw=0.8, ls='--', zorder=1)
+ax_rd.set_xlim(10, 220)
+ax_rd.set_ylim(0.3, 1)
+
+ax_rs.set_ylabel(r'$A^{\rm BB}_{\rm s}\,/\,A^{\rm EE}_{\rm s}$', fontsize=15)
+ax_rd.set_ylabel(r'$A^{\rm BB}_{\rm d}\,/\,A^{\rm EE}_{\rm d}$', fontsize=15)
+
+ax_rs.legend(
+    loc='upper right', frameon=False, fontsize=15,
+    handletextpad=0.4, borderpad=0.6,
+)
+
+ax_rd.set_xticks(ell_ticks)
+ax_rd.set_xticklabels([str(int(v)) for v in ell_ticks])
+ax_rd.set_xlabel(r'$\ell$', fontsize=15)
+
+plt.tight_layout()
+plt.show()
+
+# Save PDF
+fig_r2.savefig(os.path.join(out_dir, 'A_ratio_BB_over_EE_synch_dust_bin_to_bin.pdf'), bbox_inches='tight')
+print('Saved A_ratio_BB_over_EE_synch_dust_bin_to_bin.pdf')
+
+# Transparent PNG
+save_transparent_white(
+    fig_r2,
+    os.path.join(ppt_dir, 'A_ratio_BB_over_EE_synch_dust_bin_to_bin_transparent.png'),
+    dpi=300)

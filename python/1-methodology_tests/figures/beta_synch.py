@@ -3,7 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.lines as mlines
 
 # ---------------------------------------------------------------
 # Global plotting style
@@ -84,15 +83,6 @@ fig, (ax_EE, ax_BB) = plt.subplots(
 
 ell_ticks = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float)
 
-legend_handles = [
-    mlines.Line2D([], [],
-                  color=mstyle['color'],
-                  marker=mstyle['marker'],
-                  ls='none', ms=7,
-                  label=mstyle['label'])
-    for mstyle in MASK_STYLES.values()
-]
-
 for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
 
     ax.axhline(-3.1, color='grey', lw=0.8, ls='--', zorder=1)
@@ -111,6 +101,7 @@ for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
             capthick=1.2,
             lw=1.2,
             zorder=3,
+            label=mstyle['label'] if mode == 'EE' else None,
         )
 
     if mode == 'EE':
@@ -120,9 +111,8 @@ for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
     ax.set_xlim(10, 220)
     ax.set_ylim(-3.6, -2.4)
 
-# legend inside the EE panel (upper right)
+# legend inside the EE panel (top right)
 ax_EE.legend(
-    handles=legend_handles,
     loc='upper right',
     frameon=False,
     framealpha=0.85,

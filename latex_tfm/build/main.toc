@@ -1,71 +1,94 @@
 \babel@toc {english}{}\relax 
-\contentsline {section}{\numberline {1}INTRODUCTION}{4}{section.1}%
-\contentsline {paragraph}{}{4}{paragraph*.2}%
-\contentsline {paragraph}{}{4}{paragraph*.3}%
-\contentsline {paragraph}{}{4}{paragraph*.5}%
-\contentsline {paragraph}{}{5}{paragraph*.6}%
-\contentsline {paragraph}{}{5}{paragraph*.7}%
+\contentsline {paragraph}{}{1}{paragraph*.2}%
+\contentsline {paragraph}{}{1}{paragraph*.3}%
+\contentsline {paragraph}{}{1}{paragraph*.4}%
+\contentsline {paragraph}{}{1}{paragraph*.5}%
+\contentsline {paragraph}{}{2}{paragraph*.6}%
+\contentsline {paragraph}{}{2}{paragraph*.7}%
+\contentsline {section}{\numberline {1}INTRODUCTION}{5}{section.1}%
 \contentsline {paragraph}{}{5}{paragraph*.8}%
-\contentsline {section}{\numberline {2}OBJECTIVES}{6}{section.2}%
-\contentsline {section}{\numberline {3}DATA}{7}{section.3}%
-\contentsline {subsection}{\numberline {3.1.}Q-U-I JOint TEnerife (QUIJOTE)}{7}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2.}Wilkinson Microwave Anisotropy Probe (WMAP)}{7}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3.}Planck}{7}{subsection.3.3}%
-\contentsline {subsubsection}{\numberline {3.3.1}Low Frequency Instrument (LFI)}{7}{subsubsection.3.3.1}%
-\contentsline {subsubsection}{\numberline {3.3.2}High Frequency Instrument (HFI)}{7}{subsubsection.3.3.2}%
-\contentsline {section}{\numberline {4}METHODOLOGY}{8}{section.4}%
-\contentsline {subsection}{\numberline {4.1.}Angular power spectrum (APS) analysis}{8}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2.}Masks}{9}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3.}Data corrections}{9}{subsection.4.3}%
-\contentsline {subsubsection}{\numberline {4.3.1}Beam and pixel window functions}{9}{subsubsection.4.3.1}%
-\contentsline {paragraph}{}{10}{paragraph*.10}%
-\contentsline {subsubsection}{\numberline {4.3.2}Unit conversion}{10}{subsubsection.4.3.2}%
-\contentsline {subsubsection}{\numberline {4.3.3}Noise power spectrum}{10}{subsubsection.4.3.3}%
-\contentsline {paragraph}{}{10}{paragraph*.11}%
-\contentsline {paragraph}{}{11}{paragraph*.12}%
-\contentsline {subsubsection}{\numberline {4.3.4}Colour corrections}{11}{subsubsection.4.3.4}%
-\contentsline {paragraph}{}{11}{paragraph*.13}%
-\contentsline {paragraph}{}{12}{paragraph*.14}%
-\contentsline {subsection}{\numberline {4.4.}Simulations}{12}{subsection.4.4}%
-\contentsline {subsubsection}{\numberline {4.4.1}Sky signal simulations}{12}{subsubsection.4.4.1}%
-\contentsline {subsubsection}{\numberline {4.4.2}Noise simulations}{13}{subsubsection.4.4.2}%
-\contentsline {subsection}{\numberline {4.5.}Foreground emission model}{13}{subsection.4.5}%
-\contentsline {subsubsection}{\numberline {4.5.1}Synchrotron emission}{14}{subsubsection.4.5.1}%
-\contentsline {subsubsection}{\numberline {4.5.2}Thermal dust emission}{14}{subsubsection.4.5.2}%
-\contentsline {subsubsection}{\numberline {4.5.3}Synchrotron-dust cross-correlation}{14}{subsubsection.4.5.3}%
-\contentsline {subsubsection}{\numberline {4.5.4}CMB subtraction}{15}{subsubsection.4.5.4}%
-\contentsline {subsection}{\numberline {4.6.}Bayesian inference and MCMC fitting}{15}{subsection.4.6}%
-\contentsline {subsubsection}{\numberline {4.6.1}Likelihood}{15}{subsubsection.4.6.1}%
-\contentsline {subsubsection}{\numberline {4.6.2}Priors}{15}{subsubsection.4.6.2}%
-\contentsline {subsubsection}{\numberline {4.6.3}Sampler}{16}{subsubsection.4.6.3}%
-\contentsline {subsection}{\numberline {4.7.}Fitting approaches}{16}{subsection.4.7}%
-\contentsline {subsubsection}{\numberline {4.7.1}Power-law fitting}{16}{subsubsection.4.7.1}%
-\contentsline {subsubsection}{\numberline {4.7.2}Bin-to-bin analysis}{16}{subsubsection.4.7.2}%
-\contentsline {section}{\numberline {5}RESULTS}{16}{section.5}%
-\contentsline {paragraph}{}{16}{paragraph*.15}%
-\contentsline {paragraph}{}{16}{paragraph*.16}%
-\contentsline {subsection}{\numberline {5.1.}Power-law fitting}{17}{subsection.5.1}%
-\contentsline {paragraph}{}{17}{paragraph*.17}%
-\contentsline {subsubsection}{\numberline {5.1.1}Synchrotron amplitude $A_s$}{18}{subsubsection.5.1.1}%
-\contentsline {paragraph}{}{19}{paragraph*.21}%
-\contentsline {subsubsection}{\numberline {5.1.2}Synchrotron angular spectral index $\alpha _s$}{19}{subsubsection.5.1.2}%
-\contentsline {subsubsection}{\numberline {5.1.3}Synchrotron frequency spectral index $\beta _s$}{20}{subsubsection.5.1.3}%
-\contentsline {paragraph}{}{20}{paragraph*.22}%
-\contentsline {paragraph}{}{21}{paragraph*.23}%
-\contentsline {subsubsection}{\numberline {5.1.4}Synchrotron-dust spatial correlation $\rho $}{21}{subsubsection.5.1.4}%
-\contentsline {paragraph}{}{22}{paragraph*.24}%
-\contentsline {subsubsection}{\numberline {5.1.5}Thermal dust parameters}{22}{subsubsection.5.1.5}%
-\contentsline {paragraph}{}{22}{paragraph*.25}%
-\contentsline {paragraph}{}{22}{paragraph*.26}%
-\contentsline {paragraph}{}{22}{paragraph*.27}%
-\contentsline {subsection}{\numberline {5.2.}Bin-to-bin fitting}{22}{subsection.5.2}%
-\contentsline {section}{\numberline {6}CONCLUSIONS}{27}{section.6}%
-\contentsline {section}{REFERENCES}{27}{section.6}%
-\contentsline {section}{\numberline {A}Analysis fitting only cross-spectra}{29}{appendix.A}%
-\contentsline {subsection}{\numberline {1.1.}Power-law fitting}{29}{subsection.A.1}%
-\contentsline {paragraph}{}{29}{paragraph*.34}%
-\contentsline {paragraph}{}{29}{paragraph*.36}%
-\contentsline {subsection}{\numberline {1.2.}Bin-to-bin fitting}{29}{subsection.A.2}%
-\contentsline {section}{\numberline {B}Alternative multipole fitting range $30 \leq \ell \leq 200$}{34}{appendix.B}%
-\contentsline {paragraph}{}{34}{paragraph*.42}%
-\contentsline {section}{\numberline {C}Reduced $\chi ^2$ values of the power-law fittings}{35}{appendix.C}%
+\contentsline {paragraph}{}{5}{paragraph*.9}%
+\contentsline {paragraph}{}{5}{paragraph*.11}%
+\contentsline {paragraph}{}{6}{paragraph*.12}%
+\contentsline {paragraph}{}{6}{paragraph*.13}%
+\contentsline {paragraph}{}{6}{paragraph*.14}%
+\contentsline {section}{\numberline {2}OBJECTIVES}{7}{section.2}%
+\contentsline {section}{\numberline {3}DATA}{8}{section.3}%
+\contentsline {subsection}{\numberline {3.1.}Q-U-I JOint TEnerife (QUIJOTE)}{8}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2.}Wilkinson Microwave Anisotropy Probe (WMAP)}{8}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3.}Planck}{8}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Low Frequency Instrument (LFI)}{8}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}High Frequency Instrument (HFI)}{9}{subsubsection.3.3.2}%
+\contentsline {section}{\numberline {4}METHODOLOGY}{9}{section.4}%
+\contentsline {subsection}{\numberline {4.1.}Angular power spectrum (APS) analysis}{9}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2.}Masks}{10}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3.}Data corrections}{10}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Beam and pixel window functions}{10}{subsubsection.4.3.1}%
+\contentsline {paragraph}{}{11}{paragraph*.16}%
+\contentsline {subsubsection}{\numberline {4.3.2}Unit conversion}{11}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Noise power spectrum}{11}{subsubsection.4.3.3}%
+\contentsline {paragraph}{}{12}{paragraph*.17}%
+\contentsline {paragraph}{}{12}{paragraph*.18}%
+\contentsline {subsubsection}{\numberline {4.3.4}Colour corrections}{12}{subsubsection.4.3.4}%
+\contentsline {paragraph}{}{13}{paragraph*.19}%
+\contentsline {paragraph}{}{13}{paragraph*.20}%
+\contentsline {subsection}{\numberline {4.4.}Simulations}{13}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Sky signal simulations}{13}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Noise simulations}{14}{subsubsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.5.}Foreground emission model}{15}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Synchrotron emission}{15}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}Thermal dust emission}{15}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}Synchrotron-dust cross-correlation}{16}{subsubsection.4.5.3}%
+\contentsline {subsubsection}{\numberline {4.5.4}CMB subtraction}{16}{subsubsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.6.}Bayesian inference and MCMC fitting}{16}{subsection.4.6}%
+\contentsline {subsubsection}{\numberline {4.6.1}Likelihood}{16}{subsubsection.4.6.1}%
+\contentsline {subsubsection}{\numberline {4.6.2}Priors}{16}{subsubsection.4.6.2}%
+\contentsline {subsubsection}{\numberline {4.6.3}Sampler}{17}{subsubsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.7.}Fitting approaches}{17}{subsection.4.7}%
+\contentsline {subsubsection}{\numberline {4.7.1}Power-law fitting}{17}{subsubsection.4.7.1}%
+\contentsline {subsubsection}{\numberline {4.7.2}Bin-to-bin analysis}{17}{subsubsection.4.7.2}%
+\contentsline {section}{\numberline {5}RESULTS}{17}{section.5}%
+\contentsline {paragraph}{}{18}{paragraph*.21}%
+\contentsline {paragraph}{}{18}{paragraph*.22}%
+\contentsline {subsection}{\numberline {5.1.}Power-law fitting}{18}{subsection.5.1}%
+\contentsline {paragraph}{}{18}{paragraph*.23}%
+\contentsline {subsubsection}{\numberline {5.1.1}Synchrotron amplitude $A_s$}{19}{subsubsection.5.1.1}%
+\contentsline {paragraph}{}{20}{paragraph*.27}%
+\contentsline {subsubsection}{\numberline {5.1.2}Synchrotron angular spectral index $\alpha _s$}{21}{subsubsection.5.1.2}%
+\contentsline {subsubsection}{\numberline {5.1.3}Synchrotron frequency spectral index $\beta _s$}{22}{subsubsection.5.1.3}%
+\contentsline {paragraph}{}{22}{paragraph*.28}%
+\contentsline {paragraph}{}{22}{paragraph*.29}%
+\contentsline {subsubsection}{\numberline {5.1.4}Synchrotron-dust spatial correlation $\rho $}{22}{subsubsection.5.1.4}%
+\contentsline {paragraph}{}{23}{paragraph*.30}%
+\contentsline {subsubsection}{\numberline {5.1.5}Thermal dust parameters}{23}{subsubsection.5.1.5}%
+\contentsline {paragraph}{}{23}{paragraph*.31}%
+\contentsline {paragraph}{}{24}{paragraph*.32}%
+\contentsline {paragraph}{}{24}{paragraph*.33}%
+\contentsline {subsection}{\numberline {5.2.}Bin-to-bin fitting}{24}{subsection.5.2}%
+\contentsline {paragraph}{}{24}{paragraph*.34}%
+\contentsline {subsubsection}{\numberline {5.2.1}Amplitude ratios}{24}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Synchrotron frequency spectral index $\beta _s$}{25}{subsubsection.5.2.2}%
+\contentsline {subsubsection}{\numberline {5.2.3}Dust spectral index $\beta _d$}{25}{subsubsection.5.2.3}%
+\contentsline {subsubsection}{\numberline {5.2.4}Synchrotron-dust spatial correlation $\rho $}{26}{subsubsection.5.2.4}%
+\contentsline {paragraph}{}{26}{paragraph*.38}%
+\contentsline {paragraph}{}{27}{paragraph*.40}%
+\contentsline {subsection}{\numberline {5.3.}Goodness of fit}{27}{subsection.5.3}%
+\contentsline {section}{\numberline {6}CONCLUSIONS}{30}{section.6}%
+\contentsline {paragraph}{}{30}{paragraph*.44}%
+\contentsline {paragraph}{}{30}{paragraph*.45}%
+\contentsline {paragraph}{}{30}{paragraph*.46}%
+\contentsline {paragraph}{}{31}{paragraph*.47}%
+\contentsline {paragraph}{}{31}{paragraph*.48}%
+\contentsline {paragraph}{}{31}{paragraph*.49}%
+\contentsline {paragraph}{}{31}{paragraph*.50}%
+\contentsline {paragraph}{}{31}{paragraph*.51}%
+\contentsline {paragraph}{}{32}{paragraph*.52}%
+\contentsline {section}{REFERENCES}{32}{paragraph*.52}%
+\contentsline {section}{\numberline {A}Analysis fitting only cross-spectra}{34}{appendix.A}%
+\contentsline {subsection}{\numberline {1.1.}Power-law fitting}{34}{subsection.A.1}%
+\contentsline {paragraph}{}{34}{paragraph*.53}%
+\contentsline {paragraph}{}{34}{paragraph*.55}%
+\contentsline {subsection}{\numberline {1.2.}Bin-to-bin fitting}{34}{subsection.A.2}%
+\contentsline {section}{\numberline {B}Alternative multipole fitting range $30 \leq \ell \leq 200$}{39}{appendix.B}%
+\contentsline {paragraph}{}{39}{paragraph*.61}%
+\contentsline {section}{\numberline {C}Reduced $\chi ^2$ values of the power-law fittings}{40}{appendix.C}%

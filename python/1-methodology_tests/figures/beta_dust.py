@@ -3,7 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.lines as mlines
 
 # ---------------------------------------------------------------
 # Global plotting style
@@ -84,14 +83,8 @@ fig, (ax_EE, ax_BB) = plt.subplots(
 
 ell_ticks = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float)
 
-legend_handles = [
-    mlines.Line2D([], [],
-                  color=mstyle['color'],
-                  marker=mstyle['marker'],
-                  ls='none', ms=7,
-                  label=mstyle['label'])
-    for mstyle in MASK_STYLES.values()
-]
+# (legend will be created from the plotted errorbars so markers and caplines
+# appear correctly in the legend)
 
 for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
 
@@ -111,6 +104,7 @@ for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
             capthick=1.2,
             lw=1.2,
             zorder=3,
+            label=mstyle['label'] if mode == 'EE' else None,
         )
 
     if mode == 'EE':
@@ -122,7 +116,6 @@ for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
 
 # legend inside the EE panel (upper right)
 ax_EE.legend(
-    handles=legend_handles,
     loc='upper right',
     frameon=False,
     framealpha=0.85,

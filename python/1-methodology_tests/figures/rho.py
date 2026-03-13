@@ -3,7 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.lines as mlines
 
 # ---------------------------------------------------------------
 # Global plotting style
@@ -85,21 +84,15 @@ fig, (ax_EE, ax_BB) = plt.subplots(
 
 ell_ticks = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float)
 
-legend_handles = [
-    mlines.Line2D([], [],
-                  color=mstyle['color'],
-                  marker=mstyle['marker'],
-                  ls='none', ms=7,
-                  label=mstyle['label'])
-    for mstyle in MASK_STYLES.values()
-]
+# (legend will be created from the plotted errorbars so markers and caplines
+# appear correctly in the legend)
 
 for ax, mode, panel_label in [
         (ax_EE, 'EE', 'EE'),
         (ax_BB, 'BB', 'BB')]:
 
     # Panel titles removed; using y-axis labels to indicate EE/BB
-    ax.axhline(0, color='grey', lw=0.8, ls='--', zorder=1)
+    ax.axhline(0.1, color='grey', lw=0.8, ls='--', zorder=1)
 
     for mask_key, mstyle in MASK_STYLES.items():
         d    = RHO[mask_key][mode]
@@ -115,6 +108,7 @@ for ax, mode, panel_label in [
             capthick=1.2,
             lw=1.2,
             zorder=3,
+            label=mstyle['label'] if mode == 'EE' else None,
         )
 
     # Label y-axis with rho^{EE} or rho^{BB} instead of placing titles at the top
@@ -128,7 +122,6 @@ for ax, mode, panel_label in [
 
 # legend inside the EE panel (top right)
 ax_EE.legend(
-    handles=legend_handles,
     loc='upper right',
     frameon=False,
     framealpha=0.85,

@@ -145,3 +145,125 @@ try:
 except Exception:
     pass
 plt.savefig(save_path + f'mask_{mask_20_name}_cbar.pdf')
+
+
+#%%
+
+plt.rcParams.update({
+    'axes.labelcolor': 'white',     # Axis labels
+    'xtick.color': 'white',         # X-axis tick labels
+    'ytick.color': 'white',         # Y-axis tick labels
+    'axes.titlecolor': 'white',     # Title color
+    'legend.facecolor': 'black',    # Legend background
+    'legend.edgecolor': 'white',    # Legend border
+    'legend.fontsize': 'medium',    # Legend font size
+    'text.color': 'white',          # General text color
+    'figure.facecolor': 'black',    # Figure background
+    'figure.edgecolor': 'white',    # Figure edge color
+    'axes.facecolor': 'black',      # Axes background
+    'axes.edgecolor': 'white'       # Axes edge (border) color
+})
+
+
+from data import data, masks
+
+save_path = '/home/pablo/Desktop/master/tfm/figures/masks/'
+
+mask_10_path = masks['QUIJOTE_galcut']['galcut10']['path']
+mask_15_path = masks['QUIJOTE_galcut']['galcut15']['path']
+mask_20_path = masks['QUIJOTE_galcut']['galcut20']['path']
+
+
+mask_10 = hp.read_map(mask_10_path)
+mask_15 = hp.read_map(mask_15_path)
+mask_20 = hp.read_map(mask_20_path)
+
+save_path_ppt = '/home/pablo/Desktop/master/tfm/figures_ppt/masks/'
+
+
+hp.mollview(mask_10, title=r'', cbar=False, bgcolor='None')
+
+# plt.savefig(save_path_ppt + f'mask_{mask_10_name}_cbar.png', dpi=300, transparent=True)
+
+hp.mollview(mask_15, title=r'', cbar=False, bgcolor='None')
+
+# plt.savefig(save_path_ppt + f'mask_{mask_15_name}_cbar.png', dpi=300, transparent=True)
+
+hp.mollview(mask_20, title=r'', cbar=True, bgcolor='None')
+try:
+    cax = plt.gcf().axes[-1]
+    pos = cax.get_position()
+    # expand width slightly to make the colorbar larger (tweak as needed)
+    extra = pos.width * 1
+    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+    cax.set_position(new_pos)
+    cax.tick_params(labelsize=20)
+    try:
+        cax.set_yticklabels(['0', '1'])
+    except Exception:
+        pass
+except Exception:
+    pass
+# plt.savefig(save_path_ppt + f'mask_{mask_20_name}_cbar.png', dpi=300, transparent=True)
+
+#%%
+
+wmap_k_path = data['WMAP']['23']['path']
+wmap_k = hp.read_map(wmap_k_path, field=[0,1,2])
+wmap_s = hp.smoothing(np.sqrt(wmap_k[1]**2 + wmap_k[2]**2), fwhm=np.deg2rad(1.2))
+
+use_planck_cmap = True
+
+cmap = None
+if use_planck_cmap:
+    ############### CMB colormap
+    from matplotlib.colors import ListedColormap
+    colombi1_cmap = ListedColormap(np.loadtxt("/home/pablo/Desktop/master/tfm/Planck_Parchment_RGB.txt")/255.)
+    colombi1_cmap.set_bad("gray") # color of missing pixels
+    colombi1_cmap.set_under("white") # color of background, necessary if you want to use
+    # this colormap directly with hp.mollview(m, cmap=colombi1_cmap)
+    cmap = colombi1_cmap
+
+masks_10_inv = np.where(mask_10 == 0, 0.8, 0)
+masks_15_inv = np.where(mask_15 == 0, 0.8, 0)
+masks_20_inv = np.where(mask_20 == 0, 0.8, 0)
+
+#%%
+fig_10 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_10, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(3145728), bgcolor='None',
+		remove_mono=True,
+		remove_dip=False,)
+hp.mollview(mask_10, fig = fig_10, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_10_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut10_wmap_k.png', dpi=800, transparent=True)
+
+fig_15 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_15, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(3145728), bgcolor='None' )
+hp.mollview(mask_15, fig = fig_15, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_15_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut15_wmap_k.png', dpi=800, transparent=True)
+
+fig_20 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_20, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(3145728), bgcolor='None' )
+hp.mollview(mask_20, fig = fig_20, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_20_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut20_wmap_k.png', dpi=800, transparent=True)
+
+#%%
+
+hp.mollview(wmap_s, cmap=cmap, norm='hist', min = 0.027, max =2.070)
+try:
+    cax = plt.gcf().axes[-1]
+    pos = cax.get_position()
+    # expand width slightly to make the colorbar larger (tweak as needed)
+    extra = pos.width * 1
+    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+    cax.set_position(new_pos)
+    cax.tick_params(labelsize=20)
+    try:
+        cax.set_yticklabels(['0', '1'])
+    except Exception:
+        pass
+except Exception:
+    pass
+plt.savefig(save_path_ppt + 'wmap_k.png', dpi=800, transparent=True)

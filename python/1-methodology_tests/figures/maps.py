@@ -335,10 +335,10 @@ def plot_band_mollview(
 		return fig, hp_map_sm
 	return fig
 
-band = 353
-experiment="Planck"
+band = 23
+experiment="WMAP"
 component="P"
-fwhm_deg=1.
+fwhm_deg=1.2
 
 fig = plot_band_mollview(
 	band=band,
@@ -347,7 +347,74 @@ fig = plot_band_mollview(
 	component=component,
 	use_planck_cmap=True,
 	planck_cmap_txt="/home/pablo/Desktop/master/tfm/Planck_Parchment_RGB.txt",
-	save_path=f"/home/pablo/Desktop/coefis/figures/map_{experiment}{band}_{component}_fwhm{fwhm_deg}.pdf",
+	save_path=f"/home/pablo/Desktop/master/tfm/figures_ppt/maps/map_{experiment}{band}_{component}_fwhm{fwhm_deg}.pdf",
     png_transparent=True,
     show=False,
 )
+
+#%%
+# Overlaid masks on WMAP K-band P map
+from data import masks
+import healpy as hp
+import matplotlib.pyplot as plt
+
+mask_10_path = masks['QUIJOTE_galcut']['galcut10']['path']
+mask_15_path = masks['QUIJOTE_galcut']['galcut15']['path']
+mask_20_path = masks['QUIJOTE_galcut']['galcut20']['path']
+
+mask_10 = hp.read_map(mask_10_path, verbose=False)
+mask_15 = hp.read_map(mask_15_path, verbose=False)
+mask_20 = hp.read_map(mask_20_path, verbose=False)
+
+# Obtain the 23 P map using the program's function instead of custom reading
+_, wmap_s = plot_band_mollview(
+    band=23,
+    experiment='WMAP',
+    component='P',
+    fwhm_deg=1.2,
+    use_planck_cmap=False,
+    save_path='/tmp/wmap_tmp.pdf',
+    show=False,
+    return_map=True
+)
+
+use_planck_cmap = True
+cmap = None
+if use_planck_cmap:
+    ############### CMB colormap
+    from matplotlib.colors import ListedColormap
+    colombi1_cmap = ListedColormap(np.loadtxt("/home/pablo/Desktop/master/tfm/Planck_Parchment_RGB.txt")/255.)
+    colombi1_cmap.set_bad("gray") # color of missing pixels
+    colombi1_cmap.set_under("white") # color of background, necessary if you want to use
+    # this colormap directly with hp.mollview(m, cmap=colombi1_cmap)
+    cmap = colombi1_cmap
+
+masks_10_inv = np.where(mask_10 == 0, 0.8, 0)
+masks_15_inv = np.where(mask_15 == 0, 0.8, 0)
+masks_20_inv = np.where(mask_20 == 0, 0.8, 0)
+
+save_path_ppt = '/home/pablo/Desktop/master/tfm/figures_ppt/maps/'
+Path(save_path_ppt).mkdir(parents=True, exist_ok=True)
+
+fig_10 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_10.number, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(len(wmap_s)), bgcolor='None',
+        remove_mono=True,
+        remove_dip=False)
+hp.mollview(mask_10, fig = fig_10.number, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_10_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut10_wmap_k.png', dpi=800, transparent=True)
+plt.close(fig_10)
+
+fig_15 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_15.number, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(len(wmap_s)), bgcolor='None')
+hp.mollview(mask_15, fig = fig_15.number, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_15_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut15_wmap_k.png', dpi=800, transparent=True)
+plt.close(fig_15)
+
+fig_20 = plt.figure(figsize=(10, 6))
+hp.mollview(wmap_s, fig = fig_20.number, cmap=cmap, norm='hist', cbar=False, title=None, alpha = np.ones(len(wmap_s)), bgcolor='None')
+hp.mollview(mask_20, fig = fig_20.number, cmap='gray', cbar=False, title=None, min = -0.25, max = 0.8, alpha = masks_20_inv, bgcolor='None')
+hp.graticule(dmer=40)
+plt.savefig(save_path_ppt + 'mask_galcut20_wmap_k.png', dpi=800, transparent=True)
+plt.close(fig_20)

@@ -1,0 +1,66 @@
+### 1. Presentation and Introduction (2 min)
+**Slide 1: Title Slide (0.5 min)**
+- Title of the Master's Thesis.
+- Your name, supervisors, and institution.
+
+**Slide 2: Context \& Motivation (1.5 min)**
+- **CMB B-modes:** Searching for primordial gravitational waves (e.g., LiteBIRD).
+- **The Challenge:** Cosmological signal is obscured by polarized Galactic foregrounds.
+- **Main Foregrounds:** Synchrotron (low freq) and Thermal Dust (high freq).
+- **Objective:** Characterize spectral properties (SED) of polarized synchrotron and dust using harmonic-space (power spectrum) tools to aid component separation.
+
+### 2. Data (1 min)
+**Slide 3: Datasets Used**
+- **Broad frequency coverage:** 11 to 353 GHz.
+- **QUIJOTE-MFI (DR1):** 11 and 17 GHz bands (crucial for low-frequency synchrotron).
+- **WMAP (9-year):** K, Ka, Q, V, and W bands (23 - 94 GHz).
+- **Planck (PR3):** LFI (28.4, 44.1, 70.4 GHz) and HFI (100, 143, 217, 353 GHz).
+- **Total:** 105 auto- and cross-power spectra.
+
+### 3. Methodology (5 min)
+**Slide 4: The Foreground Model (1.5 min)**
+- Simultaneous modelling of polarized Synchrotron ($EE$, $BB$) and Thermal Dust ($EE$, $BB$).
+- Explicit treatment of spatial cross-correlation between synchrotron and dust.
+- **Significance:** They are polarized by the same Galactic Magnetic Field (GMF).
+
+**Slide 5: Fitting Approaches (2 min)**
+- **Global Power-Law Fit:** Fitting a parametric SED model across multipoles ($20 \leq \ell \leq 200$) and frequencies.
+- **Independent Bin-to-Bin Fit:** Evaluating the SED model in individual multipole bins to test the validity of the global power-law.
+
+**Slide 6: Analysis Choices (1.5 min)**
+- **Multipole range:** Baseline $20 \leq \ell \leq 200$ (with tests at $30 \leq \ell \leq 200$).
+- **Galactic Masks:** Tested three latitude cuts ($|b| > 10^\circ, 15^\circ, 20^\circ$) to assess robustness against Galactic plane contamination.
+- **Auto vs Cross-spectra:** Baseline uses both; specialized robust analysis uses only cross-spectra to avoid noise bias.
+
+### 4. Results (10 min)
+*This is the core of your talk. You can pace this across 6-8 slides.*
+
+**Slide 7: Global Fit - Spectral Indices (2 min)**
+- Synchrotron frequency spectral index ($\beta_s \approx -3.1$).
+- Highlight: Adding QUIJOTE data strongly breaks the amplitude/index degeneracy, reducing uncertainty on $\beta_s$ by a factor of 2.6-3.0 compared to WMAP+Planck alone.
+
+**Slide 8: Global Fit - E/B Asymmetry (2 min)**
+- Synchrotron B-to-E amplitude ratio: strictly $r \approx 0.22 - 0.23$. Highly stable across masks.
+- Dust B-to-E ratio: $0.64 - 0.73$.
+- Contrast your synchrotron $E/B$ result with previous low-frequency measurements (e.g., S-PASS at 2.3 GHz showing $\sim 0.5$ due to Faraday rotation).
+
+**Slide 9: The Impact of Low Multipoles (Multipole Range $20$ vs $30$) (2.5 min)**
+- Synchrotron angular index ($\alpha_s$): Explain why the lowest bin ($\ell=29$) matters.
+- For $EE$, excluding the first bin flattens $\alpha_s$ to $\sim -3.0$ (matching literature).
+- For $BB$, excluding the first bin steepens $\alpha_s$ drastically, showing how much constraining power resides in the largest scales for the faint $BB$ signal.
+
+**Slide 10: Cross-Spectra Only Analysis (2 min)**
+- Show that removing auto-spectra (which suffer from noise bias) keeps parameter estimates completely stable.
+- The $\chi^2$ values improve, confirming that deviations in the baseline model were largely noise-bias residual mismodelling.
+
+**Slide 11: Bin-to-bin fitting results (1.5 min)**
+- Validates the overall global fit.
+- Better $\chi^2_{\rm red} \sim 1.0 - 1.6$, showing the model works well at individual scales, even if a strict global power-law is an oversimplification.
+
+### 5. Conclusions (2 min)
+**Slide 12: Summary \& Takeaways**
+- Characterized polarized synchrotron and dust from 11 to 353 GHz.
+- **Key finding 1:** QUIJOTE is essential! It reduces synchrotron spectral index uncertainty by nearly a factor of 3.
+- **Key finding 2:** Synchrotron $E/B$ ratio is firmly established around 0.22-0.23.
+- **Key finding 3:** Angular spectral indices are highly sensitive to the low-$\ell$ range, especially for $BB$.
+- **Legacy:** These models are robust inputs for future component separation in missions like LiteBIRD.

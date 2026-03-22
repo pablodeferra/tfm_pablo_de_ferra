@@ -418,3 +418,74 @@ hp.mollview(mask_20, fig = fig_20.number, cmap='gray', cbar=False, title=None, m
 hp.graticule(dmer=40)
 plt.savefig(save_path_ppt + 'mask_galcut20_wmap_k.png', dpi=800, transparent=True)
 plt.close(fig_20)
+
+#%%
+
+import sys
+import numpy as np
+
+sys.path.append('../')
+from data import data, masks, path_map
+import healpy as hp
+import matplotlib.pyplot as plt
+
+save_path_ppt = '/home/pablo/Desktop/master/tfm/figures_ppt/maps/'
+
+
+sim_30ghz_path = data['Planck']['30']['path_simulated']
+sim_30ghz = hp.read_map(sim_30ghz_path, field=[0,1,2])
+
+
+use_planck_cmap = True
+cmap = None
+if use_planck_cmap:
+    ############### CMB colormap
+    from matplotlib.colors import ListedColormap
+    colombi1_cmap = ListedColormap(np.loadtxt("/home/pablo/Desktop/master/tfm/Planck_Parchment_RGB.txt")/255.)
+    colombi1_cmap.set_bad("gray") # color of missing pixels
+    colombi1_cmap.set_under("white") # color of background, necessary if you want to use
+    # this colormap directly with hp.mollview(m, cmap=colombi1_cmap)
+    cmap = colombi1_cmap
+
+
+hp.mollview(sim_30ghz[0], cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+plt.savefig(save_path_ppt + 'pysm_30ghz.png', dpi=800, transparent=True)
+
+
+n_30ghz_path = data['Planck']['30']['path_noise_simulations'] 
+n_30ghz_1_path = n_30ghz_path + 'ffp10_noise_030_full_map_mc_00001.fits'
+n_30ghz_2_path = n_30ghz_path + 'ffp10_noise_030_full_map_mc_00002.fits'
+n_30ghz_3_path = n_30ghz_path + 'ffp10_noise_030_full_map_mc_00003.fits'
+
+n_30ghz_1 = hp.read_map(n_30ghz_1_path, field=[0,1,2])
+n_30ghz_2 = hp.read_map(n_30ghz_2_path, field=[0,1,2])
+n_30ghz_3 = hp.read_map(n_30ghz_3_path, field=[0,1,2])
+
+hp.mollview(n_30ghz_1[0], cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+# plt.savefig(save_path_ppt + 'n_30ghz_1.png', dpi=800, transparent=True)
+
+# hp.mollview(n_30ghz_2[0], cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+# plt.savefig(save_path_ppt + 'n_30ghz_2.png', dpi=800, transparent=True)
+
+# hp.mollview(n_30ghz_2[0], cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+# plt.savefig(save_path_ppt + 'n_30ghz_3.png', dpi=800, transparent=True)
+
+
+#%%
+
+pl_30_half1_path = data['Planck']['30']['half_1']
+pl_30_half2_path = data['Planck']['30']['half_2']
+pl_30_hmdm_path = data['Planck']['30']['hmdm']
+
+pl_30_half1 = hp.read_map(pl_30_half1_path)
+pl_30_half2 = hp.read_map(pl_30_half2_path)
+pl_30_hmdm = hp.read_map(pl_30_hmdm_path)
+
+hp.mollview(pl_30_half1, cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+plt.savefig(save_path_ppt + 'half1_30ghz.png', dpi=800, transparent=True)
+
+hp.mollview(pl_30_half2, cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+plt.savefig(save_path_ppt + 'half2_30ghz.png', dpi=800, transparent=True)
+
+hp.mollview(pl_30_hmdm, cmap=cmap, title='', cbar=False, bgcolor='None', norm='hist')
+plt.savefig(save_path_ppt + 'hmdm_30ghz.png', dpi=800, transparent=True)

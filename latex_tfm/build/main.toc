@@ -45,8 +45,8 @@
 \contentsline {subsubsection}{\numberline {4.6.2}Priors}{16}{subsubsection.4.6.2}%
 \contentsline {subsubsection}{\numberline {4.6.3}Sampler}{17}{subsubsection.4.6.3}%
 \contentsline {subsection}{\numberline {4.7.}Fitting approaches}{17}{subsection.4.7}%
-\contentsline {subsubsection}{\numberline {4.7.1}Power-law fitting}{17}{subsubsection.4.7.1}%
-\contentsline {subsubsection}{\numberline {4.7.2}Bin-to-bin analysis}{17}{subsubsection.4.7.2}%
+\contentsline {subsubsection}{\numberline {4.7.1}Power-law}{17}{subsubsection.4.7.1}%
+\contentsline {subsubsection}{\numberline {4.7.2}Bin-to-bin}{17}{subsubsection.4.7.2}%
 \contentsline {section}{\numberline {5}RESULTS}{17}{section.5}%
 \contentsline {paragraph}{}{18}{paragraph*.21}%
 \contentsline {paragraph}{}{18}{paragraph*.22}%
@@ -58,7 +58,7 @@
 \contentsline {subsubsection}{\numberline {5.1.3}Synchrotron frequency spectral index $\beta _s$}{22}{subsubsection.5.1.3}%
 \contentsline {paragraph}{}{22}{paragraph*.28}%
 \contentsline {paragraph}{}{22}{paragraph*.29}%
-\contentsline {subsubsection}{\numberline {5.1.4}Synchrotron-dust spatial correlation $\rho $}{22}{subsubsection.5.1.4}%
+\contentsline {subsubsection}{\numberline {5.1.4}Synchrotron-dust spatial correlation $\rho $}{23}{subsubsection.5.1.4}%
 \contentsline {paragraph}{}{23}{paragraph*.30}%
 \contentsline {subsubsection}{\numberline {5.1.5}Thermal dust parameters}{23}{subsubsection.5.1.5}%
 \contentsline {paragraph}{}{23}{paragraph*.31}%
@@ -71,8 +71,8 @@
 \contentsline {subsubsection}{\numberline {5.2.3}Dust spectral index $\beta _d$}{25}{subsubsection.5.2.3}%
 \contentsline {subsubsection}{\numberline {5.2.4}Synchrotron-dust spatial correlation $\rho $}{26}{subsubsection.5.2.4}%
 \contentsline {paragraph}{}{26}{paragraph*.38}%
-\contentsline {paragraph}{}{27}{paragraph*.40}%
-\contentsline {subsection}{\numberline {5.3.}Goodness of fit}{27}{subsection.5.3}%
+\contentsline {paragraph}{}{26}{paragraph*.40}%
+\contentsline {subsection}{\numberline {5.3.}Goodness of fit}{26}{subsection.5.3}%
 \contentsline {section}{\numberline {6}CONCLUSIONS}{30}{section.6}%
 \contentsline {paragraph}{}{30}{paragraph*.44}%
 \contentsline {paragraph}{}{30}{paragraph*.45}%
@@ -81,6 +81,7 @@
 \contentsline {paragraph}{}{31}{paragraph*.48}%
 \contentsline {paragraph}{}{31}{paragraph*.49}%
 \contentsline {paragraph}{}{31}{paragraph*.50}%
+\contentsline {subsection}{\numberline {6.1.}Future work}{31}{subsection.6.1}%
 \contentsline {paragraph}{}{31}{paragraph*.51}%
 \contentsline {paragraph}{}{32}{paragraph*.52}%
 \contentsline {section}{REFERENCES}{32}{paragraph*.52}%

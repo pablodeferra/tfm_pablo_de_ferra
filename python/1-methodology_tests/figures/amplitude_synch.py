@@ -72,7 +72,7 @@ DATA = {
 # ---------------------------------------------------------------
 MASK_STYLES = {
     'galcut10': dict(color='steelblue',  marker='o', label=r'$\pm10\degree$', offset=-1.7),
-    'galcut15': dict(color='k',          marker='^', label=r'$\pm15\degree$', offset= 0),
+    'galcut15': dict(color='w',          marker='^', label=r'$\pm15\degree$', offset= 0),
     'galcut20': dict(color='goldenrod',  marker='s', label=r'$\pm20\degree$', offset=+1.7),
 }
 
@@ -148,7 +148,7 @@ plt.show()
 # ---------------------------------------------------------------
 out_dir = '/home/pablo/Desktop/master/tfm/figures/spectra/'
 os.makedirs(out_dir, exist_ok=True)
-fig.savefig(os.path.join(out_dir, 'As_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
+# fig.savefig(os.path.join(out_dir, 'As_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
 print('Saved As_vs_ell_bin_to_bin.pdf')
 
 # ---------------------------------------------------------------
@@ -224,10 +224,10 @@ def save_transparent_white(fig, path, dpi=300):
     print('Saved transparent PNG to', path)
 
 ppt_dir = '/home/pablo/Desktop/master/tfm/figures_ppt/spectra/'
-save_transparent_white(
-    fig,
-    os.path.join(ppt_dir, 'As_vs_ell_bin_to_bin_transparent.png'),
-    dpi=300)
+# save_transparent_white(
+#     fig,
+#     os.path.join(ppt_dir, 'As_vs_ell_bin_to_bin_transparent.png'),
+#     dpi=300)
 
 plt.show()
 
@@ -322,21 +322,21 @@ plt.tight_layout()
 plt.show()
 
 # Save PDF
-fig_r.savefig(os.path.join(out_dir, 'As_ratio_BB_over_EE_bin_to_bin.pdf'), bbox_inches='tight')
+# fig_r.savefig(os.path.join(out_dir, 'As_ratio_BB_over_EE_bin_to_bin.pdf'), bbox_inches='tight')
 print('Saved As_ratio_BB_over_EE_bin_to_bin.pdf')
 
 # Transparent PNG
-save_transparent_white(
-    fig_r,
-    os.path.join(ppt_dir, 'As_ratio_BB_over_EE_bin_to_bin_transparent.png'),
-    dpi=300)
+# save_transparent_white(
+#     fig_r,
+#     os.path.join(ppt_dir, 'As_ratio_BB_over_EE_bin_to_bin_transparent.png'),
+#     dpi=300)
 
 # ---------------------------------------------------------------
 # Figure 3: amplitude ratios BB/EE — synch (top) + dust (bottom)
 # ---------------------------------------------------------------
 fig_r2, (ax_rs, ax_rd) = plt.subplots(
-    2, 1, figsize=(15, 6), sharex=True,
-    gridspec_kw={'hspace': 0.15})
+    2, 1, figsize=(15, 7), sharex=False,
+    gridspec_kw={'hspace': 0.4})
 
 for mask_key, mstyle in MASK_STYLES.items():
     xpos = DATA[mask_key]['EE']['ell'] + mstyle['offset']
@@ -366,27 +366,44 @@ for mask_key, mstyle in MASK_STYLES.items():
         yerr=[ratio_d * rel_dn_d, ratio_d * rel_up_d],
         fmt=mstyle['marker'], color=mstyle['color'],
         ms=6, capsize=3, capthick=1.2, lw=1.2, zorder=3,
+        label=mstyle['label'],
     )
 
-ax_rs.axhline(0.25, color='grey', lw=0.8, ls='--', zorder=1)
+# ax_rs.axhline(0.25, color='grey', lw=0.8, ls='--', zorder=1)
 ax_rs.set_xlim(10, 220)
 ax_rs.set_ylim(0, 0.8)
 
-ax_rd.axhline(0.70, color='grey', lw=0.8, ls='--', zorder=1)
+# ax_rd.axhline(0.70, color='grey', lw=0.8, ls='--', zorder=1)
 ax_rd.set_xlim(10, 220)
 ax_rd.set_ylim(0.3, 1)
 
 ax_rs.set_ylabel(r'$A^{\rm BB}_{\rm s}\,/\,A^{\rm EE}_{\rm s}$', fontsize=15)
 ax_rd.set_ylabel(r'$A^{\rm BB}_{\rm d}\,/\,A^{\rm EE}_{\rm d}$', fontsize=15)
 
+ax_rs.axhline(0.224, color='steelblue', lw=0.8, ls='--', zorder=1)
+ax_rs.axhline(0.228, color='w', lw=0.8, ls='--', zorder=1)
+ax_rs.axhline(0.229, color='goldenrod', lw=0.8, ls='--', zorder=1)
+
+ax_rd.axhline(0.734, color='steelblue', lw=0.8, ls='--', zorder=1)
+ax_rd.axhline(0.659, color='w', lw=0.8, ls='--', zorder=1)
+ax_rd.axhline(0.644, color='goldenrod', lw=0.8, ls='--', zorder=1)
+
 ax_rs.legend(
     loc='upper right', frameon=False, fontsize=15,
     handletextpad=0.4, borderpad=0.6,
 )
 
+ax_rd.legend(
+    loc='upper right', frameon=False, fontsize=15,
+    handletextpad=0.4, borderpad=0.6,
+)
+
 ax_rd.set_xticks(ell_ticks)
+ax_rs.set_xticks(ell_ticks)
 ax_rd.set_xticklabels([str(int(v)) for v in ell_ticks])
+ax_rs.set_xticklabels([str(int(v)) for v in ell_ticks])
 ax_rd.set_xlabel(r'$\ell$', fontsize=15)
+ax_rs.set_xlabel(r'$\ell$', fontsize=15)
 
 plt.tight_layout()
 plt.show()
@@ -398,5 +415,5 @@ print('Saved A_ratio_BB_over_EE_synch_dust_bin_to_bin.pdf')
 # Transparent PNG
 save_transparent_white(
     fig_r2,
-    os.path.join(ppt_dir, 'A_ratio_BB_over_EE_synch_dust_bin_to_bin_transparent.png'),
+    os.path.join(ppt_dir, 'A_ratio_BB_over_EE_synch_dust_bin_to_bin_transparent_pl_values.png'),
     dpi=300)

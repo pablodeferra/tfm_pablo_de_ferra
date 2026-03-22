@@ -61,6 +61,10 @@ Sum_mid = CMB + Sync + Dust_mid
 Sum_high = CMB + Sync_high + Dust_high
 Sum_low = CMB + Sync_low + Dust_low
 
+# Sum_mid = CMB + Sync 
+# Sum_high = CMB + Sync_high 
+# Sum_low = CMB + Sync_low 
+
 fig, ax = plt.subplots(figsize=(10, 7))
 
 
@@ -73,7 +77,7 @@ ax.plot(nu, Sum_low, color='w', linestyle='--', linewidth=1.5)
 # Text labels
 ax.text(12, 11, 'Synchrotron', color='steelblue', fontsize=20, rotation=-43)
 ax.text(20, 0.6, 'CMB', color='forestgreen', fontsize=20)
-ax.text(220, 4, 'Thermal dust', color='firebrick', fontsize=20, rotation=14)
+# ax.text(220, 4, 'Thermal dust', color='firebrick', fontsize=20, rotation=14)
 ax.text(44, 2.5, 'Sum foregrounds', color='w', fontsize=18, rotation=0)
 
 
@@ -85,13 +89,13 @@ ax.text(44, 2.5, 'Sum foregrounds', color='w', fontsize=18, rotation=0)
 
 # --- Planck bands ---
 # ax.axvspan(30, 70, color='w', alpha=0.5, hatch='//')
-ax.axvspan(100, 353, color='w', alpha=0.5, hatch='//')
+# ax.axvspan(100, 353, color='w', alpha=0.5, hatch='//')
 
 
 # ax.text(14, 1000, 'MFI', color='magenta', fontsize=20, horizontalalignment='center', fontweight='bold')
 # ax.text(47, 1000, 'WMAP', color='blue', fontsize=20, horizontalalignment='center', fontweight='bold')
 # ax.text(47, 400, 'LFI', color='w', horizontalalignment='center', fontsize=20, fontweight='bold')
-ax.text(200, 1000, 'HFI', color='w', horizontalalignment='center', fontsize=20, fontweight='bold')
+# ax.text(200, 1000, 'HFI', color='w', horizontalalignment='center', fontsize=20, fontweight='bold')
 
 
 # Foreground bands
@@ -118,6 +122,6 @@ ax.tick_params(axis='both', which='minor', direction='in', length=4)
 
 plt.tight_layout()
 # plt.savefig('/home/pablo/Desktop/master/tfm/python/1-methodology_tests/figures/galactic_foregrounds_wmap_quijote.pdf', dpi=300)
-plt.savefig('/home/pablo/Desktop/master/tfm/figures_ppt/foregrounds/galactic_foregrounds_hfi.png', dpi=300, transparent=True)
+plt.savefig('/home/pablo/Desktop/master/tfm/figures_ppt/foregrounds/galactic_foregroundspng', dpi=300, transparent=True)
 plt.show()
 

@@ -33,3 +33,4 @@ Band      bin   ell_eff        sigma_cl        sigma_nl       sigma_tot     rati
 
   Mean ratio sigma_cl / sigma_tot  [BB] = 0.7559
 
+Figure saved → /home/pablo/Desktop/master/tfm/figures/spectra/noise_comparison_quijote_galcut10_full_bin_20-199.pdf

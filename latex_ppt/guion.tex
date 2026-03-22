@@ -49,53 +49,194 @@ The Cosmic Microwave Background (CMB) provides a unique window to study the earl
 
 Detecting primordial the B-mode would constitute direct evidence for inflationary gravitational waves, enabling a measurement of the tensor-to-scalar ratio, and thereby constraining the energy scale of inflation. Such a discovery would open an unprecedented observational window onto high-energy physics, far beyond the reach of terrestrial experiments.
 
-However, its detection does not depend solely on instrumental sensitivity. A successful discovery critically relies on accurate component separation, since the cosmological signal is contaminated by polarized Galactic emission with significantly higher amplitude. 
+However, its detection does not depend solely on instrumental sensitivity. A successful discovery critically relies on accurate component separation, since the cosmological signal is contaminated by polarized Galactic emission with significantly higher amplitude, known as foregrounds.
 
 
 \subsection{Galactic foregrounds and data}
 
-In this figure, you can see the frequency dependence of the CMB in brightness temperature. 
+In this figure, you can see the frequency dependence of the CMB polarization in brightness temperature. In the real sky, two foreground components are known to produce strongly linearly polarized radiation. 
+
+The first one is synchrotron emission, produced by relativistic cosmic-ray electrons spiraling around Galactic magnetic field (GMF) lines and dominating at low frequencies. In brightness-temperature units it is commonly modelled as a power law, with frequency dependence given by
+\begin{equation}
+    T_{\nu} \propto \nu^{\beta_s},
+\end{equation}
+where $\beta_s \simeq -3.1$ is the synchrotron spectral index. Measuring $\beta_s$ constrains the energy distribution of the emitting cosmic-ray electrons.
+
+The second one is thermal dust emission, produced by interstellar dust grains whose shapes and partial alignment with the GMF generate polarized radiation. It dominates at high frequencies and is typically described by a modified blackbody (greybody) spectrum,
+\begin{equation}
+    I_{\nu} \propto \nu^{\beta_d} \, B_{\nu}(T_d),
+\end{equation}
+with spectral index $\beta_d \sim 1.5$ and dust temperature $T_d \approx 19\,$K. Measuring these parameters probes the properties of Galactic dust and is essential for separating foregrounds from the cosmological CMB signal.
+
+In order to model these two foregrounds we need data in a wide frequency range. Therefore we will be including data from three different experiments.
+
+\subsection{QUIJOTE}
+
+The first one is QUIJOTE, which consists of two telescopes located here in Tenerife. More specifically, we will use data from the Multifrequency Instrument (MFI), using the 11 and 17\,GHz bands. As you can see these bands are particularly useful for characterizing the synchrotron emission.
+
+We do not use the 13 and 19\,GHz channels in order to avoid correlations in the dataset.
+
+\subsection{WMAP}
+
+The second experiment is WMAP, a space mission that mapped the microwave sky in five frequency bands spanning 23--94\,GHz. We include all five polarization bands, which provide coverage of the transition region where synchrotron decreases and thermal dust starts to become relevant.
+
+
+\subsection{Planck}
+
+\subsubsection{LFI}
+
+Planck's Low Frequency Instrument (LFI) provides polarization measurements in the 30--70\,GHz range. In this work we use the 30, 44 and 70\,GHz bands, which overlap with WMAP and help constrain the low-frequency foregrounds.
+
+\subsubsection{HFI}
+
+Planck's High Frequency Instrument (HFI) extends the polarization coverage to 100--353\,GHz. We use the 100, 143, 217 and 353\,GHz bands, with the highest-frequency channels giving strong leverage on thermal dust emission.
 
 
 \section{Methodology}
 
 \subsection{Angular power spectra (APS)}
 
+Starting now with the methodology, in this work we study these foreground at a power spectrum level. We compute the angular power spectrum (APS) of the data as given by this expression: 
+
+\begin{equation}
+    \label{eq:cl_cross}
+    C_{\ell}^{X \times Y} = \left\langle \frac{\sum_{m} a_{\ell m}^{X} (a_{\ell m}^{Y})^{*}}{2\ell + 1} \right\rangle,
+\end{equation}
+
+where $a_{\ell m}$ are the spherical harmonic coefficients and X and Y represent the 14 frequency bands that we are using. In this way we include in the analysis 14 auto- and 94 cross-spectra. The multipole $\ell$ represent the different angular scales and it is iversely proportional to the angular scales. As a reference $\ell = 200$ represents scales of approximately 1 degree. 
+
+In this work the spectra are computed in the multipole range from 20 to 200 and with a binning width of 20. So these are our bins, which can be given as these effective $\ell$ values.
+
+
 \subsection{Noise estimation}
+
+
+When we compute the auto-spectra, we are also including the instrumental noise component. So we have to estimate this noise for each band. This is done by making a so-called half-mission difference map, which basically consists on taking the data and splitting it into 2 halves. Then we can subtract these halves accounting their weights using this equation and obtain the HMDM. We compute the APS of this map and we can simply subtract it form the spectra obtained from the sky map. Note that this is done only for the auto-spectra, as the noise is not correlated between bands and therefore it is not present in the cross-spectra.
 
 \subsection{Window functions and CMB subtraction}
 
+Apart from noise, the measured angular power spectrum is also filtered by two window functions that suppress power at high multipoles. The most important one is the instrumental beam window function (set by the experiment's angular resolution). The second is the pixel window function, which accounts for the smoothing introduced by map pixelization. So for each band, we have to account both. And then, we can correct the data from these effects by simply dividing the spectra by its respective window function. 
+
+
+Also, as in this work we will characterize the foregrounds emission, we have to subtract from the data the CMB contribution in polarization. This is obtained from the best-fit theoretical $\Lambda CDM$ power spectrum from Planck Collaboration, 2020. Shown here. For BB only the lensing contribution is included, since primordial tensor B-modes have not yet been detected.
+
 \subsection{Error estimation}
+
+If we attend to the expression for the corrected spectra, we can note that these two components are not perfectly characterized and there are uncertainties in the spectra. So we have to estimate the error of these two terms separately, so that the total error is the quadratic sum of these two components.
+
+But how can we estimate these 2 uncertainties? For the first one we have to account the sky and noise components, so we build a simulated sky map at each frequency using PYSM in python that accounts the cmb, synchrotron and dust emission in polarization without noise. And then we sum this map with 100 different noise realization, which are specific for each experiment. The second term does not contain sky signal, only noise, so we just use these 100 noise realizations. Once we have these maps, we compute the APS for each one of them. Here I show a plot for the E and B modes of these spectra, and the error is estimated as the standard deviation et each multipole bin. 
+
 
 \section*{Foreground model}
 
+Now that we have the spectra corrected and its errors estimated, we have to model it. Our foreground model is given by this equation with three components.
+
 \subsection{Synchrotron emission}
+
+The first one models the synchrotron emission. In this model we use three parameters to describe the synchrotron spectra. A gives the amplitude of the synchrotron spectra at a multipole reference value of 80 and at a frequency of 23 GHz. The angular or multipole spectral index, give us the dependence of the spectra with the multipole. Basically this parameter give us the slope or speepness of the spectra. Finally, we have the frequency spectral index, which give us the frequency dependence of the synchrotron emission.
 
 \subsection{Thermal dust emission}
 
+For the thermal dust emission, in this case, the spectral energy distribution follows a modified black body law, where B is the Planck function and $T_d$ is the dust temperature of $T_d = 19.6$~K.
+
+The parameters that describe the dust emission are the exact same as those just explained, being the Amplitude of the dust spectra at a multipole of 80 and a frequency of 353 GHz, the angular spectral index, and the dust frequency spectral index.
+
 \subsection{Synchrotron-dust spatial correlation}
+
+The last term models the synchrotron-dust spatial correlation, given by this expression. Note that this term is the combination of the synchrotron and dust emission. This is quantified by the spatial correlation coefficient $\rho$, and accounts the common part between these foregrounds driven by the Galactic magnetic field alignment.
 
 \subsection{Bayesian inferenced and MCMC}
 
+The spectra is fitted into the model by Markov-Chain Monte Carlo methods in python using EMCEE. We use a gaussian likelihood, where these twro terms are the data and the model, divided by the spectra error. 
+
+For the fitting we do not use restrictive priors, we simply define positive amplitudes, a negative synchrotron spectral index, a positive dust spectral index and a spatial correlation that has to be between -1 and 1.
+
+Colour corrections that account for the mismatch between the SED of the foreground emission and the spectral response of each instrumental bandpass, are included in the model and re-evaluated at every MCMC step.
+
+Our results are obtained using two different fitting approaches. A global power-law model where we fit all bins into the model previously explained in the multipole range between 20 and 200. And a bin-to-bin fitting, where each individual bin is fitted independently, so we do not impose a multipole dependence of the spectra, therefore, note that the angular spectral indices are not fitted in this approach. For this analysis an additional Gaussian prior on the synchrotron frequency spectral index is included to regularize the fit in multipole bins where the signal-to-noise ratio in the low-frequency channels is too low to adequately constrain the synchrotron SED, which can otherwise lead to spurious results on other parameters.
+
 \subsection{Masks and summary}
+
+We do these analysis using 3 different masks, built as the combination of QUIJOTE analysis mask and progressively more restrictive cuts in the galactic latitude. As you can see, these cuts are made to avoid the Galactic plane signal, reducing the sky fraction from 30 to 23\%. 
+
+So as a quick summary, for each mask, we compute spectra, then we apply the explained corrections, and finally we fit the spectra to the model.
 
 
 \section{Results}
 
+Now we can present the results. We will be presenting them for the 3 masks and the 2 fitting approaches. For the power-law model, we fitted the spectra from two datasets, including and without including the QUIJOTE data, so we can show and quantify the importance of this experiment to characterize the synchrotron emission.
+
 \subsection{Synchrotron amplitude ratio}
+
+Starting with the synchrotron B-to-E amplitude ratio: using only WMAP and Planck the synchrotron signal is too weak to constrain it well. When we add QUIJOTE, the result becomes stable across masks and the uncertainty decreases by about a factor of two, giving a ratio close to $0.2$, showing a clear asymmetry between polarization modes.
+
+The bin-to-bin fit tells the same story, but with noticeably larger errors, especially at the smallest angular scales. If we add to this plot the the amplitude ratios from the power-law fitting, we can see that the per-bin estimates scatter around the global values, with no clear trend with angular scale or with the mask.
 
 \subsection{Dust amplitude ratio}
 
+Talking about the same amplitude ratio, but this time for the thermal dust, we can see that including QUIJOTE data has no effect on the results obtained for the dust parameters, as these bands carry negligible dust emission, and confirms that the synchrotron and dust parameters are well separated by the fit.
+
+We obtain dust amplitude ratios that decrease with the more restrictive masking from 0.73 to 0.64. The bin-to-bin analysis show a similar trend, where the 10$^{\circ}$ mask present a higher amplitude ratio. This could be indicating that with this mask we are still accounting some not diffuse thermal dust emission that could be increasing this ratio.
+
 \subsection{Synchrotron spectral index}
+
+Time to present the synchrotron spectral index. I will show the results for each polarization mode separately, starting with the E-mode.
+
+For the E-mode, WMAP plus Planck alone already give values close to minus three, but adding QUIJOTE clearly tightens the constraints and reduces the errors by about a factor 2 or 3 depending on the mask. Moreover, adding these bands makes the results more stable and compatible across masks at $1\sigma$ level. The per-bin results show increasing errors at smaller angular scales, as expected, but being consistent across all bins. If we compare these results with global values, the results are in perfect agreement, without presenting any trend with the multipole or mask, validating the gaussian prior included in this fitting approach for this parameter.
+
+For the B-mode, the situation is similar but noisier: with WMAP and Planck the uncertainties are larger, while adding QUIJOTE improves the constraint and brings the estimates closer to a coherent value across masks, and also compatible between E and B modes. Again, the bin-to-bin fit follows the global result within errors and shows no clear trend with angular scale.
+
+These results highlight the importance of including QUIJOTE or other experiments data in the component separation studies, making clear that WMAP and Planck data alone, are not sufficient to properly model the synchortron emission in polarization.
 
 \subsection{Dust spectral index}
 
+The dust spectral index is well defined by the higher frequency bands, so I will just present the results obtained with the full dataset. For EE, $\beta_d$ is tightly constrained and stays close to the canonical value of $\sim 1.5$, with only mild variation when changing the mask. The bin-to-bin analysis show a tendency toward this -1.5 value without presenting scale dependence. 
+
+For BB, we find even more stable values around $-1.53$ for both approaches. The estimates are consistent with EE within uncertainties and show no significant dependence on the sky cut, confirming that the dust frequency scaling is robust and similar in both polarization modes.
+
 \subsection{Synchrotron-dust correlation coefficient}
+
+The results for the spatial correlation coefficient $\rho$, presented separately for the E and B modes, show a small but clearly positive synchrotron--dust correlation.
+
+Starting with WMAP+Planck only, for EE we obtain a correlation that decreases as we apply more restrictive Galactic cuts, while for BB the values are also positive but remain comparatively stable across masks.
+
+If we now include QUIJOTE, the overall picture does not change: the inferred $\rho$ values shift only mildly and stay compatible with the WMAP+Planck estimates.
+
+A very interesting results is that these modes show different behaviours, EE shows a clear decrease with more restrictive masking, whereas BB stays roughly constant, being different at a $5.9 \sigma$ level in the 20$^{\circ}$ mask. 
+
+The bin-to-bin estimates, plotting also the global values, reproduce the same behaviour: EE bins tend to drop with the mask, while BB bins scatter around a nearly constant value with multipole, consistent with the global fit.
 
 \subsection{Synchrotron slope}
 
+Finally, the multipole spectral indices, or slopes, starting with the synchrotron emission, the spectra shows steeper values for the EE mode, however with significant errors in the BB mode. If we include QUIJOTE data, the errors are reduced by roughly a factor 2, maintaining this steep values for the EE mode.
+
+Nevertheless, these results should not be over-interpreted, as we saw a strong dependence with the fitting range. We performed these fitting excluding the first bin, this is in the multipole range between 30 and 200. In that case we obtained slope values for the E mode near -3, and B values from -3.5 to -4, very steep values that show the opposite trend that we are obtaining including the first bin. Moreover, we obtained higher reduced $\chi^{2}$ values in the power-law fitting that in the bin-to-bin approach, indicating a worse representation of the data, that is indicating that a single power law model is insufficient for synchrotron emission.
+
+
+If we look at the fit over the spectra, we can see that these are generally satisfactory, but looking at the high multipoles, there is a trend of the fitting to be steeper that the spectra, suggesting that the firsts bin have much more weight and the power-law parameters are dominated by these bins.  
+
+
+
 \subsection{Dust slope}
 
+For the dust slope, we obtain values near -2.5 for the E mode, and from -2.2 to -2.3 for the BB mode, showing a slightly steeper spectra for the EE mode, with fits that are satisfactory for mosts bins.
+
 \section{Conclusions}
+
+So the overall conclusion of this work are:
+
+\begin{itemize}
+    \item We characterized the diffuse polarized synchrotron and thermal dust emission at the power spectrum level, obtaining amplitude ratios of $r_s \equiv A_s^{BB}/A_s^{EE} = 0.228 \pm 0.033$ and $r_d \equiv A_d^{BB}/A_d^{EE} = 0.659 \pm 0.004$ for the $15^{\circ}$ mask.
+
+    \item These values are consistent with $r_s=0.22\pm0.02$ and $0.26\pm0.08$ from Martire 2022 and Rubiño-Martín 2023 respectively; and with $r_d\sim0.5$ reported by Planck Collaboration (2020b).
+
+    \item We obtained spectral indices of $\beta_s\approx-3.1$ and $\beta_d\approx1.53$, compatible between masks and E--B modes for both emissions, in concordance with $\beta_s=-3.12\pm0.04$ Fuskeland 2014 and $\beta_d\approx1.53$ Planck Collaboration (2020b).
+
+    \item We confirm a weak-positive spatial correlation between the two foreground components of $\sim10\%$, compatible with Choi $\&$ Page 2015. The E--B modes differ at $5.9\sigma$ for the $20^{\circ}$ mask, with $\rho^{EE}=0.023\pm0.007$ and $\rho^{BB}=0.121\pm0.015$.
+
+    \item The multipole spectral index exhibits a significant dependence on the binning and multipole range. The high $\chi^2_{\rm red}$ values suggest that a single power law is insufficient to accurately describe the synchrotron emission in the multipole range $20\leq \ell \leq 200$.
+\end{itemize}
+
+
 
 \end{document}

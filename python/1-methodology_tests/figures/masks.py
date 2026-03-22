@@ -173,6 +173,7 @@ mask_10_path = masks['QUIJOTE_galcut']['galcut10']['path']
 mask_15_path = masks['QUIJOTE_galcut']['galcut15']['path']
 mask_20_path = masks['QUIJOTE_galcut']['galcut20']['path']
 
+mask_20_name = masks['QUIJOTE_galcut']['galcut20']['name']
 
 mask_10 = hp.read_map(mask_10_path)
 mask_15 = hp.read_map(mask_15_path)
@@ -189,22 +190,22 @@ hp.mollview(mask_15, title=r'', cbar=False, bgcolor='None')
 
 # plt.savefig(save_path_ppt + f'mask_{mask_15_name}_cbar.png', dpi=300, transparent=True)
 
-hp.mollview(mask_20, title=r'', cbar=True, bgcolor='None')
-try:
-    cax = plt.gcf().axes[-1]
-    pos = cax.get_position()
-    # expand width slightly to make the colorbar larger (tweak as needed)
-    extra = pos.width * 1
-    new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
-    cax.set_position(new_pos)
-    cax.tick_params(labelsize=20)
-    try:
-        cax.set_yticklabels(['0', '1'])
-    except Exception:
-        pass
-except Exception:
-    pass
-# plt.savefig(save_path_ppt + f'mask_{mask_20_name}_cbar.png', dpi=300, transparent=True)
+hp.mollview(mask_20, title=r'', cbar=False, bgcolor='None')
+# try:
+#     cax = plt.gcf().axes[-1]
+#     pos = cax.get_position()
+#     # expand width slightly to make the colorbar larger (tweak as needed)
+#     extra = pos.width * 1
+#     new_pos = [pos.x0 - extra * 0.5, pos.y0, pos.width + extra, pos.height]
+#     cax.set_position(new_pos)
+#     cax.tick_params(labelsize=20)
+#     try:
+#         cax.set_yticklabels(['0', '1'])
+#     except Exception:
+#         pass
+# except Exception:
+#     pass
+plt.savefig(save_path_ppt + f'mask_{mask_20_name}.png', dpi=300, transparent=True)
 
 #%%
 

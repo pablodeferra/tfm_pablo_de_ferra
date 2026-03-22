@@ -70,7 +70,7 @@ DATA = {
 # ---------------------------------------------------------------
 MASK_STYLES = {
     'galcut10': dict(color='steelblue',  marker='o', label=r'$\pm10\degree$', offset=-1.7),
-    'galcut15': dict(color='k',          marker='^', label=r'$\pm15\degree$', offset= 0),
+    'galcut15': dict(color='w',          marker='^', label=r'$\pm15\degree$', offset= 0),
     'galcut20': dict(color='goldenrod',  marker='s', label=r'$\pm20\degree$', offset=+1.7),
 }
 
@@ -78,8 +78,8 @@ MASK_STYLES = {
 # Figure: 2 stacked panels (EE top, BB bottom), shared x-axis
 # ---------------------------------------------------------------
 fig, (ax_EE, ax_BB) = plt.subplots(
-    2, 1, figsize=(15, 6), sharex=True,
-    gridspec_kw={'hspace': 0.15})
+    2, 1, figsize=(15, 9), sharex=False,
+    gridspec_kw={'hspace': 0.35})
 
 ell_ticks = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float)
 
@@ -88,7 +88,7 @@ ell_ticks = np.array([29, 49, 69, 89, 109, 129, 149, 169, 189], dtype=float)
 
 for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
 
-    ax.axhline(1.53, color='grey', lw=0.8, ls='--', zorder=1)
+    # ax.axhline(1.53, color='grey', lw=0.8, ls='--', zorder=1)
 
     for mask_key, mstyle in MASK_STYLES.items():
         d    = DATA[mask_key][mode]
@@ -104,19 +104,19 @@ for ax, mode in [(ax_EE, 'EE'), (ax_BB, 'BB')]:
             capthick=1.2,
             lw=1.2,
             zorder=3,
-            label=mstyle['label'] if mode == 'EE' else None,
+            label=mstyle['label']
         )
 
     if mode == 'EE':
         ax.set_ylabel(r'$\beta^{\rm EE}_{\rm d}$', fontsize=15)
     else:
         ax.set_ylabel(r'$\beta^{\rm BB}_{\rm d}$', fontsize=15)
-    ax.set_xlim(10, 220)
+    ax.set_xlim(20, 200)
     ax.set_ylim(1.53-0.3, 1.53+0.2)
 
 # legend inside the EE panel (upper right)
 ax_EE.legend(
-    loc='upper right',
+    loc='lower right',
     frameon=False,
     framealpha=0.85,
     edgecolor='grey',
@@ -125,9 +125,30 @@ ax_EE.legend(
     borderpad=0.6,
 )
 
+ax_BB.legend(
+    loc='lower right',
+    frameon=False,
+    framealpha=0.85,
+    edgecolor='grey',
+    fontsize=15,
+    handletextpad=0.4,
+    borderpad=0.6,
+)
+
+ax_EE.axhline(1.530, color='steelblue', lw=0.8, ls='--', zorder=1)
+ax_EE.axhline(1.551, color='w', lw=0.8, ls='--', zorder=1)
+ax_EE.axhline(1.486, color='goldenrod', lw=0.8, ls='--', zorder=1)
+
+ax_BB.axhline(1.530, color='steelblue', lw=0.8, ls='--', zorder=1)
+ax_BB.axhline(1.531, color='w', lw=0.8, ls='--', zorder=1)
+ax_BB.axhline(1.533, color='goldenrod', lw=0.8, ls='--', zorder=1)
+
+
+
 ax_BB.set_xticks(ell_ticks)
 ax_BB.set_xticklabels([str(int(v)) for v in ell_ticks])
 ax_BB.set_xlabel(r'$\ell$', fontsize=15)
+ax_EE.set_xlabel(r'$\ell$', fontsize=15)
 
 plt.tight_layout()
 plt.show()
@@ -137,7 +158,7 @@ plt.show()
 # ---------------------------------------------------------------
 out_dir = '/home/pablo/Desktop/master/tfm/figures/spectra/'
 os.makedirs(out_dir, exist_ok=True)
-fig.savefig(os.path.join(out_dir, 'beta_d_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
+# fig.savefig(os.path.join(out_dir, 'beta_d_vs_ell_bin_to_bin.pdf'), bbox_inches='tight')
 print('Saved beta_d_vs_ell_bin_to_bin.pdf')
 
 # ---------------------------------------------------------------
@@ -215,7 +236,8 @@ def save_transparent_white(fig, path, dpi=300):
 ppt_dir = '/home/pablo/Desktop/master/tfm/figures_ppt/spectra/'
 save_transparent_white(
     fig,
-    os.path.join(ppt_dir, 'beta_d_vs_ell_bin_to_bin_transparent.png'),
+    # os.path.join(ppt_dir, 'beta_d_vs_ell_bin_to_bin_transparent.png'),
+    os.path.join(ppt_dir, 'beta_d_vs_ell_bin_to_bin_transparent_pl_values.png'),
     dpi=300)
 
 plt.show()

@@ -1,7 +1,7 @@
 \section{METHODOLOGY}
 \label{sec:methodology}
 
-In this section we describe the methodology followed to characterise Galactic foreground emission using multi-frequency angular power spectrum analysis. The approach relies entirely on harmonic-space statistics, avoiding the complications of real-space fitting, and exploits the broad frequency coverage provided by the combination of QUIJOTE, WMAP, and Planck datasets. We first introduce the mathematical framework of angular power spectrum analysis (Section \ref{sec:power_spectrum}), then describe the construction of the analysis masks (Section \ref{sec:masks}), the data processing steps (beam in Section \ref{sec:beam_correction}, unit corrections in Section \ref{sec:unit_conversion}, noise in Section \ref{sec:noise_correction}, and colour corrections in Section \ref{sec:colour_corrections}), the simulations used to estimate uncertainties (Section \ref{sec:simulations}), the foreground models (Section \ref{sec:foreground_model}), and finally, the Bayesian parameter inference (Section \ref{sec:mcmc}).
+In this section we describe the methodology followed to characterize Galactic foreground emission using multi-frequency angular power spectrum analysis. The approach relies entirely on harmonic-space statistics, avoiding the complications of real-space fitting, and exploits the broad frequency coverage provided by the combination of QUIJOTE, WMAP, and Planck datasets. We first introduce the mathematical framework of angular power spectrum analysis (Section \ref{sec:power_spectrum}), then describe the construction of the analysis masks (Section \ref{sec:masks}), the data processing steps (beam in Section \ref{sec:beam_correction}, unit conversion in Section \ref{sec:unit_conversion}, noise in Section \ref{sec:noise_correction}, and colour corrections in Section \ref{sec:colour_corrections}), the simulations used to estimate uncertainties (Section \ref{sec:simulations}), the foreground models (Section \ref{sec:foreground_model}), and finally, the Bayesian parameter inference (Section \ref{sec:mcmc}).
 
 % ---------------------------------------------------------------
 \subsection{Angular power spectrum (APS) analysis}
@@ -27,6 +27,8 @@ All power spectra in this work are computed using the \namaster\ \python\ librar
 \ell_2^{(k)} = 39 + 20(k-1), \qquad
 k = 1,\ldots,9 .
 \end{equation}
+
+
 
 The lower multipole limit of $\ell = 20$ is imposed by the FDEC filtering applied to the QUIJOTE-MFI maps to remove residual radio frequency interference (RFI) \citep{QUIJOTE_IV}. This filtering suppresses large-angular-scale modes, making multipoles below $\ell \approx 20$ unreliable for a power spectrum analysis. 
 
@@ -104,7 +106,7 @@ All data are converted to a common unit of Rayleigh-Jeans brightness temperature
     \label{eq:unit_conversion}
 \end{equation}
 
-where $h$ is the Planck constant, $k_B$ the Boltzmann constant, and $T_{\rm CMB} = 2.72548\,\mathrm{K}$ \citep{Fixsen_2009}. This factor follows from the derivative of the Planck spectrum with respect to temperature evaluated at $T_{\rm CMB}$, $u(\nu) = \bigl(c^2/2k_B\nu^2\bigr)\,\bigl(\partial B_\nu/\partial T\bigr)_{T_{\rm CMB}}$. For the Planck HFI bands (100--857\,GHz), this analytical expression is replaced by the official bandpass-averaged unit conversion coefficients from the Planck Legacy Archive \citep{Planck_2018III}, which account for the measured instrumental bandpass shape and the associated frequency shift. For all remaining bands (QUIJOTE, WMAP, and Planck LFI) the conversion is evaluated analytically at the nominal band-centre frequency. The unit correction applied to the power spectrum of band pair $(i,j)$ is $u(\nu_i)u(\nu_j)$.
+where $h$ is the Planck constant, $k_B$ the Boltzmann constant, and $T_{\rm CMB} = 2.72548\,\mathrm{K}$ \citep{Fixsen_2009}. This factor follows from the derivative of the Planck spectrum with respect to temperature evaluated at $T_{\rm CMB}$, $u(\nu) = \bigl(c^2/2k_B\nu^2\bigr)\,\bigl(\partial B_\nu/\partial T\bigr)_{T_{\rm CMB}}$. For the Planck HFI bands (100--857\,GHz), this analytical expression is replaced by the official bandpass-averaged unit conversion coefficients from the Planck Legacy Archive \citep{Planck_2018III}, which account for the measured instrumental bandpass shape and the associated frequency shift. For all remaining bands (QUIJOTE, WMAP, and Planck LFI) the conversion is evaluated analytically at the nominal band-centre frequency. The unit conversion applied to the power spectrum of band pair $(i,j)$ is $u(\nu_i)u(\nu_j)$.
 
 
 \subsubsection{Noise power spectrum}
@@ -238,7 +240,7 @@ and analogously for U, where $N_{\rm obs}^Q$, $N_{\rm obs}^U$, and $N_{\rm obs}^
 
 \subsubsection*{Planck} 
 
-For Planck LFI and HFI bands (PR3 data), $N_{\rm sim} = 100$ per-band noise simulations are downloaded from the Planck Legacy Archive \citep{Planck_2020LVII}. These simulations are generated using the MCMC-based noise estimation procedures described in the respective data processing papers for LFI \citep{Planck_2015II} and HFI \citep{Planck_2018III}, which characterise the noise power spectrum including contributions from the $1/f$ noise component of the detectors. Each simulation map is processed identically to the data in the analysis pipeline.
+For Planck LFI and HFI bands (PR3 data), $N_{\rm sim} = 100$ per-band noise simulations are downloaded from the Planck Legacy Archive \citep{Planck_2020LVII}. These simulations are generated using the MCMC-based noise estimation procedures described in the respective data processing papers for LFI \citep{Planck_2015II} and HFI \citep{Planck_2018III}, which characterize the noise power spectrum including contributions from the $1/f$ noise component of the detectors. Each simulation map is processed identically to the data in the analysis pipeline.
 
 % ---------------------------------------------------------------
 \subsection{Foreground emission model}
@@ -290,7 +292,7 @@ C_\ell^{\rm dust}(\nu_i, \nu_j) = A_d \left(\frac{\ell}{\ell_{\rm ref}}\right)^{
 S_d(\nu_i)\, S_d(\nu_j),
 \end{equation}
 
-where $A_d$ is the dust amplitude at $\ell_{\rm ref} = 80$ and $\nu_0 = 353$~GHz, $\alpha_d$ is the angular power spectral index, and $\beta_d$ is the MBB frequency spectral index.
+where $A_d$ is the dust amplitude at $\ell_{\rm ref} = 80$ and $\nu_0 = 353$~GHz, $\alpha_d$ is the dust angular spectral index, and $\beta_d$ is the MBB frequency spectral index.
 
 \subsubsection{Synchrotron-dust cross-correlation}
 \label{sec:corr}
@@ -366,12 +368,12 @@ Two complementary fitting approaches are applied to the corrected power spectra 
 
 Moreover, a complementary study restricted to cross-spectra only, which avoids any noise bias in the auto-spectra, is presented in Appendix~\ref{sec:appendix_1}; and a study fitting in the multipole range $30 \leq \ell \leq 200$ suggested in \cite{QUIJOTE_IV} is presented in Appendix~\ref{sec:appendix_2}.
 
-\subsubsection{Power-law fitting}
+\subsubsection{Power-law}
 \label{sec:fitting_methods_pl}
 
 In this approach all nine multipole bins are fitted simultaneously by the global power-law foreground model of Section~\ref{sec:foreground_model}. The MCMC samples the full parameter vector $\boldsymbol{\theta} = \{A_s, \alpha_s, \beta_s, A_d, \alpha_d, \beta_d, \rho\}$ over all frequencies and multipoles. EE and BB modes are fitted separately.
 
-\subsubsection{Bin-to-bin analysis}
+\subsubsection{Bin-to-bin}
 \label{sec:fitting_methods_btb}
 
 In this approach each multipole bin is fitted independently, without imposing any global power-law dependence on $\ell$. The per-bin parameter vector is $\boldsymbol{\theta}_{\rm bin} = \{A_s, \beta_s, A_d, \beta_d, \rho\}$. The multipole spectral indices ($\alpha_s$, $\alpha_d$) are not fitted in a single-bin analysis. This approach enables us to examine how the fitted parameters vary with the effective multipole, $\ell_{\rm eff}$, revealing any scale-dependent behavior or local deviations from the global power-law assumption.

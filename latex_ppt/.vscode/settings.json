@@ -8,15 +8,19 @@
   "editor.acceptSuggestionOnEnter": "off",
   "editor.tabCompletion": "off",
   "editor.parameterHints.enabled": false,
-  "editor.wordBasedSuggestions": false,
+  "editor.wordBasedSuggestions": "off",
   "editor.autoClosingBrackets": "never",
   "editor.autoClosingQuotes": "never",
   "editor.autoSurround": "never",
   "editor.formatOnType": false,
 
   "[latex]": {
-    "editor.quickSuggestions": false,
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    },
     "editor.suggestOnTriggerCharacters": false,
-    "editor.wordBasedSuggestions": false
+    "editor.wordBasedSuggestions": "off"
   }
 }

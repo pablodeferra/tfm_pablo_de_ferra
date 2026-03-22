@@ -329,8 +329,8 @@ for mask_name, spectra_plot in SPECTRA.items():
     plt.tight_layout()
     plt.show()
 
-    fig_s.savefig(
-        f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_{mask_name}.pdf')
+    # fig_s.savefig(
+    #     f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_synch_bands_full_model_fit_{mask_name}.pdf')
     save_figure_transparent_white(
         fig_s,
         f'/home/pablo/Desktop/master/tfm/figures_ppt/spectra/spectra_synch_bands_full_model_fit_{mask_name}_transparent.png',
@@ -394,8 +394,8 @@ for mask_name, spectra_plot in SPECTRA.items():
     plt.tight_layout()
     plt.show()
 
-    fig_d.savefig(
-        f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_{mask_name}.pdf')
+    # fig_d.savefig(
+    #     f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_dust_bands_full_model_fit_{mask_name}.pdf')
     save_figure_transparent_white(
         fig_d,
         f'/home/pablo/Desktop/master/tfm/figures_ppt/spectra/spectra_dust_bands_full_model_fit_{mask_name}_transparent.png',
@@ -423,9 +423,9 @@ def _make_combined(band_cfgs, cross_cfgs, fig_label):
     fig_label  : str used in output filenames
     """
     fig, axes = plt.subplots(
-        3, 4, figsize=(27, 14),
+        3, 4, figsize=(27, 11),
         sharex=True,
-        gridspec_kw={'hspace': 0.08, 'wspace': 0.28},
+        gridspec_kw={'hspace': 0.08, 'wspace': 0.15},
     )
 
     for col_idx, title in enumerate(col_titles):
@@ -503,9 +503,9 @@ def _make_combined(band_cfgs, cross_cfgs, fig_label):
     plt.tight_layout()
     plt.show()
 
-    fig.savefig(
-        f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_{fig_label}.pdf',
-        bbox_inches='tight')
+    # fig.savefig(
+    #     f'/home/pablo/Desktop/master/tfm/figures/spectra/spectra_combined_3masks_{fig_label}.pdf',
+    #     bbox_inches='tight')
     save_figure_transparent_white(
         fig,
         f'/home/pablo/Desktop/master/tfm/figures_ppt/spectra/spectra_combined_3masks_{fig_label}_transparent.png',
@@ -514,30 +514,30 @@ def _make_combined(band_cfgs, cross_cfgs, fig_label):
 
 
 # --- Synchrotron combined figure: 11, 23, 30 GHz ---
-_make_combined(
-    band_cfgs=[
-        dict(b='11', f=11.0,  color='steelblue', label='11×11 GHz'),
-        dict(b='23', f=23.0,  color='k',         label='23×23 GHz'),
-        dict(b='30', f=30.0,  color='goldenrod',  label='30×30 GHz'),
-    ],
-    cross_cfgs=[
-        dict(b1='11', b2='23', f1=11.0, f2=23.0, color='steelblue', label='11×23 GHz'),
-        dict(b1='11', b2='30', f1=11.0, f2=30.0, color='k',         label='11×30 GHz'),
-        dict(b1='23', b2='30', f1=23.0, f2=30.0, color='goldenrod',  label='23×30 GHz'),
-    ],
-    fig_label='synch_bands',
-)
+# _make_combined(
+#     band_cfgs=[
+#         dict(b='11', f=11.0,  color='steelblue', label='11×11 GHz'),
+#         dict(b='23', f=23.0,  color='k',         label='23×23 GHz'),
+#         dict(b='30', f=30.0,  color='goldenrod',  label='30×30 GHz'),
+#     ],
+#     cross_cfgs=[
+#         dict(b1='11', b2='23', f1=11.0, f2=23.0, color='steelblue', label='11×23 GHz'),
+#         dict(b1='11', b2='30', f1=11.0, f2=30.0, color='k',         label='11×30 GHz'),
+#         dict(b1='23', b2='30', f1=23.0, f2=30.0, color='goldenrod',  label='23×30 GHz'),
+#     ],
+#     fig_label='synch_bands',
+# )
 
 # --- Dust combined figure: 100, 217, 353 GHz ---
 _make_combined(
     band_cfgs=[
         dict(b='100', f=100.0, color='steelblue', label='100×100 GHz'),
-        dict(b='217', f=217.0, color='k',         label='217×217 GHz'),
+        dict(b='217', f=217.0, color='w',         label='217×217 GHz'),
         dict(b='353', f=353.0, color='goldenrod',  label='353×353 GHz'),
     ],
     cross_cfgs=[
         dict(b1='100', b2='217', f1=100.0, f2=217.0, color='steelblue', label='100×217 GHz'),
-        dict(b1='100', b2='353', f1=100.0, f2=353.0, color='k',         label='100×353 GHz'),
+        dict(b1='100', b2='353', f1=100.0, f2=353.0, color='w',         label='100×353 GHz'),
         dict(b1='217', b2='353', f1=217.0, f2=353.0, color='goldenrod',  label='217×353 GHz'),
     ],
     fig_label='dust_bands',
